@@ -31,7 +31,11 @@ app.use(cookieParser());
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Rate limiting for API
+// Stricter rate limits for auth (must be BEFORE general API limiter)
+app.use('/api/auth/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many login attempts. Please try again later.' } }));
+app.use('/api/auth/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: 'Too many registration attempts. Please try again later.' } }));
+
+// General rate limiting for API
 app.use('/api', rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -39,10 +43,6 @@ app.use('/api', rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many requests. Please try again later.' }
 }));
-
-// Stricter rate limits for auth
-app.use('/api/auth/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many login attempts. Please try again later.' } }));
-app.use('/api/auth/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: 'Too many registration attempts. Please try again later.' } }));
 
 // Routes
 app.use('/api', require('./routes/api'));
@@ -57,11 +57,13 @@ app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'views', 'r
 app.get('/my-appointments', (req, res) => res.sendFile(path.join(__dirname, 'views', 'my-appointments.html')));
 
 // Blog pages
-app.get('/blog', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'blog-list.html'));
-});
-app.get('/blog/:slug', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'blog-post.html'));
+app.get('/blog', (req, res) => res.sendFile(path.join(__dirname, 'views', 'blog-list.html')));
+app.get('/blog/:slug', (req, res) => res.sendFile(path.join(__dirname, 'views', 'blog-post.html')));
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 const PORT = process.env.PORT || 3000;

@@ -342,7 +342,7 @@ async function deleteCalendarEvent(eventId) {
   }
 }
 
+router.createCalendarEvent = createCalendarEvent;
+router.deleteCalendarEvent = deleteCalendarEvent;
+router.getSettings = getSettings;
 module.exports = router;
-module.exports.createCalendarEvent = createCalendarEvent;
-module.exports.deleteCalendarEvent = deleteCalendarEvent;
-module.exports.getSettings = getSettings;

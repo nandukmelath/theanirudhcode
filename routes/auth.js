@@ -42,6 +42,7 @@ router.post('/login', (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+  if (!validateEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
 
   try {
     const user = db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1').get(email.trim().toLowerCase());
