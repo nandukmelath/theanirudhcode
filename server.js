@@ -65,6 +65,7 @@ app.get('/blog/:slug', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`theanirudhcode server running at http://localhost:${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
+  console.log(`theanirudhcode server running at http://${HOST}:${PORT}`);
 });
