@@ -1,0 +1,23 @@
+{
+  "name": "theanirudhcode",
+  "version": "1.0.0",
+  "description": "Heal the Real You — Wellness platform by Dr. Anirudh M. Vaddineni",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "db:init": "node database/init.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^11.0.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.0",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.0",
+    "googleapis": "^171.4.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "sanitize-html": "^2.13.0"
+  }
+}

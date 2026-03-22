@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Appointments — theanirudhcode</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--black4:#1a1a1a;--gold:#c8a951;--gold2:#e2c97e;--gold3:#f5e6b8;--gold-d:rgba(200,169,81,.15);--gold-g:rgba(200,169,81,.35);--white:#f8f4ec;--muted:rgba(248,244,236,.42);--faint:rgba(248,244,236,.14);--amber:#c8733a;--line:rgba(200,169,81,.11)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh}
+
+.page-nav{padding:20px clamp(22px,5.5vw,92px);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)}
+.nav-logo{font-family:'Cormorant',serif;font-size:20px;font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;display:flex;align-items:center;gap:9px}
+.nav-gem{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);flex-shrink:0}
+.nav-back{font-size:13px;color:var(--muted);text-decoration:none;transition:color .3s;font-weight:200}
+.nav-back:hover{color:var(--gold2)}
+
+.page-content{max-width:800px;margin:0 auto;padding:clamp(32px,5vw,64px) clamp(22px,5.5vw,92px)}
+.page-title{font-family:'Cormorant',serif;font-size:clamp(30px,4vw,48px);font-weight:300;margin-bottom:8px}
+.page-title em{color:var(--gold2);font-style:italic}
+.page-sub{color:var(--muted);font-size:14px;font-weight:200;margin-bottom:40px}
+
+.section-label{font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+
+.appt-card{background:var(--black2);border:1px solid var(--line);padding:20px 24px;margin-bottom:12px;transition:border-color .3s}
+.appt-card:hover{border-color:rgba(200,169,81,.25)}
+.appt-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.appt-date{font-family:'Cormorant',serif;font-size:20px;font-weight:300}
+.appt-time{color:var(--gold2);font-size:14px;font-weight:300}
+.appt-status{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.15em;text-transform:uppercase;padding:4px 12px;border:1px solid}
+.status-confirmed{color:var(--gold);border-color:rgba(200,169,81,.3);background:rgba(200,169,81,.08)}
+.status-cancelled{color:var(--amber);border-color:rgba(200,115,58,.3);background:rgba(200,115,58,.08)}
+.status-completed{color:#4a9;border-color:rgba(68,170,153,.3);background:rgba(68,170,153,.08)}
+.appt-concerns{color:var(--muted);font-size:13px;font-weight:200;line-height:1.5}
+.appt-actions{margin-top:12px;display:flex;gap:12px}
+.btn-cancel{background:none;border:1px solid rgba(200,115,58,.3);color:var(--amber);padding:8px 16px;font-family:'Barlow',sans-serif;font-size:12px;transition:all .3s}
+.btn-cancel:hover{background:rgba(200,115,58,.1);border-color:var(--amber)}
+.btn-cancel:disabled{opacity:.4}
+
+.empty-state{text-align:center;padding:60px 20px}
+.empty-icon{font-size:48px;margin-bottom:16px;color:var(--faint)}
+.empty-text{color:var(--muted);font-size:15px;margin-bottom:24px;font-weight:200}
+.btn-book{display:inline-block;padding:14px 32px;background:var(--gold);color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:12px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;transition:background .3s}
+.btn-book:hover{background:var(--gold2)}
+
+.loading{text-align:center;padding:60px 0;color:var(--muted);font-weight:200}
+.auth-msg{text-align:center;padding:60px 20px}
+.auth-msg a{color:var(--gold2);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="page-nav">
+  <a href="/" class="nav-logo"><div class="nav-gem"></div>theanirudhcode</a>
+  <a href="/" class="nav-back">&larr; Back to Home</a>
+</div>
+
+<div class="page-content">
+  <h1 class="page-title">My <em>Appointments</em></h1>
+  <p class="page-sub">Manage your consultations with Dr. Anirudh</p>
+  <div id="content">
+    <div class="loading">Loading your appointments...</div>
+  </div>
+</div>
+
+<script>
+async function checkAuth() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (!res.ok) throw new Error();
+    return true;
+  } catch {
+    document.getElementById('content').innerHTML = `
+      <div class="auth-msg">
+        <p style="color:var(--muted);margin-bottom:16px">Please sign in to view your appointments</p>
+        <a href="/login?redirect=/my-appointments" class="btn-book">Sign In</a>
+      </div>`;
+    return false;
+  }
+}
+
+async function loadAppointments() {
+  if (!(await checkAuth())) return;
+
+  try {
+    const res = await fetch('/api/appointments/my');
+    const data = await res.json();
+    const el = document.getElementById('content');
+
+    if (!data.upcoming.length && !data.past.length) {
+      el.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">&#9737;</div>
+          <p class="empty-text">You haven't booked any appointments yet</p>
+          <a href="/" class="btn-book">Book Your First Consultation</a>
+        </div>`;
+      return;
+    }
+
+    let html = '';
+    if (data.upcoming.length) {
+      html += `<div class="section-label">Upcoming Appointments</div>`;
+      data.upcoming.forEach(a => { html += renderCard(a, true); });
+    }
+    if (data.past.length) {
+      html += `<div class="section-label" style="margin-top:40px">Past Appointments</div>`;
+      data.past.forEach(a => { html += renderCard(a, false); });
+    }
+    el.innerHTML = html;
+
+    // Attach cancel handlers
+    el.querySelectorAll('.btn-cancel').forEach(btn => {
+      btn.addEventListener('click', () => cancelAppt(btn.dataset.id, btn));
+    });
+  } catch {
+    document.getElementById('content').innerHTML = '<div class="loading">Failed to load appointments. Please refresh.</div>';
+  }
+}
+
+function renderCard(a, canCancel) {
+  const d = new Date(a.date + 'T00:00:00');
+  const dateStr = d.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const startH = parseInt(a.time_start.split(':')[0]);
+  const ampm = startH >= 12 ? 'PM' : 'AM';
+  const dH = startH > 12 ? startH - 12 : (startH || 12);
+  const timeStr = dH + ':' + a.time_start.split(':')[1] + ' ' + ampm;
+
+  const statusCls = 'status-' + a.status;
+  const apptTime = new Date(a.date + 'T' + a.time_start + ':00+05:30');
+  const canCancelNow = canCancel && a.status === 'confirmed' && (apptTime - Date.now()) > 24 * 60 * 60 * 1000;
+
+  return '<div class="appt-card">' +
+    '<div class="appt-top">' +
+      '<div><div class="appt-date">' + dateStr + '</div><div class="appt-time">' + timeStr + '</div></div>' +
+      '<span class="appt-status ' + statusCls + '">' + a.status + '</span>' +
+    '</div>' +
+    (a.health_concerns ? '<div class="appt-concerns">' + a.health_concerns + '</div>' : '') +
+    (canCancelNow ? '<div class="appt-actions"><button class="btn-cancel" data-id="' + a.id + '">Cancel Appointment</button></div>' : '') +
+  '</div>';
+}
+
+async function cancelAppt(id, btn) {
+  if (!confirm('Are you sure you want to cancel this appointment?')) return;
+  btn.disabled = true;
+  btn.textContent = 'Cancelling...';
+  try {
+    const res = await fetch('/api/appointments/' + id + '/cancel', { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      loadAppointments();
+    } else {
+      alert(data.error);
+      btn.disabled = false;
+      btn.textContent = 'Cancel Appointment';
+    }
+  } catch {
+    alert('Failed to cancel. Please try again.');
+    btn.disabled = false;
+    btn.textContent = 'Cancel Appointment';
+  }
+}
+
+loadAppointments();
+</script>
+</body>
+</html>

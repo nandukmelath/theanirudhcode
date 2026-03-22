@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register — theanirudhcode</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--gold:#c8a951;--gold2:#e2c97e;--gold-d:rgba(200,169,81,.15);--gold-g:rgba(200,169,81,.35);--white:#f8f4ec;--muted:rgba(248,244,236,.42);--faint:rgba(248,244,236,.14);--amber:#c8733a;--line:rgba(200,169,81,.11)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.auth-logo{font-family:'Cormorant',serif;font-size:20px;font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;margin-bottom:48px;display:flex;align-items:center;gap:9px}
+.auth-gem{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);flex-shrink:0}
+.auth-box{background:var(--black2);border:1px solid var(--line);padding:clamp(32px,5vw,48px);max-width:440px;width:90%}
+.auth-box h2{font-family:'Cormorant',serif;font-size:clamp(26px,3.5vw,36px);font-weight:300;margin-bottom:6px}
+.auth-box h2 em{color:var(--gold2);font-style:italic}
+.auth-sub{color:var(--muted);font-size:14px;margin-bottom:28px;font-weight:200}
+.finput{width:100%;padding:14px 16px;background:var(--black3);border:1px solid var(--line);color:var(--white);font-family:'Barlow',sans-serif;font-size:14px;margin-bottom:12px;outline:none;transition:border-color .3s;font-weight:300}
+.finput:focus{border-color:rgba(200,169,81,.4)}
+.finput::placeholder{color:var(--faint)}
+.fsubmit{width:100%;padding:16px;background:var(--gold);border:none;color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-top:8px;transition:all .35s;display:flex;align-items:center;justify-content:center}
+.fsubmit:hover{background:var(--gold2)}
+.fsubmit:disabled{opacity:.6}
+.auth-link{display:block;text-align:center;margin-top:20px;font-size:13px;color:var(--muted);font-weight:200}
+.auth-link a{color:var(--gold2);text-decoration:none;transition:color .3s}
+.auth-link a:hover{color:var(--gold)}
+.auth-error{background:rgba(200,115,58,.1);border:1px solid rgba(200,115,58,.3);padding:12px 16px;font-size:13px;color:var(--amber);margin-bottom:16px;display:none}
+.pw-strength{height:3px;background:var(--line);margin-bottom:12px;overflow:hidden}
+.pw-bar{height:100%;width:0;transition:width .3s,background .3s}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.field-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<a href="/" class="auth-logo"><div class="auth-gem"></div>theanirudhcode</a>
+
+<div class="auth-box">
+  <h2>Begin your <em>journey</em></h2>
+  <p class="auth-sub">Create an account to book consultations with Dr. Anirudh</p>
+  <div class="auth-error" id="auth-error"></div>
+  <form id="register-form">
+    <input class="finput" type="text" name="name" placeholder="Full name" required autocomplete="name">
+    <input class="finput" type="email" name="email" placeholder="Email address" required autocomplete="email">
+    <input class="finput" type="tel" name="phone" placeholder="Phone number (optional)" autocomplete="tel">
+    <input class="finput" type="password" name="password" id="pw" placeholder="Password (min 8 characters)" required minlength="8" autocomplete="new-password">
+    <div class="pw-strength"><div class="pw-bar" id="pw-bar"></div></div>
+    <input class="finput" type="password" name="confirm" placeholder="Confirm password" required autocomplete="new-password">
+    <button type="submit" class="fsubmit" id="reg-btn"><span>Create Account</span></button>
+  </form>
+  <p class="auth-link">Already have an account? <a href="/login">Sign in</a></p>
+</div>
+
+<script>
+// Password strength indicator
+document.getElementById('pw').addEventListener('input', (e) => {
+  const bar = document.getElementById('pw-bar');
+  const pw = e.target.value;
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const pct = (score / 5) * 100;
+  bar.style.width = pct + '%';
+  bar.style.background = pct < 40 ? 'var(--amber)' : pct < 70 ? 'var(--gold)' : '#4a9';
+});
+
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('reg-btn');
+  const errEl = document.getElementById('auth-error');
+  const fd = new FormData(e.target);
+  const data = Object.fromEntries(fd);
+
+  if (data.password !== data.confirm) {
+    errEl.textContent = 'Passwords do not match';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (data.password.length < 8) {
+    errEl.textContent = 'Password must be at least 8 characters';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'Creating account...';
+  errEl.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: data.name, email: data.email, password: data.password, phone: data.phone })
+    });
+    const result = await res.json();
+
+    if (res.ok) {
+      window.location.href = '/';
+    } else {
+      errEl.textContent = result.error;
+      errEl.style.display = 'block';
+    }
+  } catch {
+    errEl.textContent = 'Connection error. Please try again.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.querySelector('span').textContent = 'Create Account';
+  }
+});
+</script>
+</body>
+</html>

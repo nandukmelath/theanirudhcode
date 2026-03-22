@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insights — theanirudhcode</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;1,300;1,400&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--gold:#c8a951;--gold2:#e2c97e;--gold3:#f5e6b8;--gold-d:rgba(200,169,81,.15);--white:#f8f4ec;--muted:rgba(248,244,236,.42);--faint:rgba(248,244,236,.14);--line:rgba(200,169,81,.11);--px:clamp(22px,5.5vw,92px);--fb:clamp(13px,1.15vw,15.5px);--fs:clamp(10px,.9vw,12px)}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif}
+.gl{display:inline-flex;align-items:center;gap:12px;font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.38em;text-transform:uppercase;color:var(--gold)}
+.gl::before{content:'';width:26px;height:1px;background:var(--gold);flex-shrink:0}
+nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:clamp(14px,2vw,26px) var(--px);display:flex;justify-content:space-between;align-items:center;background:rgba(7,7,7,.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
+.nlogo{font-family:'Cormorant',serif;font-size:clamp(15px,1.6vw,20px);font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;display:flex;align-items:center;gap:9px}
+.ngem{width:7px;height:7px;background:var(--gold);transform:rotate(45deg);flex-shrink:0}
+.back-link{font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .3s}
+.back-link:hover{color:var(--gold)}
+.page-wrap{max-width:1200px;margin:0 auto;padding:clamp(100px,14vh,160px) var(--px) clamp(60px,8vh,100px)}
+.page-head{margin-bottom:clamp(40px,6vw,72px)}
+.page-head h1{font-family:'Cormorant',serif;font-size:clamp(36px,5vw,72px);font-weight:300;line-height:1.05}
+.page-head h1 em{font-style:italic;color:var(--gold2)}
+.page-head p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:200;margin-top:16px;max-width:500px}
+.posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:clamp(1px,.15vw,2px)}
+.post-card{background:var(--black2);border:1px solid var(--line);text-decoration:none;color:inherit;display:block;transition:all .5s cubic-bezier(.22,1,.36,1)}
+.post-card:hover{transform:translateY(-6px);box-shadow:0 40px 80px rgba(0,0,0,.5);border-color:rgba(200,169,81,.2)}
+.card-visual{height:180px;background:var(--black3);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.card-tag{position:absolute;top:14px;left:14px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);background:rgba(7,7,7,.85);padding:4px 10px;border:1px solid rgba(200,169,81,.25)}
+.card-body{padding:clamp(20px,2.5vw,32px)}
+.card-cat{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.card-title{font-family:'Cormorant',serif;font-size:clamp(18px,1.8vw,24px);font-weight:300;line-height:1.35}
+.card-excerpt{font-size:var(--fb);color:var(--muted);line-height:1.9;font-weight:200;margin-top:10px}
+.card-meta{display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+.card-date{font-size:10px;color:var(--faint);letter-spacing:.15em}
+.card-arrow{font-size:14px;color:var(--gold);transition:transform .3s}
+.post-card:hover .card-arrow{transform:translateX(6px)}
+.loading{text-align:center;padding:60px;color:var(--faint);font-family:'Cormorant',serif;font-style:italic;font-size:18px}
+</style>
+</head>
+<body>
+<nav>
+  <a href="/" class="nlogo"><div class="ngem"></div>theanirudhcode</a>
+  <a href="/" class="back-link">&larr; Back to Home</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-head">
+    <div class="gl" style="margin-bottom:clamp(10px,1.5vw,16px)">Insights</div>
+    <h1>All <em>insights</em></h1>
+    <p>Deep dives into metabolic health, Ayurvedic wisdom, fasting science, and the biochemistry of healing.</p>
+  </div>
+  <div class="posts-grid" id="posts-grid">
+    <div class="loading">Loading posts...</div>
+  </div>
+</div>
+
+<script>
+(async () => {
+  try {
+    const res = await fetch('/api/posts');
+    const { posts } = await res.json();
+    const grid = document.getElementById('posts-grid');
+    if (!posts.length) { grid.innerHTML = '<div class="loading">No posts yet. Check back soon.</div>'; return; }
+    grid.innerHTML = posts.map(p => {
+      const date = new Date(p.created_at);
+      const dateStr = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const tags = p.tags ? p.tags.split(',')[0] : p.category;
+      return `<a href="/blog/${p.slug}" class="post-card">
+        <div class="card-visual"><div class="card-tag">${esc(tags)}</div></div>
+        <div class="card-body">
+          <div class="card-cat">${esc(p.category)}</div>
+          <div class="card-title">${esc(p.title)}</div>
+          <div class="card-excerpt">${esc(p.excerpt)}</div>
+          <div class="card-meta"><span class="card-date">${dateStr}</span><span class="card-arrow">&rarr;</span></div>
+        </div>
+      </a>`;
+    }).join('');
+  } catch (err) {
+    document.getElementById('posts-grid').innerHTML = '<div class="loading">Failed to load posts.</div>';
+  }
+})();
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>

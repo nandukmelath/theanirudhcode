@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — theanirudhcode</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;1,300&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--gold:#c8a951;--gold2:#e2c97e;--gold3:#f5e6b8;--gold-d:rgba(200,169,81,.15);--white:#f8f4ec;--muted:rgba(248,244,236,.42);--faint:rgba(248,244,236,.14);--amber:#c8733a;--line:rgba(200,169,81,.11)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh}
+.admin-wrap{max-width:1200px;margin:0 auto;padding:32px 40px}
+.admin-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:48px;border-bottom:1px solid var(--line);padding-bottom:24px}
+.admin-header h1{font-family:'Cormorant',serif;font-size:28px;font-weight:300;display:flex;align-items:center;gap:12px}
+.admin-header h1 .gem{width:7px;height:7px;background:var(--gold);transform:rotate(45deg)}
+.logout-btn{background:none;border:1px solid var(--line);color:var(--muted);padding:8px 20px;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s}
+.logout-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+.login-wrap{display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.login-box{background:var(--black2);border:1px solid var(--line);padding:48px;max-width:400px;width:100%;text-align:center}
+.login-box h2{font-family:'Cormorant',serif;font-size:32px;font-weight:300;margin-bottom:8px}
+.login-box p{color:var(--muted);font-size:14px;margin-bottom:24px;font-weight:200}
+.login-input{width:100%;background:rgba(200,169,81,.04);border:1px solid var(--line);color:var(--white);padding:14px 18px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border .3s;margin-bottom:16px}
+.login-input:focus{border-color:rgba(200,169,81,.4)}
+.login-btn{width:100%;background:var(--gold);color:var(--black);border:none;padding:14px;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;cursor:pointer;transition:all .3s}
+.login-btn:hover{background:var(--gold2)}
+.login-error{color:var(--amber);font-size:13px;margin-top:12px;display:none}
+
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:40px}
+.stat-card{background:var(--black2);border:1px solid var(--line);padding:24px;text-align:center}
+.stat-card .num{font-family:'Cormorant',serif;font-size:42px;font-weight:300;color:var(--gold2)}
+.stat-card .label{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+
+.tab-bar{display:flex;gap:2px;margin-bottom:32px;flex-wrap:wrap}
+.tab-btn{background:none;border:1px solid var(--line);color:var(--muted);padding:10px 24px;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;transition:all .3s}
+.tab-btn.active,.tab-btn:hover{background:var(--gold-d);border-color:var(--gold);color:var(--gold2)}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);text-align:left;padding:12px 16px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:14px 16px;border-bottom:1px solid rgba(200,169,81,.06);font-size:13px;color:var(--muted);font-weight:300;vertical-align:top}
+tr:hover td{color:var(--white)}
+.status-badge{display:inline-block;padding:3px 10px;font-size:10px;letter-spacing:.15em;text-transform:uppercase;border:1px solid}
+.status-new{color:var(--gold);border-color:rgba(200,169,81,.3)}
+.status-read{color:var(--muted);border-color:var(--line)}
+.status-contacted{color:var(--amber);border-color:rgba(200,115,58,.3)}
+.status-completed{color:#6fbf73;border-color:rgba(111,191,115,.3)}
+.status-confirmed{color:var(--gold);border-color:rgba(200,169,81,.3)}
+.status-cancelled{color:var(--amber);border-color:rgba(200,115,58,.3)}
+.action-btn{background:none;border:1px solid var(--line);color:var(--muted);padding:4px 12px;font-size:11px;cursor:pointer;transition:all .3s;font-family:'Barlow',sans-serif;margin:2px}
+.action-btn:hover{border-color:var(--gold);color:var(--gold)}
+.action-btn.danger:hover{border-color:var(--amber);color:var(--amber)}
+select.status-select{background:var(--black);color:var(--muted);border:1px solid var(--line);padding:4px 8px;font-size:11px;font-family:'Barlow',sans-serif;outline:none;cursor:pointer}
+.export-btn{background:none;border:1px solid rgba(200,169,81,.3);color:var(--gold);padding:8px 20px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s;margin-bottom:20px}
+.export-btn:hover{background:var(--gold-d)}
+.empty{text-align:center;padding:48px;color:var(--faint);font-style:italic;font-family:'Cormorant',serif;font-size:18px}
+
+/* Settings & Calendar Setup */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:600px}
+.setting-group{margin-bottom:20px}
+.setting-label{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.setting-input{width:100%;padding:12px 14px;background:var(--black3);border:1px solid var(--line);color:var(--white);font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border-color .3s}
+.setting-input:focus{border-color:rgba(200,169,81,.4)}
+.save-btn{background:var(--gold);color:var(--black);border:none;padding:12px 32px;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;cursor:pointer;transition:all .3s;margin-top:12px}
+.save-btn:hover{background:var(--gold2)}
+.save-btn:disabled{opacity:.5}
+
+.cal-status{display:flex;align-items:center;gap:12px;padding:16px 20px;background:var(--black2);border:1px solid var(--line);margin-bottom:20px}
+.cal-dot{width:10px;height:10px;border-radius:50%}
+.cal-dot.on{background:#6fbf73;box-shadow:0 0 8px rgba(111,191,115,.4)}
+.cal-dot.off{background:var(--amber);box-shadow:0 0 8px rgba(200,115,58,.4)}
+.connect-btn{background:none;border:1px solid rgba(200,169,81,.3);color:var(--gold);padding:10px 24px;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s}
+.connect-btn:hover{background:var(--gold-d)}
+
+.days-check{display:flex;gap:8px;flex-wrap:wrap}
+.day-label{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--muted);cursor:pointer}
+.day-label input{accent-color:var(--gold)}
+
+.section-title{font-family:'Cormorant',serif;font-size:22px;font-weight:300;margin-bottom:16px;color:var(--gold2)}
+.section-desc{color:var(--muted);font-size:13px;font-weight:200;margin-bottom:24px}
+
+.alert-box{padding:12px 16px;font-size:13px;margin-bottom:16px;border:1px solid}
+.alert-success{color:#6fbf73;border-color:rgba(111,191,115,.3);background:rgba(111,191,115,.06)}
+.alert-error{color:var(--amber);border-color:rgba(200,115,58,.3);background:rgba(200,115,58,.06)}
+
+@media(max-width:768px){.settings-grid{grid-template-columns:1fr}.admin-wrap{padding:20px}}
+@media(max-width:540px){.tab-bar{flex-direction:column}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-box">
+    <div style="width:7px;height:7px;background:var(--gold);transform:rotate(45deg);margin:0 auto 20px"></div>
+    <h2>Admin Dashboard</h2>
+    <p>theanirudhcode</p>
+    <input type="email" id="login-email" class="login-input" placeholder="Admin email" value="admin@theanirudhcode.com">
+    <input type="password" id="login-pass" class="login-input" placeholder="Password" autofocus>
+    <button id="login-btn" class="login-btn">Access Dashboard</button>
+    <p id="login-error" class="login-error">Invalid credentials</p>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none">
+  <div class="admin-wrap">
+    <div class="admin-header">
+      <h1><span class="gem"></span>theanirudhcode <span style="color:var(--muted);font-weight:200;font-size:16px;margin-left:8px">Admin</span></h1>
+      <div style="display:flex;gap:12px;align-items:center">
+        <a href="/" style="color:var(--muted);font-size:12px;text-decoration:none;transition:color .3s" onmouseover="this.style.color='var(--gold2)'" onmouseout="this.style.color='var(--muted)'">&larr; Home</a>
+        <button class="logout-btn" id="logout-btn">Logout</button>
+      </div>
+    </div>
+
+    <div id="alert-area"></div>
+
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card"><div class="num" id="s-subs">—</div><div class="label">Subscribers</div></div>
+      <div class="stat-card"><div class="num" id="s-consult">—</div><div class="label">Consultations</div></div>
+      <div class="stat-card"><div class="num" id="s-new">—</div><div class="label">New Requests</div></div>
+      <div class="stat-card"><div class="num" id="s-appt">—</div><div class="label">Upcoming Appts</div></div>
+      <div class="stat-card"><div class="num" id="s-patients">—</div><div class="label">Patients</div></div>
+      <div class="stat-card"><div class="num" id="s-today">—</div><div class="label">Today's Signups</div></div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" data-view="subscribers">Subscribers</button>
+      <button class="tab-btn" data-view="consultations">Consultations</button>
+      <button class="tab-btn" data-view="appointments">Appointments</button>
+      <button class="tab-btn" data-view="calendar">Calendar Setup</button>
+      <button class="tab-btn" data-view="settings">Settings</button>
+    </div>
+
+    <!-- SUBSCRIBERS TAB -->
+    <div id="view-subscribers" class="tab-view">
+      <button class="export-btn" id="export-csv">Export CSV</button>
+      <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Source</th><th>Date</th><th>Action</th></tr></thead><tbody id="subs-body"></tbody></table></div>
+    </div>
+
+    <!-- CONSULTATIONS TAB -->
+    <div id="view-consultations" class="tab-view" style="display:none">
+      <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Date</th><th>Message</th><th>Status</th><th>Created</th></tr></thead><tbody id="consult-body"></tbody></table></div>
+    </div>
+
+    <!-- APPOINTMENTS TAB -->
+    <div id="view-appointments" class="tab-view" style="display:none">
+      <div class="table-wrap"><table><thead><tr><th>Patient</th><th>Email</th><th>Phone</th><th>Date</th><th>Time</th><th>Concerns</th><th>Status</th><th>Actions</th></tr></thead><tbody id="appt-body"></tbody></table></div>
+    </div>
+
+    <!-- CALENDAR SETUP TAB -->
+    <div id="view-calendar" class="tab-view" style="display:none">
+      <div class="section-title">Google Calendar Integration</div>
+      <div class="section-desc">Connect your Google Calendar to enable real-time slot availability and automatic event creation when patients book appointments.</div>
+
+      <div class="cal-status" id="cal-status">
+        <div class="cal-dot off"></div>
+        <span style="color:var(--muted);font-size:13px">Checking connection status...</span>
+      </div>
+
+      <div id="cal-actions">
+        <button class="connect-btn" id="connect-gcal">Connect Google Calendar</button>
+      </div>
+
+      <div id="cal-selector" style="display:none;margin-top:20px">
+        <div class="setting-label">Select Calendar</div>
+        <select class="setting-input" id="cal-select" style="margin-bottom:12px"></select>
+        <button class="save-btn" id="save-cal">Use This Calendar</button>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="view-settings" class="tab-view" style="display:none">
+      <div class="section-title">Scheduling Settings</div>
+      <div class="section-desc">Configure your availability for patient consultations</div>
+
+      <div class="settings-grid">
+        <div class="setting-group">
+          <div class="setting-label">Working Hours Start</div>
+          <input type="time" class="setting-input" id="set-start" value="09:00">
+        </div>
+        <div class="setting-group">
+          <div class="setting-label">Working Hours End</div>
+          <input type="time" class="setting-input" id="set-end" value="18:00">
+        </div>
+        <div class="setting-group">
+          <div class="setting-label">Slot Duration (minutes)</div>
+          <select class="setting-input" id="set-duration">
+            <option value="15">15 min</option>
+            <option value="30">30 min</option>
+            <option value="45">45 min</option>
+            <option value="60" selected>60 min</option>
+          </select>
+        </div>
+        <div class="setting-group">
+          <div class="setting-label">Booking Lead Time (hours)</div>
+          <input type="number" class="setting-input" id="set-lead" value="24" min="1" max="168">
+        </div>
+      </div>
+
+      <div class="setting-group" style="max-width:600px">
+        <div class="setting-label">Working Days</div>
+        <div class="days-check" id="working-days">
+          <label class="day-label"><input type="checkbox" value="0"> Sun</label>
+          <label class="day-label"><input type="checkbox" value="1" checked> Mon</label>
+          <label class="day-label"><input type="checkbox" value="2" checked> Tue</label>
+          <label class="day-label"><input type="checkbox" value="3" checked> Wed</label>
+          <label class="day-label"><input type="checkbox" value="4" checked> Thu</label>
+          <label class="day-label"><input type="checkbox" value="5" checked> Fri</label>
+          <label class="day-label"><input type="checkbox" value="6"> Sat</label>
+        </div>
+      </div>
+
+      <button class="save-btn" id="save-settings">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '/admin/api';
+let useJWT = false;
+
+// Elements
+const loginScreen = document.getElementById('login-screen');
+const dashboard = document.getElementById('dashboard');
+const loginBtn = document.getElementById('login-btn');
+const loginEmail = document.getElementById('login-email');
+const loginPass = document.getElementById('login-pass');
+const loginError = document.getElementById('login-error');
+const logoutBtn = document.getElementById('logout-btn');
+
+// Check URL params for calendar setup messages
+const params = new URLSearchParams(window.location.search);
+if (params.get('calendar_success')) showAlert(params.get('calendar_success'), 'success');
+if (params.get('calendar_error')) showAlert(params.get('calendar_error'), 'error');
+if (params.get('calendar_success') || params.get('calendar_error')) {
+  history.replaceState({}, '', '/admin');
+}
+
+// Try JWT auth first on page load
+tryJWTLoad();
+
+loginBtn.addEventListener('click', login);
+loginPass.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+logoutBtn.addEventListener('click', async () => {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  sessionStorage.removeItem('admin_token');
+  location.reload();
+});
+
+async function tryJWTLoad() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.user.role === 'admin') {
+        useJWT = true;
+        showDashboard();
+        return;
+      }
+    }
+  } catch {}
+
+  // Fall back to old token
+  const oldToken = sessionStorage.getItem('admin_token');
+  if (oldToken) {
+    try {
+      const res = await fetch(`${API}/stats`, { headers: { 'x-admin-token': oldToken } });
+      if (res.ok) {
+        showDashboard();
+        return;
+      }
+    } catch {}
+    sessionStorage.removeItem('admin_token');
+  }
+}
+
+async function login() {
+  const email = loginEmail.value;
+  const password = loginPass.value;
+  loginError.style.display = 'none';
+
+  // Try JWT login first
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.user.role === 'admin') {
+        useJWT = true;
+        showDashboard();
+        return;
+      } else {
+        loginError.textContent = 'This account does not have admin access';
+        loginError.style.display = 'block';
+        return;
+      }
+    }
+  } catch {}
+
+  // Fall back to old password check
+  sessionStorage.setItem('admin_token', password);
+  try {
+    const res = await fetch(`${API}/stats`, { headers: { 'x-admin-token': password } });
+    if (res.ok) {
+      showDashboard();
+      return;
+    }
+  } catch {}
+
+  sessionStorage.removeItem('admin_token');
+  loginError.textContent = 'Invalid credentials';
+  loginError.style.display = 'block';
+}
+
+function getHeaders() {
+  if (useJWT) return { 'Content-Type': 'application/json' };
+  const t = sessionStorage.getItem('admin_token') || '';
+  return { 'Content-Type': 'application/json', 'x-admin-token': t };
+}
+
+async function showDashboard() {
+  loginScreen.style.display = 'none';
+  dashboard.style.display = 'block';
+  await loadStats();
+  loadSubscribers();
+  loadConsultations();
+  loadAppointments();
+  loadSettings();
+  checkCalendarStatus();
+}
+
+async function loadStats() {
+  try {
+    const res = await fetch(`${API}/stats`, { headers: getHeaders() });
+    const data = await res.json();
+    document.getElementById('s-subs').textContent = data.totalSubs;
+    document.getElementById('s-consult').textContent = data.totalConsultations;
+    document.getElementById('s-new').textContent = data.newConsultations;
+    document.getElementById('s-today').textContent = data.todaySubs;
+    document.getElementById('s-appt').textContent = data.upcomingAppointments || 0;
+    document.getElementById('s-patients').textContent = data.totalPatients || 0;
+  } catch {}
+}
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-view').forEach(v => v.style.display = 'none');
+    const view = document.getElementById('view-' + btn.dataset.view);
+    if (view) view.style.display = '';
+  });
+});
+
+async function loadSubscribers() {
+  const res = await fetch(`${API}/subscribers`, { headers: getHeaders() });
+  const { subscribers } = await res.json();
+  const body = document.getElementById('subs-body');
+  if (!subscribers.length) { body.innerHTML = '<tr><td colspan="5" class="empty">No subscribers yet</td></tr>'; return; }
+  body.innerHTML = subscribers.map(s => `<tr>
+    <td>${esc(s.name)}</td><td>${esc(s.email)}</td><td>${esc(s.source)}</td>
+    <td>${new Date(s.subscribed_at+'Z').toLocaleDateString()}</td>
+    <td><button class="action-btn danger" onclick="deleteSub(${s.id})">Delete</button></td>
+  </tr>`).join('');
+}
+
+async function loadConsultations() {
+  const res = await fetch(`${API}/consultations`, { headers: getHeaders() });
+  const { consultations } = await res.json();
+  const body = document.getElementById('consult-body');
+  if (!consultations.length) { body.innerHTML = '<tr><td colspan="7" class="empty">No consultations yet</td></tr>'; return; }
+  body.innerHTML = consultations.map(c => `<tr>
+    <td>${esc(c.name)}</td><td>${esc(c.email)}</td><td>${esc(c.phone || '—')}</td>
+    <td>${c.preferred_date || '—'}</td><td style="max-width:200px">${esc(c.message || '—')}</td>
+    <td><select class="status-select" onchange="updateStatus(${c.id}, this.value)">
+      ${['new','read','contacted','completed'].map(s => `<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}
+    </select></td>
+    <td>${new Date(c.created_at+'Z').toLocaleDateString()}</td>
+  </tr>`).join('');
+}
+
+async function loadAppointments() {
+  try {
+    const res = await fetch('/api/appointments/all', { headers: getHeaders() });
+    const { appointments } = await res.json();
+    const body = document.getElementById('appt-body');
+    if (!appointments || !appointments.length) { body.innerHTML = '<tr><td colspan="8" class="empty">No appointments yet</td></tr>'; return; }
+    body.innerHTML = appointments.map(a => {
+      const d = new Date(a.date + 'T00:00:00');
+      const dateStr = d.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
+      const startH = parseInt(a.time_start.split(':')[0]);
+      const ampm = startH >= 12 ? 'PM' : 'AM';
+      const dH = startH > 12 ? startH - 12 : (startH || 12);
+      const timeStr = dH + ':' + a.time_start.split(':')[1] + ' ' + ampm;
+      const statusCls = 'status-' + a.status;
+      return `<tr>
+        <td>${esc(a.patient_name)}</td>
+        <td>${esc(a.patient_email)}</td>
+        <td>${esc(a.patient_phone || '—')}</td>
+        <td>${dateStr}</td>
+        <td>${timeStr}</td>
+        <td style="max-width:200px">${esc(a.health_concerns || '—')}</td>
+        <td><span class="status-badge ${statusCls}">${a.status}</span></td>
+        <td>
+          ${a.status === 'confirmed' ? `<button class="action-btn danger" onclick="cancelAppt(${a.id})">Cancel</button><button class="action-btn" onclick="completeAppt(${a.id})">Complete</button>` : ''}
+        </td>
+      </tr>`;
+    }).join('');
+  } catch {}
+}
+
+async function deleteSub(id) {
+  if (!confirm('Delete this subscriber?')) return;
+  await fetch(`${API}/subscribers/${id}`, { method: 'DELETE', headers: getHeaders() });
+  loadSubscribers();
+  loadStats();
+}
+
+async function updateStatus(id, status) {
+  await fetch(`${API}/consultations/${id}`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify({ status })
+  });
+  loadStats();
+}
+
+async function cancelAppt(id) {
+  if (!confirm('Cancel this appointment?')) return;
+  await fetch(`/api/appointments/${id}/cancel`, { method: 'POST', headers: getHeaders() });
+  loadAppointments();
+  loadStats();
+}
+
+async function completeAppt(id) {
+  await fetch(`/api/appointments/${id}/complete`, { method: 'POST', headers: getHeaders() });
+  loadAppointments();
+  loadStats();
+}
+
+// Calendar Setup
+async function checkCalendarStatus() {
+  try {
+    const res = await fetch('/api/calendar/status', { headers: getHeaders() });
+    const data = await res.json();
+    const statusEl = document.getElementById('cal-status');
+    const actionsEl = document.getElementById('cal-actions');
+    const selectorEl = document.getElementById('cal-selector');
+
+    if (data.connected) {
+      statusEl.innerHTML = `<div class="cal-dot on"></div><span style="color:#6fbf73;font-size:13px">Connected</span>${data.calendarId ? `<span style="color:var(--muted);font-size:12px;margin-left:8px">(${data.calendarId})</span>` : ''}`;
+      actionsEl.innerHTML = '<button class="connect-btn" id="connect-gcal">Reconnect</button>';
+      if (!data.calendarId) {
+        loadCalendarList();
+        selectorEl.style.display = '';
+      }
+    } else {
+      statusEl.innerHTML = '<div class="cal-dot off"></div><span style="color:var(--amber);font-size:13px">Not Connected</span>';
+      actionsEl.innerHTML = '<button class="connect-btn" id="connect-gcal">Connect Google Calendar</button>';
+    }
+
+    document.getElementById('connect-gcal').addEventListener('click', connectGCal);
+  } catch {}
+}
+
+async function connectGCal() {
+  try {
+    const res = await fetch('/api/calendar/auth-url', { headers: getHeaders() });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else if (data.error) {
+      showAlert(data.error, 'error');
+    }
+  } catch {
+    showAlert('Failed to start Google Calendar connection', 'error');
+  }
+}
+
+async function loadCalendarList() {
+  try {
+    const res = await fetch('/api/calendar/calendars', { headers: getHeaders() });
+    const data = await res.json();
+    const select = document.getElementById('cal-select');
+    select.innerHTML = '<option value="">Choose a calendar...</option>' +
+      data.calendars.map(c => `<option value="${c.id}">${esc(c.summary)}${c.primary ? ' (Primary)' : ''}</option>`).join('');
+    document.getElementById('cal-selector').style.display = '';
+  } catch {}
+}
+
+document.getElementById('save-cal').addEventListener('click', async () => {
+  const calId = document.getElementById('cal-select').value;
+  if (!calId) return;
+  await fetch('/api/calendar/set-calendar', {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ calendarId: calId })
+  });
+  showAlert('Calendar selected successfully!', 'success');
+  checkCalendarStatus();
+});
+
+// Settings
+async function loadSettings() {
+  try {
+    const res = await fetch(`${API}/settings`, { headers: getHeaders() });
+    const { settings } = await res.json();
+    if (settings.working_hours_start) document.getElementById('set-start').value = settings.working_hours_start;
+    if (settings.working_hours_end) document.getElementById('set-end').value = settings.working_hours_end;
+    if (settings.slot_duration) document.getElementById('set-duration').value = settings.slot_duration;
+    if (settings.booking_lead_hours) document.getElementById('set-lead').value = settings.booking_lead_hours;
+    if (settings.working_days) {
+      const days = settings.working_days.split(',');
+      document.querySelectorAll('#working-days input').forEach(cb => {
+        cb.checked = days.includes(cb.value);
+      });
+    }
+  } catch {}
+}
+
+document.getElementById('save-settings').addEventListener('click', async () => {
+  const btn = document.getElementById('save-settings');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const workingDays = Array.from(document.querySelectorAll('#working-days input:checked')).map(cb => cb.value).join(',');
+
+  await fetch(`${API}/settings`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      working_hours_start: document.getElementById('set-start').value,
+      working_hours_end: document.getElementById('set-end').value,
+      slot_duration: document.getElementById('set-duration').value,
+      working_days: workingDays,
+      booking_lead_hours: document.getElementById('set-lead').value
+    })
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Save Settings';
+  showAlert('Settings saved successfully!', 'success');
+});
+
+// CSV Export
+document.getElementById('export-csv').addEventListener('click', async () => {
+  const res = await fetch(`${API}/subscribers`, { headers: getHeaders() });
+  const { subscribers } = await res.json();
+  const csv = 'Name,Email,Source,Date\n' + subscribers.map(s =>
+    `"${s.name}","${s.email}","${s.source}","${s.subscribed_at}"`
+  ).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'theanirudhcode-subscribers.csv';
+  a.click();
+});
+
+function showAlert(msg, type) {
+  const area = document.getElementById('alert-area');
+  if (!area) return;
+  area.innerHTML = `<div class="alert-box alert-${type}">${esc(msg)}</div>`;
+  setTimeout(() => { area.innerHTML = ''; }, 5000);
+}
+
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>

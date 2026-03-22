@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loading... — theanirudhcode</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--gold:#c8a951;--gold2:#e2c97e;--gold3:#f5e6b8;--gold-d:rgba(200,169,81,.15);--white:#f8f4ec;--muted:rgba(248,244,236,.42);--faint:rgba(248,244,236,.14);--amber:#c8733a;--line:rgba(200,169,81,.11);--px:clamp(22px,5.5vw,92px);--fb:clamp(13px,1.15vw,15.5px);--fs:clamp(10px,.9vw,12px)}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif}
+.gl{display:inline-flex;align-items:center;gap:12px;font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.38em;text-transform:uppercase;color:var(--gold)}
+.gl::before{content:'';width:26px;height:1px;background:var(--gold);flex-shrink:0}
+nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:clamp(14px,2vw,26px) var(--px);display:flex;justify-content:space-between;align-items:center;background:rgba(7,7,7,.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
+.nlogo{font-family:'Cormorant',serif;font-size:clamp(15px,1.6vw,20px);font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;display:flex;align-items:center;gap:9px}
+.ngem{width:7px;height:7px;background:var(--gold);transform:rotate(45deg);flex-shrink:0}
+.back-link{font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .3s}
+.back-link:hover{color:var(--gold)}
+.read-progress{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--gold2));z-index:9999;width:0%;pointer-events:none}
+.article-wrap{max-width:760px;margin:0 auto;padding:clamp(100px,14vh,160px) var(--px) clamp(60px,8vh,100px)}
+.breadcrumb{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin-bottom:clamp(24px,3vw,40px)}
+.breadcrumb a{color:var(--muted);text-decoration:none;transition:color .3s}
+.breadcrumb a:hover{color:var(--gold)}
+.article-cat{font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+.article-title{font-family:'Cormorant',serif;font-size:clamp(32px,4.5vw,56px);font-weight:300;line-height:1.1;margin-bottom:20px}
+.article-meta{display:flex;align-items:center;gap:20px;font-size:12px;color:var(--faint);margin-bottom:clamp(32px,5vw,56px);padding-bottom:clamp(24px,3vw,40px);border-bottom:1px solid var(--line)}
+.article-meta .tag{color:var(--gold);font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;padding:3px 10px;border:1px solid rgba(200,169,81,.25)}
+.article-content{font-size:clamp(15px,1.3vw,17px);color:rgba(248,244,236,.7);line-height:2.1;font-weight:300}
+.article-content h2{font-family:'Cormorant',serif;font-size:clamp(24px,2.8vw,36px);font-weight:300;color:var(--white);margin:clamp(32px,4vw,52px) 0 clamp(14px,2vw,20px)}
+.article-content p{margin-bottom:clamp(16px,2vw,24px)}
+.article-content ul,.article-content ol{margin:clamp(12px,1.5vw,20px) 0 clamp(16px,2vw,24px) clamp(20px,2vw,32px)}
+.article-content li{margin-bottom:8px;line-height:2}
+.article-content strong{color:var(--gold3);font-weight:400}
+.article-content blockquote{border-left:2px solid var(--gold);padding:clamp(16px,2vw,24px);margin:clamp(20px,3vw,36px) 0;background:rgba(200,169,81,.04);font-family:'Cormorant',serif;font-style:italic;font-size:clamp(17px,1.8vw,22px);color:var(--gold3);line-height:1.7}
+
+.share-bar{margin-top:clamp(36px,5vw,56px);padding-top:clamp(24px,3vw,36px);border-top:1px solid var(--line);display:flex;align-items:center;gap:16px}
+.share-btn{background:none;border:1px solid var(--line);color:var(--muted);padding:8px 20px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s}
+.share-btn:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-d)}
+.share-copied{color:var(--gold);font-size:12px;display:none}
+
+.related{max-width:760px;margin:0 auto;padding:0 var(--px) clamp(60px,8vh,100px)}
+.related h3{font-family:'Cormorant',serif;font-size:clamp(24px,2.8vw,36px);font-weight:300;margin-bottom:clamp(24px,3vw,36px)}
+.related h3 em{font-style:italic;color:var(--gold2)}
+.related-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.related-card{background:var(--black2);border:1px solid var(--line);padding:clamp(20px,2.5vw,28px);text-decoration:none;color:inherit;transition:all .4s}
+.related-card:hover{border-color:rgba(200,169,81,.2);transform:translateY(-4px)}
+.related-card .rc-cat{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.related-card .rc-title{font-family:'Cormorant',serif;font-size:clamp(16px,1.6vw,20px);font-weight:300;line-height:1.35}
+.loading{text-align:center;padding:60px;color:var(--faint);font-family:'Cormorant',serif;font-style:italic;font-size:18px}
+
+footer{text-align:center;padding:clamp(20px,3vw,32px) var(--px);font-size:11px;color:rgba(248,244,236,.16);letter-spacing:.1em;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="read-progress" id="read-progress"></div>
+
+<nav>
+  <a href="/" class="nlogo"><div class="ngem"></div>theanirudhcode</a>
+  <a href="/blog" class="back-link">&larr; All Insights</a>
+</nav>
+
+<div class="article-wrap" id="article-wrap">
+  <div class="loading" id="loading-msg">Loading article...</div>
+</div>
+
+<div class="related" id="related-section" style="display:none">
+  <h3>More <em>insights</em></h3>
+  <div class="related-grid" id="related-grid"></div>
+</div>
+
+<footer>&copy; 2026 theanirudhcode · All rights reserved · Heal the Real You</footer>
+
+<script>
+(async () => {
+  const slug = window.location.pathname.split('/').pop();
+  try {
+    const res = await fetch(`/api/posts/${slug}`);
+    if (!res.ok) throw new Error('Not found');
+    const { post } = await res.json();
+
+    document.title = `${post.title} — theanirudhcode`;
+
+    const date = new Date(post.created_at);
+    const dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const tags = post.tags ? post.tags.split(',') : [post.category];
+    const words = post.content.replace(/<[^>]+>/g, '').split(/\s+/).length;
+    const readTime = Math.max(1, Math.ceil(words / 220));
+
+    const wrap = document.getElementById('article-wrap');
+    wrap.innerHTML = `
+      <div class="breadcrumb"><a href="/">Home</a> &rsaquo; <a href="/blog">Insights</a> &rsaquo; ${esc(post.title)}</div>
+      <div class="article-cat">${esc(post.category)}</div>
+      <h1 class="article-title">${esc(post.title)}</h1>
+      <div class="article-meta">
+        <span>${dateStr}</span>
+        <span>${readTime} min read</span>
+        ${tags.map(t => `<span class="tag">${esc(t.trim())}</span>`).join('')}
+      </div>
+      <div class="article-content">${post.content}</div>
+      <div class="share-bar">
+        <button class="share-btn" id="share-btn">Copy Link</button>
+        <span class="share-copied" id="share-copied">Link copied!</span>
+      </div>
+    `;
+
+    // Share button
+    document.getElementById('share-btn').addEventListener('click', async () => {
+      if (navigator.share) {
+        try { await navigator.share({ title: post.title, url: window.location.href }); } catch {}
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        const msg = document.getElementById('share-copied');
+        msg.style.display = 'inline';
+        setTimeout(() => { msg.style.display = 'none'; }, 2000);
+      }
+    });
+
+    // Reading progress
+    window.addEventListener('scroll', () => {
+      const st = document.documentElement.scrollTop;
+      const sh = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      document.getElementById('read-progress').style.width = (sh > 0 ? (st / sh) * 100 : 0) + '%';
+    });
+
+    // Load related posts
+    const relRes = await fetch('/api/posts');
+    const { posts } = await relRes.json();
+    const related = posts.filter(p => p.slug !== slug).slice(0, 3);
+    if (related.length) {
+      document.getElementById('related-section').style.display = '';
+      document.getElementById('related-grid').innerHTML = related.map(p => `
+        <a href="/blog/${p.slug}" class="related-card">
+          <div class="rc-cat">${esc(p.category)}</div>
+          <div class="rc-title">${esc(p.title)}</div>
+        </a>
+      `).join('');
+    }
+
+  } catch (err) {
+    document.getElementById('article-wrap').innerHTML = `
+      <div class="loading">Article not found. <a href="/blog" style="color:var(--gold)">Browse all insights &rarr;</a></div>
+    `;
+  }
+})();
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>

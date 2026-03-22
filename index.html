@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>theanirudhcode — Heal the Real You</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+
+/* ═══════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════ */
+:root {
+  --black:   #070707;
+  --black2:  #0e0e0e;
+  --black3:  #141414;
+  --black4:  #1a1a1a;
+  --gold:    #c8a951;
+  --gold2:   #e2c97e;
+  --gold3:   #f5e6b8;
+  --gold4:   #a8872e;
+  --gold-d:  rgba(200,169,81,.15);
+  --gold-g:  rgba(200,169,81,.35);
+  --white:   #f8f4ec;
+  --muted:   rgba(248,244,236,.42);
+  --faint:   rgba(248,244,236,.14);
+  --amber:   #c8733a;
+  --line:    rgba(200,169,81,.11);
+
+  --fh: clamp(50px,8.5vw,124px);
+  --h2: clamp(32px,4.2vw,68px);
+  --h3: clamp(20px,2.3vw,34px);
+  --fb: clamp(13px,1.15vw,15.5px);
+  --fs: clamp(10px,.9vw,12px);
+
+  --px: clamp(22px,5.5vw,92px);
+  --py: clamp(56px,9vw,132px);
+}
+
+/* ═══════════════════════════════════════
+   BASE
+═══════════════════════════════════════ */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;overflow-x:hidden;cursor:none}
+button,a{cursor:none}
+img,canvas,svg{display:block;max-width:100%}
+section{position:relative;z-index:10}
+
+/* ═══════════════════════════════════════
+   CURSOR
+═══════════════════════════════════════ */
+#cur,#ring{position:fixed;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%)}
+#cur{width:8px;height:8px;background:var(--gold);box-shadow:0 0 12px var(--gold-g)}
+#ring{width:34px;height:34px;border:1px solid rgba(200,169,81,.4)}
+@media(hover:none){#cur,#ring{display:none}}
+
+/* ═══════════════════════════════════════
+   BG
+═══════════════════════════════════════ */
+#bg{position:fixed;inset:0;z-index:0;width:100%;height:100%}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px}
+
+/* ═══════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════ */
+.z{position:relative;z-index:10}
+.gl{display:inline-flex;align-items:center;gap:12px;font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.38em;text-transform:uppercase;color:var(--gold)}
+.gl::before{content:'';width:26px;height:1px;background:var(--gold);flex-shrink:0}
+.hr{width:100%;height:1px;background:var(--line)}
+
+/* ═══════════════════════════════════════
+   NAV
+═══════════════════════════════════════ */
+nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:clamp(14px,2vw,26px) var(--px);display:flex;justify-content:space-between;align-items:center;transition:background .4s,border .4s}
+nav.s{background:rgba(7,7,7,.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
+.nlogo{font-family:'Cormorant',serif;font-size:clamp(15px,1.6vw,20px);font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;display:flex;align-items:center;gap:9px}
+.ngem{width:7px;height:7px;background:var(--gold);transform:rotate(45deg);box-shadow:0 0 14px var(--gold-g);animation:gpulse 3s ease-in-out infinite;flex-shrink:0}
+@keyframes gpulse{0%,100%{opacity:1;box-shadow:0 0 14px var(--gold-g)}50%{opacity:.5;box-shadow:0 0 28px var(--gold-g)}}
+.nlinks{display:flex;gap:clamp(18px,2.8vw,40px);list-style:none}
+.nlinks a{font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .3s}
+.nlinks a:hover{color:var(--gold2)}
+.ncta{background:transparent;border:1px solid rgba(200,169,81,.32);color:var(--gold2);padding:clamp(7px,.9vw,11px) clamp(18px,1.8vw,30px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;transition:all .35s}
+.ncta:hover{background:var(--gold-d);border-color:var(--gold)}
+.hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;padding:4px}
+.hamburger span{display:block;width:22px;height:1px;background:var(--gold2);transition:all .3s}
+.mmenu{display:none;position:fixed;inset:0;z-index:490;background:rgba(7,7,7,.97);backdrop-filter:blur(24px);flex-direction:column;justify-content:center;align-items:center;gap:36px}
+.mmenu.open{display:flex}
+.mmenu a{font-family:'Cormorant',serif;font-size:clamp(30px,6vw,50px);font-weight:300;font-style:italic;color:var(--white);text-decoration:none;letter-spacing:.06em;transition:color .3s}
+.mmenu a:hover{color:var(--gold)}
+.mclose{position:absolute;top:22px;right:var(--px);background:none;border:none;color:var(--gold);font-size:26px}
+
+/* ═══════════════════════════════════════
+   HERO
+═══════════════════════════════════════ */
+.hero{min-height:100svh;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:clamp(20px,4vw,56px);padding:clamp(96px,13vh,148px) var(--px) clamp(52px,7vh,96px)}
+.hero-l{}
+.eyebrow{margin-bottom:clamp(18px,2.5vh,32px);opacity:0;animation:rise .9s .3s forwards}
+h1.ht{font-family:'Cormorant',serif;font-size:var(--fh);font-weight:300;line-height:.9;opacity:0;animation:rise 1.1s .6s forwards}
+h1.ht .it{font-style:italic;color:var(--gold2)}
+.hsub{font-family:'Cormorant',serif;font-style:italic;font-size:clamp(15px,1.8vw,24px);font-weight:300;color:var(--muted);margin-top:clamp(10px,1.5vh,18px);letter-spacing:.05em;opacity:0;animation:rise 1s .85s forwards}
+.hdesc{font-size:var(--fb);color:var(--muted);line-height:2.05;font-weight:200;margin-top:clamp(18px,2.5vh,32px);max-width:430px;opacity:0;animation:rise 1s 1.05s forwards}
+.hcta{display:flex;flex-wrap:wrap;gap:clamp(10px,1.5vw,18px);margin-top:clamp(26px,3.5vh,48px);opacity:0;animation:rise 1s 1.25s forwards}
+.btn-g{background:var(--gold);color:var(--black);border:none;padding:clamp(12px,1.4vw,17px) clamp(26px,2.8vw,48px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;position:relative;overflow:hidden;transition:box-shadow .4s}
+.btn-g::after{content:'';position:absolute;inset:0;background:var(--gold2);transform:translateX(-101%);transition:transform .42s cubic-bezier(.77,0,.18,1)}
+.btn-g:hover{box-shadow:0 16px 48px rgba(200,169,81,.32)}
+.btn-g:hover::after{transform:translateX(0)}
+.btn-g span{position:relative;z-index:1}
+.btn-o{background:transparent;border:1px solid rgba(200,169,81,.28);color:var(--gold3);padding:clamp(12px,1.4vw,17px) clamp(26px,2.8vw,48px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;transition:all .35s}
+.btn-o:hover{border-color:var(--gold);background:var(--gold-d)}
+.hero-r{display:flex;justify-content:center;align-items:center;position:relative;min-height:clamp(300px,45vw,580px);opacity:0;animation:fadein 1.6s 1.4s forwards}
+.orbwrap{position:relative}
+#orb{border-radius:50%;max-width:100%;height:auto}
+.orbring{position:absolute;inset:-24px;border-radius:50%;border:1px solid rgba(200,169,81,.08);animation:spinring 20s linear infinite}
+.orbring2{position:absolute;inset:-48px;border-radius:50%;border:1px solid rgba(200,169,81,.04);animation:spinring 35s linear infinite reverse}
+@keyframes spinring{to{transform:rotate(360deg)}}
+.orblabel{position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.44em;text-transform:uppercase;color:rgba(200,169,81,.35);white-space:nowrap}
+.scue{position:absolute;bottom:clamp(18px,3.5vh,44px);left:var(--px);display:flex;align-items:center;gap:13px;font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.4em;text-transform:uppercase;color:var(--faint);opacity:0;animation:rise 1s 2.2s forwards}
+.scueline{width:48px;height:1px;background:var(--line);position:relative;overflow:hidden}
+.scueline::after{content:'';position:absolute;left:-100%;top:0;width:100%;height:100%;background:var(--gold);animation:scan 2.5s ease-in-out infinite}
+@keyframes scan{0%{left:-100%}60%,100%{left:100%}}
+
+/* ═══════════════════════════════════════
+   MARQUEE
+═══════════════════════════════════════ */
+.marquee{overflow:hidden;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:clamp(12px,1.7vw,20px) 0;background:var(--black2)}
+.mtrack{display:flex;gap:clamp(28px,4vw,72px);white-space:nowrap;animation:marquee 30s linear infinite;width:max-content}
+.mtrack span{font-family:'Cormorant',serif;font-style:italic;font-size:clamp(16px,2.2vw,24px);font-weight:300;color:var(--faint);letter-spacing:.04em}
+.mtrack .md{color:var(--gold);font-style:normal;font-size:.45em;vertical-align:middle;margin:0 clamp(10px,1.5vw,20px)}
+@keyframes marquee{to{transform:translateX(-50%)}}
+
+/* ═══════════════════════════════════════
+   STATS
+═══════════════════════════════════════ */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stat{background:var(--black);padding:clamp(26px,3.8vw,52px) clamp(18px,2.5vw,36px);text-align:center;transition:background .4s}
+.stat:hover{background:var(--black3)}
+.stn{font-family:'Cormorant',serif;font-size:clamp(38px,4.8vw,68px);font-weight:300;line-height:1;color:var(--gold2)}
+.stn sup{font-size:.45em;vertical-align:top;margin-top:.4em;display:inline-block}
+.stl{font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.26em;text-transform:uppercase;color:var(--muted);margin-top:10px}
+
+/* ═══════════════════════════════════════
+   CONTENT PILLARS  (Instagram content)
+═══════════════════════════════════════ */
+.cpillars{padding:var(--py) var(--px)}
+.cp-head{margin-bottom:clamp(44px,6vw,88px)}
+.cp-head h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.08;max-width:700px}
+.cp-head h2 em{font-style:italic;color:var(--gold2)}
+.cp-head p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:200;max-width:500px;margin-top:18px}
+.cp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(1px,.15vw,2px)}
+.cp-card{background:var(--black2);border:1px solid var(--line);padding:clamp(28px,3.5vw,52px) clamp(22px,2.8vw,42px);position:relative;overflow:hidden;transition:all .5s cubic-bezier(.22,1,.36,1)}
+.cp-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);transform:scaleX(0);transform-origin:center;transition:transform .6s}
+.cp-card:hover{background:rgba(200,169,81,.04);transform:translateY(-6px);box-shadow:0 36px 72px rgba(0,0,0,.55);border-color:rgba(200,169,81,.2)}
+.cp-card:hover::after{transform:scaleX(1)}
+.cp-ico{width:48px;height:48px;margin-bottom:clamp(20px,2.5vw,30px);position:relative}
+.cp-num{position:absolute;top:-6px;right:-4px;font-family:'Cormorant',serif;font-size:72px;font-weight:300;color:rgba(200,169,81,.07);line-height:1;pointer-events:none}
+.cp-card h3{font-family:'Cormorant',serif;font-size:var(--h3);font-weight:300;color:var(--white);margin-bottom:14px}
+.cp-card p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:200}
+.cp-tag{display:inline-block;margin-top:24px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);border-bottom:1px solid rgba(200,169,81,.28);padding-bottom:2px}
+
+/* ═══════════════════════════════════════
+   PHILOSOPHY + DNA
+═══════════════════════════════════════ */
+.philo{padding:var(--py) var(--px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(36px,7vw,112px);align-items:center}
+.phi-t h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
+.phi-t h2 em{font-style:italic;color:var(--gold2)}
+.phi-t p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:200;margin-top:clamp(14px,2vw,24px);max-width:470px}
+.phi-t .qpull{margin-top:clamp(24px,3.5vw,44px);padding:clamp(18px,2.5vw,28px);border-left:2px solid var(--gold);background:rgba(200,169,81,.04);font-family:'Cormorant',serif;font-style:italic;font-size:clamp(16px,1.8vw,22px);font-weight:300;color:var(--gold3);line-height:1.65}
+.phi-v{position:relative;display:flex;justify-content:center;align-items:center;height:clamp(340px,48vw,540px)}
+.phi-glow{position:absolute;inset:-20%;border-radius:50%;background:radial-gradient(ellipse,rgba(200,169,81,.05) 0%,transparent 65%);pointer-events:none}
+
+/* ═══════════════════════════════════════
+   HEALING PROTOCOLS  (Instagram-specific)
+═══════════════════════════════════════ */
+.protocols{padding:var(--py) var(--px);background:var(--black2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.prot-head{text-align:center;max-width:680px;margin:0 auto clamp(40px,6vw,80px)}
+.prot-head h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
+.prot-head h2 em{font-style:italic;color:var(--gold2)}
+.prot-tabs{display:flex;justify-content:center;gap:2px;flex-wrap:wrap;margin-bottom:clamp(32px,5vw,56px)}
+.ptab{background:transparent;border:1px solid var(--line);color:var(--muted);padding:clamp(8px,1vw,12px) clamp(16px,2vw,28px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.2em;text-transform:uppercase;transition:all .3s}
+.ptab.active,.ptab:hover{background:var(--gold-d);border-color:var(--gold);color:var(--gold2)}
+.prot-panels{}
+.ppanel{display:none}
+.ppanel.active{display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,5vw,72px);align-items:center}
+.pp-text h3{font-family:'Cormorant',serif;font-size:clamp(28px,3.2vw,48px);font-weight:300;line-height:1.15}
+.pp-text h3 em{font-style:italic;color:var(--gold2)}
+.pp-text p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:200;margin-top:20px;max-width:440px}
+.pp-steps{margin-top:32px;display:flex;flex-direction:column;gap:16px}
+.pp-step{display:flex;gap:16px;align-items:flex-start}
+.pp-step-n{font-family:'Cormorant',serif;font-size:28px;font-weight:300;color:rgba(200,169,81,.35);flex-shrink:0;line-height:1.1;min-width:28px}
+.pp-step-t{font-size:var(--fb);color:var(--muted);font-weight:200;line-height:1.9}
+.pp-step-t strong{color:var(--gold3);font-weight:400}
+.pp-visual{height:clamp(280px,35vw,440px);display:flex;justify-content:center;align-items:center;position:relative}
+
+/* ═══════════════════════════════════════
+   FREE RESOURCE / LEAD MAGNET
+═══════════════════════════════════════ */
+.freebie{padding:var(--py) var(--px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,6vw,96px);align-items:center}
+.fb-text{}
+.fb-text h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
+.fb-text h2 em{font-style:italic;color:var(--gold2)}
+.fb-text p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:200;margin-top:20px;max-width:440px}
+.fb-list{margin-top:28px;display:flex;flex-direction:column;gap:14px}
+.fb-item{display:flex;align-items:center;gap:14px;font-size:var(--fb);color:var(--muted);font-weight:200}
+.fb-item::before{content:'◆';color:var(--gold);font-size:7px;flex-shrink:0}
+.fb-form{background:var(--black2);border:1px solid var(--line);padding:clamp(28px,4vw,52px)}
+.fb-form h3{font-family:'Cormorant',serif;font-size:clamp(22px,2.5vw,34px);font-weight:300}
+.fb-form h3 em{font-style:italic;color:var(--gold2)}
+.fb-form p{font-size:var(--fb);color:var(--muted);font-weight:200;margin-top:10px;line-height:1.8}
+.finput{width:100%;margin-top:20px;background:rgba(200,169,81,.04);border:1px solid var(--line);color:var(--white);padding:clamp(12px,1.4vw,16px) clamp(16px,1.8vw,20px);font-family:'Barlow',sans-serif;font-size:var(--fb);font-weight:300;transition:border-color .3s;outline:none}
+.finput::placeholder{color:var(--faint)}
+.finput:focus{border-color:rgba(200,169,81,.4)}
+.fsubmit{width:100%;margin-top:12px;background:var(--gold);color:var(--black);border:none;padding:clamp(13px,1.5vw,17px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;transition:all .4s;position:relative;overflow:hidden}
+.fsubmit::after{content:'';position:absolute;inset:0;background:var(--gold2);transform:translateX(-101%);transition:transform .42s cubic-bezier(.77,0,.18,1)}
+.fsubmit:hover::after{transform:translateX(0)}
+.fsubmit span{position:relative;z-index:1}
+.fprivacy{font-size:10px;color:var(--faint);margin-top:10px;text-align:center;letter-spacing:.06em}
+
+/* ═══════════════════════════════════════
+   BLOG / INSIGHTS  (mirrors IG content)
+═══════════════════════════════════════ */
+.insights{padding:var(--py) var(--px)}
+.ins-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:clamp(36px,5vw,72px);flex-wrap:wrap;gap:20px}
+.ins-head h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
+.ins-head h2 em{font-style:italic;color:var(--gold2)}
+.ins-link{font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.25em;text-transform:uppercase;color:var(--gold);text-decoration:none;display:flex;align-items:center;gap:10px;transition:gap .3s}
+.ins-link:hover{gap:16px}
+.ins-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(1px,.15vw,2px)}
+.ins-card{background:var(--black2);border:1px solid var(--line);overflow:hidden;transition:all .5s cubic-bezier(.22,1,.36,1)}
+.ins-card:hover{transform:translateY(-6px);box-shadow:0 40px 80px rgba(0,0,0,.5);border-color:rgba(200,169,81,.2)}
+.ins-img{height:clamp(160px,18vw,240px);background:var(--black3);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.ins-img-inner{position:absolute;inset:0}
+.ins-tag{position:absolute;top:16px;left:16px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);background:rgba(7,7,7,.85);padding:5px 12px;border:1px solid rgba(200,169,81,.28)}
+.ins-body{padding:clamp(20px,2.5vw,32px)}
+.ins-cat{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.ins-title{font-family:'Cormorant',serif;font-size:clamp(18px,1.8vw,24px);font-weight:300;line-height:1.35;color:var(--white)}
+.ins-excerpt{font-size:var(--fb);color:var(--muted);line-height:1.9;font-weight:200;margin-top:10px}
+.ins-meta{display:flex;align-items:center;justify-content:space-between;margin-top:20px}
+.ins-date{font-size:10px;color:var(--faint);letter-spacing:.15em}
+.ins-arrow{font-size:14px;color:var(--gold);transition:transform .3s}
+.ins-card:hover .ins-arrow{transform:translateX(6px)}
+
+/* ═══════════════════════════════════════
+   MANIFESTO
+═══════════════════════════════════════ */
+.manifesto{padding:var(--py) var(--px);text-align:center;position:relative;overflow:hidden}
+.man-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50%,rgba(200,169,81,.07) 0%,transparent 70%);pointer-events:none}
+.man-lbl{font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.55em;text-transform:uppercase;color:var(--gold);margin-bottom:clamp(18px,2.5vh,36px)}
+.manifesto h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.15;font-style:italic;max-width:860px;margin:0 auto;position:relative}
+.manifesto h2 span{color:var(--gold2)}
+.man-attr{margin-top:clamp(20px,3vh,36px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.32em;text-transform:uppercase;color:rgba(200,169,81,.45);position:relative}
+
+/* ═══════════════════════════════════════
+   JOURNEY
+═══════════════════════════════════════ */
+.journey{padding:var(--py) var(--px)}
+.jhead{margin-bottom:clamp(44px,6.5vw,92px)}
+.jhead h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
+.jhead h2 em{font-style:italic;color:var(--gold2)}
+.jsteps{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}
+.jstep{background:var(--black);padding:clamp(26px,3.2vw,48px) clamp(18px,2.2vw,32px);position:relative;overflow:hidden;transition:background .4s}
+.jstep:hover{background:var(--black3)}
+.jbar{position:absolute;left:0;top:0;bottom:0;width:1px;background:linear-gradient(to bottom,transparent,var(--gold),transparent);transform:scaleY(0);transform-origin:top;transition:transform .6s cubic-bezier(.22,1,.36,1)}
+.jstep:hover .jbar{transform:scaleY(1)}
+.jsn{font-family:'Cormorant',serif;font-size:clamp(44px,4.8vw,68px);font-weight:300;color:rgba(200,169,81,.14);line-height:1;margin-bottom:clamp(14px,1.8vw,22px)}
+.jstep h4{font-family:'Cormorant',serif;font-size:clamp(17px,1.9vw,24px);font-weight:300;color:var(--white);margin-bottom:11px}
+.jstep p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:200}
+
+/* ═══════════════════════════════════════
+   TESTIMONIALS
+═══════════════════════════════════════ */
+.testis{padding:var(--py) var(--px);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.thead{text-align:center;max-width:680px;margin:0 auto clamp(40px,6vw,80px)}
+.thead h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
+.thead h2 em{font-style:italic;color:var(--gold2)}
+.tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(1px,.15vw,2px)}
+.tcard{background:var(--black2);border:1px solid var(--line);padding:clamp(24px,3vw,44px) clamp(20px,2.6vw,36px);transition:border-color .4s}
+.tcard:hover{border-color:rgba(200,169,81,.22)}
+.tq{font-family:'Cormorant',serif;font-size:32px;color:var(--gold);opacity:.38;line-height:.8;margin-bottom:10px}
+.ttext{font-family:'Cormorant',serif;font-style:italic;font-size:clamp(15px,1.55vw,19px);font-weight:300;color:var(--white);line-height:1.75}
+.tauthor{margin-top:22px;display:flex;align-items:center;gap:13px}
+.tdot{width:26px;height:1px;background:var(--gold);opacity:.45;flex-shrink:0}
+.tname{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--muted)}
+.tresult{display:inline-block;margin-top:14px;font-size:11px;color:var(--gold);letter-spacing:.15em;padding:4px 12px;border:1px solid rgba(200,169,81,.2)}
+
+/* ═══════════════════════════════════════
+   CTA
+═══════════════════════════════════════ */
+.cta{padding:var(--py) var(--px);text-align:center;position:relative;overflow:hidden}
+.cta-orb{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,88vw);height:min(560px,88vw);border-radius:50%;background:radial-gradient(ellipse,rgba(200,169,81,.08) 0%,transparent 70%);pointer-events:none;animation:obreathe 6s ease-in-out infinite}
+@keyframes obreathe{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.14)}}
+.cta h2{font-family:'Cormorant',serif;font-size:var(--fh);font-weight:300;line-height:.9;position:relative}
+.cta h2 em{font-style:italic;color:var(--gold2);display:block}
+.cta p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:200;margin:clamp(18px,2.5vw,32px) auto 0;max-width:480px;position:relative}
+.cta-acts{display:flex;justify-content:center;gap:clamp(10px,1.8vw,22px);margin-top:clamp(28px,4.5vw,56px);flex-wrap:wrap;position:relative}
+.cta-note{font-size:11px;color:var(--faint);margin-top:18px;letter-spacing:.1em;position:relative}
+
+/* ═══════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════ */
+footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line);display:grid;grid-template-columns:1.4fr 1fr 1fr;align-items:start;gap:clamp(32px,5vw,72px)}
+.fbrand .fl{font-family:'Cormorant',serif;font-size:clamp(17px,1.8vw,24px);font-weight:300;letter-spacing:.13em;display:flex;align-items:center;gap:9px}
+.fbrand .fs{font-family:'Cormorant',serif;font-style:italic;font-size:clamp(12px,1.1vw,14px);color:rgba(200,169,81,.45);margin-top:8px}
+.fbrand .fdesc{font-size:12px;color:var(--faint);line-height:1.9;margin-top:14px;max-width:240px;font-weight:200}
+.flinks-col h5{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.38em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
+.flinks-col a{display:block;font-size:13px;color:var(--muted);text-decoration:none;margin-bottom:10px;transition:color .3s;font-weight:200;letter-spacing:.04em}
+.flinks-col a:hover{color:var(--gold)}
+.fsocial{display:flex;gap:12px;margin-top:24px}
+.fsoc-btn{width:36px;height:36px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);text-decoration:none;font-size:13px;transition:all .3s;font-weight:300}
+.fsoc-btn:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-d)}
+.fbot{text-align:center;padding:clamp(14px,1.8vw,20px) var(--px);font-size:11px;color:rgba(248,244,236,.16);letter-spacing:.1em;border-top:1px solid var(--line)}
+
+/* ═══════════════════════════════════════
+   SCROLL REVEAL
+═══════════════════════════════════════ */
+.rv{opacity:0;transform:translateY(32px);transition:opacity .9s cubic-bezier(.22,1,.36,1),transform .9s cubic-bezier(.22,1,.36,1)}
+.rv.in{opacity:1;transform:none}
+
+/* ═══════════════════════════════════════
+   KEYFRAMES
+═══════════════════════════════════════ */
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════ */
+@media(max-width:1100px){
+  .hero{grid-template-columns:1fr;text-align:center}
+  .hdesc{margin:clamp(16px,2vh,28px) auto 0}
+  .hcta{justify-content:center}
+  .hero-r{min-height:clamp(250px,48vw,380px)}
+  .scue{display:none}
+  .philo{grid-template-columns:1fr}
+  .phi-t{order:1}.phi-v{order:0;height:clamp(240px,38vw,380px)}
+  .phi-t p{max-width:100%}
+  .freebie{grid-template-columns:1fr}
+  .ppanel.active{grid-template-columns:1fr}
+  .pp-visual{display:none}
+}
+@media(max-width:900px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .cp-grid{grid-template-columns:1fr}
+  .ins-grid{grid-template-columns:1fr}
+  .tgrid{grid-template-columns:1fr}
+  footer{grid-template-columns:1fr 1fr}
+  .fbrand{grid-column:1/-1}
+}
+@media(max-width:768px){
+  .nlinks,.ncta{display:none}
+  .hamburger{display:flex}
+  .jsteps{grid-template-columns:1fr;background:none;gap:1px}
+  .jstep{border:1px solid var(--line);border-top:none}
+  .jstep:first-child{border-top:1px solid var(--line)}
+  .hero{padding-top:clamp(88px,16vh,120px)}
+  .prot-tabs{gap:4px}
+}
+@media(max-width:540px){
+  .stats{grid-template-columns:1fr 1fr}
+  footer{grid-template-columns:1fr}
+  .flinks-col{display:none}
+  .flinks-col:last-child{display:block}
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div><div id="ring"></div>
+<canvas id="bg"></canvas>
+<div class="grain"></div>
+
+<!-- ══════════ NAV ══════════ -->
+<nav id="nav" class="z">
+  <a href="#" class="nlogo"><div class="ngem"></div>theanirudhcode</a>
+  <ul class="nlinks">
+    <li><a href="#protocols">Protocols</a></li>
+    <li><a href="#philo">Philosophy</a></li>
+    <li><a href="#insights">Insights</a></li>
+    <li><a href="#journey">Journey</a></li>
+    <li><a href="#stories">Stories</a></li>
+  </ul>
+  <button class="ncta">Begin Healing</button>
+  <button class="hamburger" id="ham"><span></span><span></span><span></span></button>
+</nav>
+<div class="mmenu" id="mm">
+  <button class="mclose" id="mc">✕</button>
+  <a href="#protocols" class="mml">Protocols</a>
+  <a href="#philo" class="mml">Philosophy</a>
+  <a href="#insights" class="mml">Insights</a>
+  <a href="#journey" class="mml">Journey</a>
+  <a href="#stories" class="mml">Stories</a>
+  <button class="btn-g" style="margin-top:8px"><span>Begin Healing</span></button>
+</div>
+
+<!-- ══════════ HERO ══════════ -->
+<section class="hero z" id="top">
+  <div class="hero-l">
+    <div class="eyebrow"><span class="gl">Metabolic Health · Longevity · Ancient Wisdom</span></div>
+    <h1 class="ht">Heal the<br><span class="it">Real You</span></h1>
+    <p class="hsub">— from the inside out</p>
+    <p class="hdesc">Dr. Anirudh M. Vaddineni — Specialist in Metabolic Biochemistry — goes beyond symptom management. theanirudhcode bridges ancient Ayurvedic wisdom with cutting-edge metabolic science — to restore your gut, rewire your hormones, and realign your biology.</p>
+    <div class="hcta">
+      <button class="btn-g"><span>Start Your Journey</span></button>
+      <button class="btn-o">Explore Free Guide</button>
+    </div>
+  </div>
+  <div class="hero-r">
+    <div class="orbwrap">
+      <div class="orbring"></div>
+      <div class="orbring2"></div>
+      <canvas id="orb" width="500" height="500"></canvas>
+      <div class="orblabel">Cellular Intelligence ◆ Always Healing</div>
+    </div>
+  </div>
+  <div class="scue"><div class="scueline"></div>Scroll to discover</div>
+</section>
+
+<!-- ══════════ MARQUEE ══════════ -->
+<div class="marquee z">
+  <div class="mtrack">
+    <span>Gut Healing</span><span class="md">◆</span>
+    <span>Metabolic Health</span><span class="md">◆</span>
+    <span>Intermittent Fasting</span><span class="md">◆</span>
+    <span>Hormonal Balance</span><span class="md">◆</span>
+    <span>Ayurvedic Wisdom</span><span class="md">◆</span>
+    <span>Sleep Optimisation</span><span class="md">◆</span>
+    <span>Biohacking</span><span class="md">◆</span>
+    <span>Cellular Autophagy</span><span class="md">◆</span>
+    <span>Breathwork</span><span class="md">◆</span>
+    <span>Insulin Sensitivity</span><span class="md">◆</span>
+    <span>Gut Healing</span><span class="md">◆</span>
+    <span>Metabolic Health</span><span class="md">◆</span>
+    <span>Intermittent Fasting</span><span class="md">◆</span>
+    <span>Hormonal Balance</span><span class="md">◆</span>
+    <span>Ayurvedic Wisdom</span><span class="md">◆</span>
+    <span>Sleep Optimisation</span><span class="md">◆</span>
+    <span>Biohacking</span><span class="md">◆</span>
+    <span>Cellular Autophagy</span><span class="md">◆</span>
+    <span>Breathwork</span><span class="md">◆</span>
+    <span>Insulin Sensitivity</span><span class="md">◆</span>
+  </div>
+</div>
+
+<!-- ══════════ STATS ══════════ -->
+<div class="stats z rv">
+  <div class="stat"><div class="stn">12<sup>K+</sup></div><div class="stl">Lives Transformed</div></div>
+  <div class="stat"><div class="stn">94<sup>%</sup></div><div class="stl">Report Lasting Change</div></div>
+  <div class="stat"><div class="stn">8<sup>+</sup></div><div class="stl">Healing Modalities</div></div>
+  <div class="stat"><div class="stn">50<sup>K+</sup></div><div class="stl">Instagram Community</div></div>
+</div>
+
+<!-- ══════════ CONTENT PILLARS ══════════ -->
+<section class="cpillars z" id="pillars">
+  <div class="hr"></div>
+  <div style="padding-top:var(--py)">
+    <div class="cp-head rv">
+      <div class="gl" style="margin-bottom:clamp(14px,2vw,22px)">What We Teach</div>
+      <h2>Six pillars of<br><em>deep healing</em></h2>
+      <p>Every post, every protocol, every framework Anirudh shares comes back to these six root causes. Fix these — and everything changes.</p>
+    </div>
+    <div class="cp-grid">
+      <div class="cp-card rv">
+        <div class="cp-num">01</div>
+        <div class="cp-ico"><canvas id="ic1" width="48" height="48"></canvas></div>
+        <h3>Gut Health & Microbiome</h3>
+        <p>Your second brain. 80% of your immunity, your mood, your energy — it starts in the gut. Learn to read your body's oldest language and restore what time and lifestyle have disrupted.</p>
+        <span class="cp-tag">Nutrition · Microbiome</span>
+      </div>
+      <div class="cp-card rv" style="transition-delay:.1s">
+        <div class="cp-num">02</div>
+        <div class="cp-ico"><canvas id="ic2" width="48" height="48"></canvas></div>
+        <h3>Breathwork & Nervous System</h3>
+        <p>Chronic stress lives in the breath. Through ancient pranayama and modern breathwork science, we reset the nervous system, dissolve stored anxiety, and return you to rest-and-repair mode.</p>
+        <span class="cp-tag">Breathwork · Vagal Tone</span>
+      </div>
+      <div class="cp-card rv" style="transition-delay:.2s">
+        <div class="cp-num">03</div>
+        <div class="cp-ico"><canvas id="ic3" width="48" height="48"></canvas></div>
+        <h3>Fasting & Metabolic Health</h3>
+        <p>Intermittent fasting isn't about restriction — it's about cellular autophagy, mitochondrial renewal, and metabolic flexibility. Your body is designed to fast. We help you do it intelligently.</p>
+        <span class="cp-tag">Fasting · Autophagy</span>
+      </div>
+      <div class="cp-card rv" style="transition-delay:.05s">
+        <div class="cp-num">04</div>
+        <div class="cp-ico"><canvas id="ic4" width="48" height="48"></canvas></div>
+        <h3>Sleep & Recovery Science</h3>
+        <p>Deep sleep is when your brain clears toxins, your cells regenerate, and your hormones reset. Poor sleep is the single fastest way to age. We fix sleep — and everything downstream improves.</p>
+        <span class="cp-tag">Sleep · Circadian Rhythm</span>
+      </div>
+      <div class="cp-card rv" style="transition-delay:.15s">
+        <div class="cp-num">05</div>
+        <div class="cp-ico"><canvas id="ic5" width="48" height="48"></canvas></div>
+        <h3>Ayurveda & Ancient Wisdom</h3>
+        <p>5,000 years of Indian healing science — meeting modern longevity research. Dosha-based nutrition, seasonal living, Dinacharya morning rituals, and Rasayana rejuvenation therapies.</p>
+        <span class="cp-tag">Ayurveda · Dosha</span>
+      </div>
+      <div class="cp-card rv" style="transition-delay:.25s">
+        <div class="cp-num">06</div>
+        <div class="cp-ico"><canvas id="ic6" width="48" height="48"></canvas></div>
+        <h3>Trauma Release & Mental Clarity</h3>
+        <p>Stored emotional trauma lives in the body as inflammation, disease, and pain. Through somatic release, journalling protocols, and nervous system rewiring — we help you finally let go.</p>
+        <span class="cp-tag">Somatic · Mind Healing</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ PHILOSOPHY ══════════ -->
+<section class="philo z" id="philo">
+  <div class="phi-t rv">
+    <div class="gl" style="margin-bottom:clamp(14px,2vw,22px)">Our Philosophy</div>
+    <h2>Longevity is not<br>living longer —<br>it's living <em>fully</em></h2>
+    <p>Modern medicine treats symptoms. theanirudhcode goes to the root. As a Specialist in Metabolic Biochemistry, Dr. Anirudh understands that every so-called chronic condition — from insulin resistance to hormonal imbalance — is the body's signal, not a life sentence.</p>
+    <p>His approach bridges Ayurvedic tradition with the latest science in gut health, hormonal biochemistry, and mitochondrial biology. The result: a framework that feels ancient and cutting-edge simultaneously — rooted in Hyderabad, resonating globally.</p>
+    <div class="qpull">"You are not broken. You have simply been layered over with everything that was never yours to carry. Strip it away — and the real you heals itself."</div>
+  </div>
+  <div class="phi-v rv" style="transition-delay:.2s">
+    <div class="phi-glow"></div>
+    <canvas id="dna" width="340" height="460"></canvas>
+  </div>
+</section>
+
+<!-- ══════════ HEALING PROTOCOLS ══════════ -->
+<section class="protocols z" id="protocols">
+  <div class="prot-head rv">
+    <div class="gl" style="justify-content:center;margin-bottom:clamp(12px,1.8vw,20px)">The Protocols</div>
+    <h2>Proven frameworks<br>for <em>real transformation</em></h2>
+  </div>
+  <div class="prot-tabs rv">
+    <button class="ptab active" data-tab="0">Morning Reset</button>
+    <button class="ptab" data-tab="1">Gut Repair</button>
+    <button class="ptab" data-tab="2">Deep Sleep</button>
+    <button class="ptab" data-tab="3">Breathwork</button>
+  </div>
+  <div class="prot-panels rv" style="transition-delay:.15s">
+    <!-- TAB 0: Morning Reset -->
+    <div class="ppanel active" id="p0">
+      <div class="pp-text">
+        <h3>The <em>Morning Reset</em><br>Protocol</h3>
+        <p>Inspired by Ayurvedic Dinacharya — the science of daily routine — this 45-minute morning ritual primes your nervous system, activates digestion, and sets your circadian rhythm for the entire day.</p>
+        <div class="pp-steps">
+          <div class="pp-step"><div class="pp-step-n">1</div><div class="pp-step-t"><strong>5:30–6am:</strong> Wake before sunrise. Oil pulling + tongue scraping to detox overnight buildup.</div></div>
+          <div class="pp-step"><div class="pp-step-n">2</div><div class="pp-step-t"><strong>Hydration:</strong> 500ml warm water with lemon + a pinch of rock salt — activates digestive fire (Agni).</div></div>
+          <div class="pp-step"><div class="pp-step-n">3</div><div class="pp-step-t"><strong>Breathwork:</strong> 10 minutes of Nadi Shodhana or Bhramari to regulate the nervous system.</div></div>
+          <div class="pp-step"><div class="pp-step-n">4</div><div class="pp-step-t"><strong>Sunlight:</strong> 10–15 min direct morning light exposure to set cortisol rhythm and sleep-wake cycles.</div></div>
+        </div>
+      </div>
+      <div class="pp-visual"><canvas id="pvc0" width="360" height="360"></canvas></div>
+    </div>
+    <!-- TAB 1: Gut Repair -->
+    <div class="ppanel" id="p1">
+      <div class="pp-text">
+        <h3>The 4R <em>Gut Repair</em><br>Framework</h3>
+        <p>The gut is the foundation. Before addressing any other system — hormones, brain, energy — we repair the gut lining, restore healthy bacteria, and remove inflammatory triggers.</p>
+        <div class="pp-steps">
+          <div class="pp-step"><div class="pp-step-n">R1</div><div class="pp-step-t"><strong>Remove:</strong> Eliminate gluten, seed oils, processed sugar, and gut-disrupting medications.</div></div>
+          <div class="pp-step"><div class="pp-step-n">R2</div><div class="pp-step-t"><strong>Replace:</strong> Rebuild digestive enzymes and stomach acid with bitters, apple cider vinegar, and zinc.</div></div>
+          <div class="pp-step"><div class="pp-step-n">R3</div><div class="pp-step-t"><strong>Reinoculate:</strong> Restore microbiome diversity with fermented foods, prebiotics, and targeted probiotics.</div></div>
+          <div class="pp-step"><div class="pp-step-n">R4</div><div class="pp-step-t"><strong>Repair:</strong> Heal the gut lining with L-glutamine, collagen broth, slippery elm, and aloe vera.</div></div>
+        </div>
+      </div>
+      <div class="pp-visual"><canvas id="pvc1" width="360" height="360"></canvas></div>
+    </div>
+    <!-- TAB 2: Deep Sleep -->
+    <div class="ppanel" id="p2">
+      <div class="pp-text">
+        <h3>The <em>Deep Sleep</em><br>Architecture Protocol</h3>
+        <p>Sleep is the most powerful anti-aging intervention available. But modern life systematically destroys sleep quality. This protocol rebuilds it from the ground up.</p>
+        <div class="pp-steps">
+          <div class="pp-step"><div class="pp-step-n">1</div><div class="pp-step-t"><strong>Light diet:</strong> No screens 90 minutes before bed. Dim all lights after 8pm to preserve melatonin.</div></div>
+          <div class="pp-step"><div class="pp-step-n">2</div><div class="pp-step-t"><strong>Temperature:</strong> Sleep in a cool room (18–19°C). Cold exposure drops core temperature, deepening sleep stages.</div></div>
+          <div class="pp-step"><div class="pp-step-n">3</div><div class="pp-step-t"><strong>Wind-down ritual:</strong> Ashwagandha + magnesium glycinate + 4-7-8 breathing to shift into parasympathetic.</div></div>
+          <div class="pp-step"><div class="pp-step-n">4</div><div class="pp-step-t"><strong>Consistent timing:</strong> Same wake time every day — anchors the circadian rhythm more than bedtime.</div></div>
+        </div>
+      </div>
+      <div class="pp-visual"><canvas id="pvc2" width="360" height="360"></canvas></div>
+    </div>
+    <!-- TAB 3: Breathwork -->
+    <div class="ppanel" id="p3">
+      <div class="pp-text">
+        <h3>The <em>Breathwork</em><br>Nervous System Reset</h3>
+        <p>Your breath is the only autonomic function you can consciously control. This makes it a direct dial into your nervous system — capable of shifting you from fight-or-flight to deep healing.</p>
+        <div class="pp-steps">
+          <div class="pp-step"><div class="pp-step-n">1</div><div class="pp-step-t"><strong>Box Breathing:</strong> 4-4-4-4 cadence. Used by Navy SEALs. Instantly calms the amygdala and restores focus.</div></div>
+          <div class="pp-step"><div class="pp-step-n">2</div><div class="pp-step-t"><strong>Nadi Shodhana:</strong> Alternate nostril breathing. Balances left and right hemispheres; reduces cortisol in 5 minutes.</div></div>
+          <div class="pp-step"><div class="pp-step-n">3</div><div class="pp-step-t"><strong>Wim Hof Method:</strong> 30 power breaths + retention. Activates immune response, increases energy and resilience.</div></div>
+          <div class="pp-step"><div class="pp-step-n">4</div><div class="pp-step-t"><strong>4-7-8 Breathing:</strong> The most powerful sleep-induction technique. Activates vagal tone within 4 cycles.</div></div>
+        </div>
+      </div>
+      <div class="pp-visual"><canvas id="pvc3" width="360" height="360"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FREE GUIDE ══════════ -->
+<section class="freebie z rv">
+  <div class="fb-text rv">
+    <div class="gl" style="margin-bottom:clamp(14px,2vw,22px)">Free Resource</div>
+    <h2>The <em>7-Day</em><br>Healing Reset Guide</h2>
+    <p>Anirudh's most downloaded protocol — a step-by-step, science-backed guide to resetting your gut, nervous system, and sleep in one week. Used by over 12,000 people.</p>
+    <div class="fb-list">
+      <div class="fb-item">Day-by-day meal & fasting schedule aligned with your circadian biology</div>
+      <div class="fb-item">Morning Dinacharya ritual (Ayurvedic daily routine)</div>
+      <div class="fb-item">Evening nervous system wind-down sequence</div>
+      <div class="fb-item">Supplement stack recommendations with dosage</div>
+      <div class="fb-item">Breathwork audio guides for morning & night</div>
+    </div>
+  </div>
+  <div class="fb-form rv" style="transition-delay:.2s">
+    <h3>Get your free <em>guide</em></h3>
+    <p>Join 12,000+ people who have already begun their healing journey.</p>
+    <input class="finput" type="text" placeholder="Your first name">
+    <input class="finput" type="email" placeholder="Your email address">
+    <button class="fsubmit"><span>Send Me the Guide →</span></button>
+    <p class="fprivacy">No spam. Unsubscribe anytime. Your data is safe.</p>
+  </div>
+</section>
+
+<!-- ══════════ INSIGHTS / BLOG ══════════ -->
+<section class="insights z" id="insights">
+  <div class="ins-head rv">
+    <div>
+      <div class="gl" style="margin-bottom:clamp(10px,1.5vw,16px)">From The Feed</div>
+      <h2>Latest <em>insights</em></h2>
+    </div>
+    <a href="#" class="ins-link">View all posts →</a>
+  </div>
+  <div class="ins-grid">
+    <div class="ins-card rv">
+      <div class="ins-img">
+        <canvas class="ins-img-inner" id="icard1"></canvas>
+        <div class="ins-tag">Metabolic Health</div>
+      </div>
+      <div class="ins-body">
+        <div class="ins-cat">Nutrition · Biohacking</div>
+        <div class="ins-title">Why Calorie Counting is an Incomplete Concept</div>
+        <div class="ins-excerpt">Fat loss equals an energy deficit — but health optimisation is not just calories. Hormones, food quality, and your metabolic state matter more than the number on the label.</div>
+        <div class="ins-meta"><span class="ins-date">January 2026</span><span class="ins-arrow">→</span></div>
+      </div>
+    </div>
+    <div class="ins-card rv" style="transition-delay:.12s">
+      <div class="ins-img">
+        <canvas class="ins-img-inner" id="icard2"></canvas>
+        <div class="ins-tag">Fasting</div>
+      </div>
+      <div class="ins-body">
+        <div class="ins-cat">Intermittent Fasting · Autophagy</div>
+        <div class="ins-title">The Truth About Intermittent Fasting & Hair Loss</div>
+        <div class="ins-excerpt">Prolonged fasting affects nutrient availability, hormonal rhythms and cellular repair — understanding these nuances is the difference between healing and harm.</div>
+        <div class="ins-meta"><span class="ins-date">February 2026</span><span class="ins-arrow">→</span></div>
+      </div>
+    </div>
+    <div class="ins-card rv" style="transition-delay:.24s">
+      <div class="ins-img">
+        <canvas class="ins-img-inner" id="icard3"></canvas>
+        <div class="ins-tag">Hormones</div>
+      </div>
+      <div class="ins-body">
+        <div class="ins-cat">Metabolic Biochemistry · Hormones</div>
+        <div class="ins-title">Sugar, Insulin & the Disease Nobody Explains Properly</div>
+        <div class="ins-excerpt">The sugar problem goes far deeper than cravings. Anirudh breaks down the biochemistry of insulin resistance — and why the standard advice keeps people stuck.</div>
+        <div class="ins-meta"><span class="ins-date">February 2026</span><span class="ins-arrow">→</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ MANIFESTO ══════════ -->
+<section class="manifesto z rv">
+  <div class="man-bg"></div>
+  <div class="man-lbl">The Manifesto</div>
+  <h2>"The body is not a problem to be solved —<br>it is <span>a sacred intelligence</span> waiting to be heard."</h2>
+  <div class="man-attr">— Dr. Anirudh M. Vaddineni · theanirudhcode</div>
+</section>
+
+<!-- ══════════ METABOLIC TRUTHS ══════════ -->
+<section class="z" id="truths" style="padding:var(--py) var(--px);background:var(--black2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div style="text-align:center;max-width:680px;margin:0 auto clamp(40px,6vw,72px)" class="rv">
+    <div class="gl" style="justify-content:center;margin-bottom:clamp(12px,1.8vw,20px)">Metabolic Biochemistry</div>
+    <h2 style="font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1">The truths most<br><em style="color:var(--gold2)">doctors don't tell you</em></h2>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line)" class="rv" id="truths-grid">
+    <div class="truth-card" style="background:var(--black);padding:clamp(28px,3.5vw,52px) clamp(22px,2.8vw,42px);border:1px solid var(--line);transition:all .5s cubic-bezier(.22,1,.36,1)">
+      <div style="font-family:'Cormorant',serif;font-size:72px;font-weight:300;color:rgba(200,169,81,.07);line-height:1;pointer-events:none;position:absolute">01</div>
+      <div style="position:relative">
+        <div class="gl" style="margin-bottom:18px;font-size:10px">Calorie Myth</div>
+        <h3 style="font-family:'Cormorant',serif;font-size:var(--h3);font-weight:300;color:var(--white);margin-bottom:14px">Fat loss ≠ Health optimisation</h3>
+        <p style="font-size:var(--fb);color:var(--muted);line-height:2;font-weight:200">Calorie counting is a useful awareness tool — but it fails the moment you ignore hormones, food quality, and long-term metabolic flexibility. A caloric deficit without hormonal balance creates a stressed, inflamed body at a lower weight.</p>
+        <div style="margin-top:22px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);border-bottom:1px solid rgba(200,169,81,.28);padding-bottom:2px;display:inline-block">Metabolic Health</div>
+      </div>
+    </div>
+    <div class="truth-card" style="background:var(--black);padding:clamp(28px,3.5vw,52px) clamp(22px,2.8vw,42px);border:1px solid var(--line);transition:all .5s cubic-bezier(.22,1,.36,1)">
+      <div style="position:relative">
+        <div class="gl" style="margin-bottom:18px;font-size:10px">Hormonal Truth</div>
+        <h3 style="font-family:'Cormorant',serif;font-size:var(--h3);font-weight:300;color:var(--white);margin-bottom:14px">Hunger is hormonal, not moral</h3>
+        <p style="font-size:var(--fb);color:var(--muted);line-height:2;font-weight:200">Ghrelin, leptin, cortisol, and insulin drive every eating decision you make. Willpower is depleted before it even begins when these hormones are dysregulated. Fix the biochemistry — and eating becomes effortless.</p>
+        <div style="margin-top:22px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);border-bottom:1px solid rgba(200,169,81,.28);padding-bottom:2px;display:inline-block">Hormones · Biohacking</div>
+      </div>
+    </div>
+    <div class="truth-card" style="background:var(--black);padding:clamp(28px,3.5vw,52px) clamp(22px,2.8vw,42px);border:1px solid var(--line);transition:all .5s cubic-bezier(.22,1,.36,1)">
+      <div style="position:relative">
+        <div class="gl" style="margin-bottom:18px;font-size:10px">Fasting Science</div>
+        <h3 style="font-family:'Cormorant',serif;font-size:var(--h3);font-weight:300;color:var(--white);margin-bottom:14px">Your body is designed to fast</h3>
+        <p style="font-size:var(--fb);color:var(--muted);line-height:2;font-weight:200">Intermittent fasting isn't deprivation — it's activating cellular autophagy, mitochondrial renewal, and insulin sensitivity. Prolonged fasting, however, must be approached with intelligence: nutrient timing and individual biology always matter.</p>
+        <div style="margin-top:22px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);border-bottom:1px solid rgba(200,169,81,.28);padding-bottom:2px;display:inline-block">Fasting · Autophagy</div>
+      </div>
+    </div>
+  </div>
+  <style>
+    .truth-card:hover{background:rgba(200,169,81,.04) !important;transform:translateY(-6px);box-shadow:0 36px 72px rgba(0,0,0,.55);border-color:rgba(200,169,81,.2) !important}
+    @media(max-width:900px){#truths-grid{grid-template-columns:1fr !important}}
+  </style>
+</section>
+
+<!-- ══════════ JOURNEY ══════════ -->
+<section class="journey z" id="journey">
+  <div class="hr"></div>
+  <div style="padding-top:var(--py)">
+    <div class="jhead rv">
+      <div class="gl" style="margin-bottom:clamp(12px,1.8vw,20px)">The Process</div>
+      <h2>Your path back<br>to <em>wholeness</em></h2>
+    </div>
+    <div class="jsteps">
+      <div class="jstep rv"><div class="jbar"></div><div class="jsn">01</div><h4>Root Cause Mapping</h4><p>A deep diagnostic that identifies the true source of your imbalance — not the symptom, but the story beneath it.</p></div>
+      <div class="jstep rv" style="transition-delay:.1s"><div class="jbar"></div><div class="jsn">02</div><h4>Personalised Protocol</h4><p>A bespoke healing blueprint across nutrition, movement, breathwork, sleep, and mindset — built for your unique biology.</p></div>
+      <div class="jstep rv" style="transition-delay:.2s"><div class="jbar"></div><div class="jsn">03</div><h4>Guided Integration</h4><p>Expert guidance through every stage. Not a programme you're thrown into — a journey you're walked through.</p></div>
+      <div class="jstep rv" style="transition-delay:.3s"><div class="jbar"></div><div class="jsn">04</div><h4>Living Longevity</h4><p>Build a life where vibrant health is your natural state — not something you chase, but something you simply are.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ TESTIMONIALS ══════════ -->
+<section class="testis z" id="stories">
+  <div class="thead rv">
+    <div class="gl" style="justify-content:center;margin-bottom:clamp(12px,1.8vw,20px)">Healing Stories</div>
+    <h2>Real people.<br><em>Real transformation.</em></h2>
+  </div>
+  <div class="tgrid">
+    <div class="tcard rv">
+      <div class="tq">"</div>
+      <p class="ttext">I spent six years chasing diagnoses. Anirudh helped me understand that my body was never the enemy — it was always asking for a conversation I hadn't learned to have.</p>
+      <div class="tauthor"><div class="tdot"></div><div class="tname">Priya M. · Mumbai</div></div>
+      <div class="tresult">Reversed IBS in 90 days</div>
+    </div>
+    <div class="tcard rv" style="transition-delay:.12s">
+      <div class="tq">"</div>
+      <p class="ttext">The gut repair protocol felt like someone had finally read the manual for my specific body. Six months in — I feel like I've reversed a decade of damage.</p>
+      <div class="tauthor"><div class="tdot"></div><div class="tname">Rohan K. · Bangalore</div></div>
+      <div class="tresult">Lost 14kg, cleared brain fog</div>
+    </div>
+    <div class="tcard rv" style="transition-delay:.24s">
+      <div class="tq">"</div>
+      <p class="ttext">I came for the breathwork and stayed for the complete transformation. This isn't wellness theatre — it's precise, personalised, and profoundly effective.</p>
+      <div class="tauthor"><div class="tdot"></div><div class="tname">Anika R. · Delhi</div></div>
+      <div class="tresult">Anxiety reduced by 80%</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ CTA ══════════ -->
+<section class="cta z rv">
+  <div class="cta-orb"></div>
+  <div class="gl" style="justify-content:center;margin-bottom:clamp(18px,2.5vw,36px)">Begin Now</div>
+  <h2>The real you<br><em>is waiting</em></h2>
+  <p>Your body already knows how to heal. It needs the right conditions, the right guidance, and the permission to begin.</p>
+  <div class="cta-acts">
+    <button class="btn-g"><span>Start Your Healing Journey</span></button>
+    <button class="btn-o">Book a Free Consultation</button>
+  </div>
+  <p class="cta-note">No commitment required · 100% personalised · Results within 30 days</p>
+</section>
+
+<!-- ══════════ FOOTER ══════════ -->
+<footer class="z">
+  <div class="fbrand">
+    <div class="fl"><div class="ngem"></div>theanirudhcode</div>
+    <div class="fs">Heal the Real You</div>
+    <div class="fdesc">Dr. Anirudh M. Vaddineni — Specialist in Metabolic Biochemistry. A longevity and wellness platform bridging ancient Ayurvedic wisdom with modern healing science. Based in Hyderabad. Healing globally.</div>
+    <div class="fsocial">
+      <a href="#" class="fsoc-btn" aria-label="Instagram">IG</a>
+      <a href="#" class="fsoc-btn" aria-label="YouTube">YT</a>
+      <a href="#" class="fsoc-btn" aria-label="Telegram">TG</a>
+      <a href="#" class="fsoc-btn" aria-label="WhatsApp">WA</a>
+    </div>
+  </div>
+  <div class="flinks-col">
+    <h5>Explore</h5>
+    <a href="#">Philosophy</a>
+    <a href="#">Protocols</a>
+    <a href="#">Insights</a>
+    <a href="#">Journey</a>
+    <a href="#">Stories</a>
+  </div>
+  <div class="flinks-col">
+    <h5>Connect</h5>
+    <a href="#">Instagram</a>
+    <a href="#">Free Guide</a>
+    <a href="#">Consultation</a>
+    <a href="#">Community</a>
+    <a href="#">Contact</a>
+  </div>
+</footer>
+<div class="fbot z">© 2026 theanirudhcode · All rights reserved · Heal the Real You</div>
+
+<script>
+/* ═══════════ CURSOR ═══════════ */
+const cur=document.getElementById('cur'),ring=document.getElementById('ring');
+let mx=innerWidth/2,my=innerHeight/2,tx=mx,ty=my;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.cssText+=`left:${mx}px;top:${my}px`});
+(function lc(){tx+=(mx-tx)*.09;ty+=(my-ty)*.09;ring.style.cssText=`left:${tx}px;top:${ty}px`;requestAnimationFrame(lc)})();
+
+/* ═══════════ NAV ═══════════ */
+const nav=document.getElementById('nav');
+window.addEventListener('scroll',()=>nav.classList.toggle('s',scrollY>60));
+const ham=document.getElementById('ham'),mm=document.getElementById('mm'),mc=document.getElementById('mc');
+ham.onclick=()=>mm.classList.add('open');
+mc.onclick=()=>mm.classList.remove('open');
+document.querySelectorAll('.mml').forEach(l=>l.addEventListener('click',()=>mm.classList.remove('open')));
+
+/* ═══════════ BG CANVAS ═══════════ */
+(()=>{
+  const c=document.getElementById('bg'),ctx=c.getContext('2d');
+  let W,H;
+  const rs=()=>{W=c.width=innerWidth;H=c.height=innerHeight};
+  rs();window.addEventListener('resize',rs);
+  const pts=Array.from({length:80},()=>({x:Math.random(),y:Math.random(),vx:(Math.random()-.5)*.00022,vy:(Math.random()-.5)*.00022,r:Math.random()*1.5+.4,a:Math.random()*.22+.04}));
+  let fmx=.5,fmy=.5;
+  document.addEventListener('mousemove',e=>{fmx=e.clientX/innerWidth;fmy=e.clientY/innerHeight});
+  function fr(){
+    ctx.clearRect(0,0,W,H);
+    const g=ctx.createRadialGradient(W*.4+fmx*W*.1,H*.3+fmy*H*.1,0,W*.5,H*.5,W*.85);
+    g.addColorStop(0,'#0c0a04');g.addColorStop(.5,'#080808');g.addColorStop(1,'#040404');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    for(let i=0;i<pts.length;i++){for(let j=i+1;j<pts.length;j++){const dx=(pts[i].x-pts[j].x)*W,dy=(pts[i].y-pts[j].y)*H,d=Math.sqrt(dx*dx+dy*dy);if(d<140){ctx.beginPath();ctx.moveTo(pts[i].x*W,pts[i].y*H);ctx.lineTo(pts[j].x*W,pts[j].y*H);ctx.strokeStyle=`rgba(200,169,81,${.04*(1-d/140)})`;ctx.lineWidth=.4;ctx.stroke()}}}
+    pts.forEach(p=>{ctx.beginPath();ctx.arc(p.x*W,p.y*H,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(200,169,81,${p.a})`;ctx.fill();p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=1;if(p.x>1)p.x=0;if(p.y<0)p.y=1;if(p.y>1)p.y=0});
+    requestAnimationFrame(fr);
+  }
+  fr();
+})();
+
+/* ═══════════ ORB (Three.js) ═══════════ */
+(()=>{
+  const canvas=document.getElementById('orb');
+  function sz(){return Math.min(500,Math.min(canvas.parentElement.clientWidth*.85,canvas.parentElement.clientHeight))}
+  const s=sz();canvas.width=s;canvas.height=s;
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(s,s);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(42,1,.1,100);camera.position.z=5.5;
+  const geo=new THREE.IcosahedronGeometry(1.8,5);
+  const mat=new THREE.MeshPhongMaterial({color:0x1a1200,emissive:0x0c0800,shininess:130,specular:0xc8a951,transparent:true,opacity:.88});
+  const orb=new THREE.Mesh(geo,mat);scene.add(orb);
+  scene.add(new THREE.Mesh(new THREE.IcosahedronGeometry(1.86,2),new THREE.MeshBasicMaterial({color:0xc8a951,wireframe:true,transparent:true,opacity:.07})));
+  const core=new THREE.Mesh(new THREE.SphereGeometry(1.05,32,32),new THREE.MeshBasicMaterial({color:0xc8732a,transparent:true,opacity:.11}));scene.add(core);
+  [[2.4,.012,0xc8a951,.18,Math.PI/2,.003],[2.9,.007,0xe2c97e,.1,Math.PI/2.5,-.002],[3.3,.005,0xf5e6b8,.06,Math.PI/3,.0015]].forEach(([r,t,col,op,rx,spd])=>{const rg=new THREE.Mesh(new THREE.TorusGeometry(r,t,16,200),new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op}));rg.rotation.x=rx;rg.userData.spd=spd;scene.add(rg)});
+  const dg=new THREE.BufferGeometry();const dp=new Float32Array(600);for(let i=0;i<200;i++){const phi=Math.acos(-1+2*Math.random()),th=2*Math.PI*Math.random(),r=3+Math.random()*2;dp[i*3]=r*Math.sin(phi)*Math.cos(th);dp[i*3+1]=r*Math.sin(phi)*Math.sin(th);dp[i*3+2]=r*Math.cos(phi)}dg.setAttribute('position',new THREE.BufferAttribute(dp,3));scene.add(new THREE.Points(dg,new THREE.PointsMaterial({color:0xc8a951,size:.04,transparent:true,opacity:.45})));
+  scene.add(new THREE.AmbientLight(0x1a1000,3));const l1=new THREE.DirectionalLight(0xc8a951,5);l1.position.set(3,3,3);scene.add(l1);const l2=new THREE.DirectionalLight(0xc8732a,2);l2.position.set(-4,-2,2);scene.add(l2);const pl=new THREE.PointLight(0xe2c97e,4,10);pl.position.set(0,0,3);scene.add(pl);
+  let mx=0,my=0;document.addEventListener('mousemove',e=>{mx=(e.clientX/innerWidth-.5)*2;my=-(e.clientY/innerHeight-.5)*2});
+  window.addEventListener('resize',()=>{const ns=sz();canvas.width=ns;canvas.height=ns;renderer.setSize(ns,ns)});
+  let t=0;(function a(){requestAnimationFrame(a);t+=.007;const b=1+Math.sin(t*.6)*.038;orb.scale.set(b,b,b);core.scale.set(1+Math.sin(t*1.2)*.07,1+Math.sin(t*1.2)*.07,1+Math.sin(t*1.2)*.07);orb.rotation.y=t*.15+mx*.25;orb.rotation.x=my*.18;scene.children.forEach(c=>{if(c.userData.spd)c.rotation.y+=c.userData.spd});renderer.render(scene,camera)})();
+})();
+
+/* ═══════════ DNA HELIX ═══════════ */
+(()=>{
+  const c=document.getElementById('dna'),ctx=c.getContext('2d'),W=340,H=460,cx=W/2;let t=0;
+  (function d(){requestAnimationFrame(d);ctx.clearRect(0,0,W,H);t+=.65;const step=H/13;
+  for(let i=-1;i<15;i++){const y=i*step+(t%step),wave=Math.sin(i*.72+t*.04)*52,x1=cx-wave,x2=cx+wave,alpha=.12+Math.abs(Math.sin(i*.5+t*.03))*.42;
+    ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.strokeStyle=`rgba(200,169,81,${alpha*.38})`;ctx.lineWidth=.9;ctx.stroke();
+    [x1,x2].forEach((x,idx)=>{ctx.beginPath();ctx.arc(x,y,4.5,0,Math.PI*2);const g=ctx.createRadialGradient(x,y,0,x,y,5);g.addColorStop(0,`rgba(${idx?'200,115,42':'226,201,126'},${alpha})`);g.addColorStop(1,'rgba(200,169,81,0)');ctx.fillStyle=g;ctx.fill()});
+  }
+  ctx.beginPath();for(let y=0;y<=H;y+=2)ctx.lineTo(cx-Math.sin((y+t)*.065)*52,y);ctx.strokeStyle='rgba(200,169,81,.28)';ctx.lineWidth=1.6;ctx.stroke();
+  ctx.beginPath();for(let y=0;y<=H;y+=2)ctx.lineTo(cx+Math.sin((y+t)*.065)*52,y);ctx.strokeStyle='rgba(200,115,42,.28)';ctx.lineWidth=1.6;ctx.stroke();
+  })();
+})();
+
+/* ═══════════ PILLAR ICONS ═══════════ */
+const iconTypes=['gut','breath','fast','sleep','ayur','trauma'];
+iconTypes.forEach((tp,i)=>{
+  const c=document.getElementById(`ic${i+1}`);if(!c)return;
+  const ctx=c.getContext('2d'),S=48,cx=24,cy=24;let t=0;
+  (function d(){requestAnimationFrame(d);t+=.025;ctx.clearRect(0,0,S,S);
+    if(tp==='gut'){for(let j=0;j<3;j++){ctx.beginPath();ctx.arc(cx+Math.sin(t+j*2)*6,cy+Math.cos(t*.8+j*2)*5,5+j*2,0,Math.PI*2);ctx.strokeStyle=`rgba(200,169,81,${.3+j*.15})`;ctx.lineWidth=1;ctx.stroke()}}
+    else if(tp==='breath'){for(let j=0;j<20;j++){const a=j/20*Math.PI*2+t*.3,r=14+Math.sin(t*2+j)*4;ctx.beginPath();ctx.arc(cx+r*Math.cos(a),cy+r*Math.sin(a),.9,0,Math.PI*2);ctx.fillStyle=`rgba(200,169,81,${.2+Math.sin(t+j)*.15})`;ctx.fill()}}
+    else if(tp==='fast'){ctx.beginPath();ctx.arc(cx,cy,14,0,Math.PI*2);ctx.strokeStyle='rgba(200,169,81,.25)';ctx.lineWidth=1;ctx.stroke();const progress=(Math.sin(t*.4)+1)/2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,14,-Math.PI/2,-Math.PI/2+progress*Math.PI*2);ctx.closePath();ctx.fillStyle='rgba(200,169,81,.18)';ctx.fill();ctx.beginPath();ctx.arc(cx,cy,4+Math.sin(t)*1,0,Math.PI*2);ctx.fillStyle='rgba(226,201,126,.7)';ctx.fill()}
+    else if(tp==='sleep'){for(let j=0;j<5;j++){const y=cy-8+j*4,w=20-Math.abs(j-2)*4,alpha=.15+Math.abs(Math.sin(t+j*.5))*.3;ctx.beginPath();ctx.moveTo(cx-w,y);for(let x=cx-w;x<=cx+w;x++){ctx.lineTo(x,y+Math.sin((x+t*20)*0.3)*2)}ctx.strokeStyle=`rgba(200,169,81,${alpha})`;ctx.lineWidth=.9;ctx.stroke()}}
+    else if(tp==='ayur'){const pts2=6;for(let j=0;j<pts2;j++){const a=j/pts2*Math.PI*2+t*.1;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx+12*Math.cos(a),cy+12*Math.sin(a),5,0,Math.PI*2);ctx.fillStyle=`rgba(200,169,81,${.08+Math.abs(Math.sin(t+j))*.1})`;ctx.fill()}ctx.beginPath();ctx.arc(cx,cy,6+Math.sin(t)*.8,0,Math.PI*2);const g=ctx.createRadialGradient(cx,cy,0,cx,cy,7);g.addColorStop(0,'rgba(226,201,126,.8)');g.addColorStop(1,'rgba(200,169,81,0)');ctx.fillStyle=g;ctx.fill()}
+    else{ctx.save();ctx.translate(cx,cy);for(let j=0;j<8;j++){const a=j/8*Math.PI*2+t*.12,r=14+Math.sin(t*2+j)*2.5;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(r*Math.cos(a),r*Math.sin(a));ctx.strokeStyle=`rgba(200,169,81,${.12+Math.sin(t+j)*.08})`;ctx.lineWidth=1;ctx.stroke()}ctx.beginPath();ctx.arc(0,0,5+Math.sin(t)*1.2,0,Math.PI*2);const g=ctx.createRadialGradient(0,0,0,0,0,6);g.addColorStop(0,'rgba(200,115,42,.8)');g.addColorStop(1,'rgba(200,169,81,0)');ctx.fillStyle=g;ctx.fill();ctx.restore()}
+  })();
+});
+
+/* ═══════════ PROTOCOL TABS ═══════════ */
+document.querySelectorAll('.ptab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.ppanel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`p${btn.dataset.tab}`).classList.add('active');
+  });
+});
+
+/* ═══════════ PROTOCOL VISUALS ═══════════ */
+[['pvc0','sun'],['pvc1','helix'],['pvc2','wave'],['pvc3','spiral']].forEach(([id,tp])=>{
+  const c=document.getElementById(id);if(!c)return;
+  const ctx=c.getContext('2d'),W=360,H=360,cx=W/2,cy=H/2;let t=0;
+  (function d(){
+    requestAnimationFrame(d);t+=.012;ctx.clearRect(0,0,W,H);
+    if(tp==='sun'){for(let r=120;r>10;r-=18){const prog=(120-r)/120;ctx.beginPath();ctx.arc(cx,cy,r+Math.sin(t*2+r*.05)*4,0,Math.PI*2);ctx.strokeStyle=`rgba(200,169,81,${.04+prog*.08})`;ctx.lineWidth=.8;ctx.stroke()}for(let i=0;i<24;i++){const a=i/24*Math.PI*2+t*.05,r1=50,r2=90+Math.sin(t*3+i)*12;ctx.beginPath();ctx.moveTo(cx+r1*Math.cos(a),cy+r1*Math.sin(a));ctx.lineTo(cx+r2*Math.cos(a),cy+r2*Math.sin(a));ctx.strokeStyle='rgba(200,169,81,.15)';ctx.lineWidth=1;ctx.stroke()}ctx.beginPath();ctx.arc(cx,cy,40+Math.sin(t)*.02*40,0,Math.PI*2);const sg=ctx.createRadialGradient(cx,cy,0,cx,cy,45);sg.addColorStop(0,'rgba(226,201,126,.5)');sg.addColorStop(1,'rgba(200,169,81,0)');ctx.fillStyle=sg;ctx.fill()}
+    else if(tp==='helix'){for(let y=20;y<H-20;y+=3){const wave=Math.sin((y+t*40)*.055)*80,alpha=.1+Math.abs(Math.sin((y+t*20)*.04))*.3;ctx.beginPath();ctx.arc(cx+wave,y,3,0,Math.PI*2);ctx.fillStyle=`rgba(200,169,81,${alpha})`;ctx.fill();ctx.beginPath();ctx.arc(cx-wave,y,3,0,Math.PI*2);ctx.fillStyle=`rgba(200,115,42,${alpha})`;ctx.fill();if(y%18<3){ctx.beginPath();ctx.moveTo(cx+wave,y);ctx.lineTo(cx-wave,y);ctx.strokeStyle=`rgba(200,169,81,${alpha*.5})`;ctx.lineWidth=.8;ctx.stroke()}}}
+    else if(tp==='wave'){for(let i=0;i<6;i++){ctx.beginPath();for(let x=0;x<W;x++){const y=cy+(Math.sin(x*.04+t+i*.6)*40+Math.sin(x*.08-t*.5+i)*20)/(1+i*.3);x===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.strokeStyle=`rgba(200,169,81,${.15-i*.02})`;ctx.lineWidth=1.2-i*.15;ctx.stroke()}}
+    else{ctx.beginPath();for(let i=0;i<500;i++){const a=i*.12+t,r=i*.28;if(r>160)break;ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a))}ctx.strokeStyle='rgba(200,169,81,.35)';ctx.lineWidth=1;ctx.stroke();ctx.beginPath();ctx.arc(cx,cy,10+Math.sin(t*2)*3,0,Math.PI*2);const g=ctx.createRadialGradient(cx,cy,0,cx,cy,14);g.addColorStop(0,'rgba(226,201,126,.7)');g.addColorStop(1,'rgba(200,169,81,0)');ctx.fillStyle=g;ctx.fill()}
+  })();
+});
+
+/* ═══════════ INSIGHT CARD CANVASES ═══════════ */
+[['icard1','gut'],['icard2','breath'],['icard3','ayur2']].forEach(([id,tp])=>{
+  const c=document.getElementById(id);if(!c)return;
+  const ctx=c.getContext('2d');let t=0;
+  function rs(){c.width=c.offsetWidth||400;c.height=c.offsetHeight||240}rs();window.addEventListener('resize',rs);
+  (function d(){
+    requestAnimationFrame(d);t+=.008;
+    const W=c.width,H=c.height,cx=W/2,cy=H/2;
+    ctx.clearRect(0,0,W,H);
+    const bg=ctx.createRadialGradient(cx,cy,0,cx,cy,W*.6);
+    if(tp==='gut'){bg.addColorStop(0,'#0f0c03');bg.addColorStop(1,'#070707')}
+    else if(tp==='breath'){bg.addColorStop(0,'#030a0f');bg.addColorStop(1,'#070707')}
+    else{bg.addColorStop(0,'#0a0803');bg.addColorStop(1,'#070707')}
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    if(tp==='gut'){for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(cx+Math.sin(t+i)*20,cy+Math.cos(t*.7+i)*15,30+i*15,0,Math.PI*2);ctx.strokeStyle=`rgba(200,169,81,${.08-i*.015})`;ctx.lineWidth=1;ctx.stroke()}}
+    else if(tp==='breath'){for(let i=0;i<30;i++){const a=i/30*Math.PI*2+t*.4,r=40+Math.sin(t*2+i)*20;ctx.beginPath();ctx.arc(cx+r*Math.cos(a),cy+r*Math.sin(a),2,0,Math.PI*2);ctx.fillStyle=`rgba(200,169,81,${.2+Math.sin(t+i)*.1})`;ctx.fill()}}
+    else{for(let i=0;i<8;i++){const a=i/8*Math.PI*2+t*.08,r=40+Math.sin(t+i)*10;ctx.beginPath();ctx.arc(cx+r*Math.cos(a),cy+r*Math.sin(a),4,0,Math.PI*2);ctx.fillStyle=`rgba(200,150,42,${.2+Math.sin(t+i)*.1})`;ctx.fill()}}
+  })();
+});
+
+/* ═══════════ SCROLL REVEAL ═══════════ */
+const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in')}),{threshold:.1});
+document.querySelectorAll('.rv').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
