@@ -75,12 +75,13 @@ document.addEventListener('DOMContentLoaded', () => {
     else { modal.classList.remove('open'); document.body.style.overflow = ''; }
   }
 
-  // All elements with data-action="open-consultation" open the booking modal
-  document.querySelectorAll('[data-action="open-consultation"]').forEach(el => {
-    el.addEventListener('click', (e) => {
+  // Use event delegation so dynamically added buttons also work
+  document.addEventListener('click', (e) => {
+    const trigger = e.target.closest('[data-action="open-consultation"]');
+    if (trigger) {
       e.preventDefault();
       if (window.bookingModal) window.bookingModal.open();
-    });
+    }
   });
 
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
