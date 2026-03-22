@@ -371,7 +371,6 @@ class BookingModal {
   }
 }
 
-let bookingModal;
 document.addEventListener('DOMContentLoaded', () => {
-  bookingModal = new BookingModal();
+  window.bookingModal = new BookingModal();
 });
