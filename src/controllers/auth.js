@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const db = require('../database/connection');
+const prisma = require('../lib/prisma');
 const { generateToken, authenticate, COOKIE_OPTIONS } = require('../middleware/auth');
 const { validateEmail, sanitize } = require('../middleware/validate');
+const { sendWelcomeEmail } = require('../lib/mailer');
 
 // POST /api/auth/register
-router.post('/register', (req, res) => {
+router.post('/register', async (req, res) => {
   const { name, email, password, phone } = req.body;
 
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
@@ -18,18 +19,26 @@ router.post('/register', (req, res) => {
   const cleanPhone = sanitize((phone || '').trim());
 
   try {
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(cleanEmail);
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (existing) return res.status(409).json({ error: 'An account with this email already exists' });
 
     const hash = bcrypt.hashSync(password, 10);
-    const result = db.prepare(
-      'INSERT INTO users (name, email, password_hash, phone, role) VALUES (?, ?, ?, ?, ?)'
-    ).run(cleanName, cleanEmail, hash, cleanPhone, 'patient');
+    const user = await prisma.user.create({
+      data: {
+        name: cleanName,
+        email: cleanEmail,
+        passwordHash: hash,
+        phone: cleanPhone,
+        role: 'patient',
+      }
+    });
 
-    const user = { id: result.lastInsertRowid, name: cleanName, email: cleanEmail, role: 'patient' };
     const token = generateToken(user);
-
     res.cookie('token', token, COOKIE_OPTIONS);
+
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(cleanEmail, cleanName).catch(() => {});
+
     res.status(201).json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (err) {
     console.error('Register error:', err);
@@ -38,17 +47,17 @@ router.post('/register', (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
   if (!validateEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
 
   try {
-    const user = db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1').get(email.trim().toLowerCase());
-    if (!user) return res.status(401).json({ error: 'Invalid email or password' });
+    const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
+    if (!user || !user.isActive) return res.status(401).json({ error: 'Invalid email or password' });
 
-    if (!bcrypt.compareSync(password, user.password_hash)) {
+    if (!bcrypt.compareSync(password, user.passwordHash)) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 

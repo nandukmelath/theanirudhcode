@@ -5,9 +5,6 @@ const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 
-// Initialize database on first run
-require('./database/init');
-
 const app = express();
 
 // Security headers
@@ -24,8 +21,8 @@ app.use(helmet({
   }
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 
 // Static files
@@ -33,6 +30,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Stricter rate limits for auth (must be BEFORE general API limiter)
 app.use('/api/auth/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many login attempts. Please try again later.' } }));
+app.use('/admin-login', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: 'Too many attempts. Please try again later.' }));
 app.use('/api/auth/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: 'Too many registration attempts. Please try again later.' } }));
 
 // General rate limiting for API
@@ -44,12 +42,12 @@ app.use('/api', rateLimit({
   message: { error: 'Too many requests. Please try again later.' }
 }));
 
-// Routes
-app.use('/api', require('./routes/api'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/appointments', require('./routes/appointments'));
-app.use('/api/calendar', require('./routes/calendar'));
-app.use('/admin', require('./routes/admin'));
+// Routes (using new src/controllers)
+app.use('/api', require('./src/controllers/api'));
+app.use('/api/auth', require('./src/controllers/auth'));
+app.use('/api/appointments', require('./src/controllers/appointments'));
+app.use('/api/calendar', require('./src/controllers/calendar'));
+app.use('/portal-management', require('./src/controllers/admin'));
 
 // View pages
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'views', 'login.html')));

@@ -122,6 +122,8 @@ select.status-select{background:var(--black);color:var(--muted);border:1px solid
       <div class="stat-card"><div class="num" id="s-appt">—</div><div class="label">Upcoming Appts</div></div>
       <div class="stat-card"><div class="num" id="s-patients">—</div><div class="label">Patients</div></div>
       <div class="stat-card"><div class="num" id="s-today">—</div><div class="label">Today's Signups</div></div>
+      <div class="stat-card" style="border-color:rgba(200,169,81,.25)"><div class="num" id="s-lives" style="color:var(--gold)">—</div><div class="label">Lives Transformed</div></div>
+      <div class="stat-card" style="border-color:rgba(111,191,115,.25)"><div class="num" id="s-active" style="color:#6fbf73">—</div><div class="label">Active Journeys</div></div>
     </div>
 
     <div class="tab-bar">
@@ -217,7 +219,7 @@ select.status-select{background:var(--black);color:var(--muted);border:1px solid
 </div>
 
 <script>
-const API = '/admin/api';
+const API = '/portal-management/api';
 let useJWT = false;
 
 // Elements
@@ -234,7 +236,7 @@ const params = new URLSearchParams(window.location.search);
 if (params.get('calendar_success')) showAlert(params.get('calendar_success'), 'success');
 if (params.get('calendar_error')) showAlert(params.get('calendar_error'), 'error');
 if (params.get('calendar_success') || params.get('calendar_error')) {
-  history.replaceState({}, '', '/admin');
+  history.replaceState({}, '', '/portal-management');
 }
 
 // Try JWT auth first on page load
@@ -243,9 +245,11 @@ tryJWTLoad();
 loginBtn.addEventListener('click', login);
 loginPass.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 logoutBtn.addEventListener('click', async () => {
-  await fetch('/api/auth/logout', { method: 'POST' });
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+  } catch (e) { /* ignore */ }
   sessionStorage.removeItem('admin_token');
-  location.reload();
+  window.location.href = '/';
 });
 
 async function tryJWTLoad() {
@@ -343,6 +347,8 @@ async function loadStats() {
     document.getElementById('s-today').textContent = data.todaySubs;
     document.getElementById('s-appt').textContent = data.upcomingAppointments || 0;
     document.getElementById('s-patients').textContent = data.totalPatients || 0;
+    document.getElementById('s-lives').textContent = data.livesTransformed || 0;
+    document.getElementById('s-active').textContent = data.activeJourneys || 0;
   } catch {}
 }
 
@@ -364,7 +370,7 @@ async function loadSubscribers() {
   if (!subscribers.length) { body.innerHTML = '<tr><td colspan="5" class="empty">No subscribers yet</td></tr>'; return; }
   body.innerHTML = subscribers.map(s => `<tr>
     <td>${esc(s.name)}</td><td>${esc(s.email)}</td><td>${esc(s.source)}</td>
-    <td>${new Date(s.subscribed_at+'Z').toLocaleDateString()}</td>
+    <td>${new Date(s.subscribedAt || s.subscribed_at).toLocaleDateString()}</td>
     <td><button class="action-btn danger" onclick="deleteSub(${s.id})">Delete</button></td>
   </tr>`).join('');
 }

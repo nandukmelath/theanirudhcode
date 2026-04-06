@@ -69,7 +69,9 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 
     if (res.ok) {
       const params = new URLSearchParams(window.location.search);
-      window.location.href = params.get('redirect') || '/';
+      const redirect = params.get('redirect');
+      const safeRedirect = (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) ? redirect : '/';
+      window.location.href = safeRedirect;
     } else {
       errEl.textContent = data.error;
       errEl.style.display = 'block';

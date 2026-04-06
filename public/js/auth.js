@@ -99,12 +99,12 @@ const Auth = {
   },
 
   async logout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+    } catch (e) { /* ignore network errors */ }
     Auth.user = null;
     Auth.updateNavUI();
-    if (window.location.pathname === '/my-appointments') {
-      window.location.href = '/';
-    }
+    window.location.href = '/';
   }
 };
 

@@ -39,20 +39,9 @@ class BookingModal {
   }
 
   showLoginPrompt() {
-    this.container.innerHTML = `
-      <div style="text-align:center;padding:20px 0">
-        <div class="gl" style="margin-bottom:18px">Authentication Required</div>
-        <h3 style="font-family:'Cormorant',serif;font-size:clamp(24px,3vw,36px);font-weight:300;margin-bottom:8px">
-          Sign in to <em style="color:var(--gold2)">begin healing</em>
-        </h3>
-        <p style="color:var(--muted);font-size:var(--fb);margin-bottom:32px;font-weight:200">
-          Create an account or login to book your consultation with Dr. Anirudh.
-        </p>
-        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
-          <a href="/login" class="btn-g" style="text-decoration:none;display:inline-flex;padding:14px 32px"><span>Login</span></a>
-          <a href="/register" class="btn-o" style="text-decoration:none;display:inline-flex;padding:14px 32px"><span>Create Account</span></a>
-        </div>
-      </div>`;
+    // Close booking modal and open auth modal instead
+    this.close();
+    if (window.openAuthModal) window.openAuthModal();
   }
 
   render() {

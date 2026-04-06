@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ═══════════════════════════════════════
+//  ENUMS
+// ═══════════════════════════════════════
+
+enum Role {
+  patient
+  admin
+}
+
+enum ConsultationStatus {
+  new
+  read
+  contacted
+  completed
+}
+
+enum AppointmentStatus {
+  confirmed
+  cancelled
+  completed
+  rescheduled
+}
+
+// ═══════════════════════════════════════
+//  MODELS
+// ═══════════════════════════════════════
+
+model User {
+  id           Int           @id @default(autoincrement())
+  name         String
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  phone        String?
+  role         Role          @default(patient)
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  appointments Appointment[]
+
+  @@map("users")
+}
+
+model Subscriber {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  source       String   @default("free-guide")
+  subscribedAt DateTime @default(now()) @map("subscribed_at")
+  isActive     Boolean  @default(true) @map("is_active")
+
+  @@map("subscribers")
+}
+
+model Consultation {
+  id            Int                @id @default(autoincrement())
+  name          String
+  email         String
+  phone         String?
+  preferredDate String?            @map("preferred_date")
+  message       String?
+  status        ConsultationStatus @default(new)
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  @@map("consultations")
+}
+
+model Appointment {
+  id             Int               @id @default(autoincrement())
+  userId         Int               @map("user_id")
+  date           String
+  timeStart      String            @map("time_start")
+  timeEnd        String            @map("time_end")
+  status         AppointmentStatus @default(confirmed)
+  healthConcerns String?           @map("health_concerns")
+  medicalHistory String?           @map("medical_history")
+  goals          String?
+  googleEventId  String?           @map("google_event_id")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  user           User              @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([date])
+  @@index([status])
+  @@map("appointments")
+}
+
+model Post {
+  id         Int      @id @default(autoincrement())
+  title      String
+  slug       String   @unique
+  category   String
+  tags       String?
+  excerpt    String
+  content    String
+  canvasType String   @default("gut") @map("canvas_type")
+  published  Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("posts")
+}
+
+model Setting {
+  key   String @id
+  value String
+
+  @@map("settings")
+}
+
+model GoogleToken {
+  id           Int     @id @default(1)
+  accessToken  String? @map("access_token")
+  refreshToken String? @map("refresh_token")
+  expiry       String?
+  calendarId   String? @map("calendar_id")
+
+  @@map("google_tokens")
+}

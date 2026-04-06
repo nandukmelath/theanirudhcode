@@ -477,6 +477,22 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   .flinks-col{display:none}
   .flinks-col:last-child{display:block}
 }
+/* ═══════════════════════════════════════
+   AUTH MODAL
+═══════════════════════════════════════ */
+.auth-overlay{display:none;position:fixed;inset:0;z-index:1100;background:rgba(7,7,7,.94);backdrop-filter:blur(24px);justify-content:center;align-items:center}
+.auth-overlay.open{display:flex}
+.auth-box{background:var(--black2);border:1px solid var(--line);padding:clamp(32px,5vw,52px);max-width:440px;width:92%;position:relative;animation:rise .5s ease forwards}
+.auth-close{position:absolute;top:14px;right:18px;background:none;border:none;color:var(--gold);font-size:24px;cursor:none}
+.auth-tabs{display:flex;gap:0;margin-bottom:28px}
+.auth-tab{flex:1;padding:14px 0;background:transparent;border:1px solid var(--line);border-bottom:none;color:var(--muted);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.2em;text-transform:uppercase;transition:all .3s;cursor:none}
+.auth-tab.active{background:var(--gold-d);color:var(--gold2);border-color:var(--gold)}
+.auth-form{display:none}
+.auth-form.active{display:block}
+.auth-form .finput{margin-top:14px}
+.auth-form .fsubmit{margin-top:18px}
+.auth-sep{text-align:center;color:var(--faint);font-size:12px;margin-top:16px;letter-spacing:.08em}
+
 </style>
 </head>
 <body>
@@ -915,6 +931,39 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 </footer>
 <div class="fbot z">&copy; 2026 theanirudhcode · All rights reserved · Heal the Real You</div>
 
+<!-- ══════════ AUTH MODAL ══════════ -->
+<div class="auth-overlay" id="auth-modal">
+  <div class="auth-box">
+    <button class="auth-close" id="auth-close">&times;</button>
+    <div style="text-align:center;margin-bottom:8px">
+      <div style="width:7px;height:7px;background:var(--gold);transform:rotate(45deg);margin:0 auto 16px"></div>
+      <h3 style="font-family:'Cormorant',serif;font-size:clamp(24px,3vw,32px);font-weight:300;margin-bottom:4px">
+        <em style="color:var(--gold2)">Begin</em> Your Journey
+      </h3>
+      <p style="color:var(--muted);font-size:var(--fb);font-weight:200">Sign in to book your consultation</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Login</button>
+      <button class="auth-tab" data-tab="signup">Create Account</button>
+    </div>
+    <!-- LOGIN FORM -->
+    <form class="auth-form active" id="auth-login-form">
+      <input class="finput" type="email" name="email" placeholder="Email address" required>
+      <input class="finput" type="password" name="password" placeholder="Password (min 8 characters)" required>
+      <button type="submit" class="fsubmit"><span>Sign In →</span></button>
+    </form>
+    <!-- SIGNUP FORM -->
+    <form class="auth-form" id="auth-signup-form">
+      <input class="finput" type="text" name="name" placeholder="Full name" required>
+      <input class="finput" type="email" name="email" placeholder="Email address" required>
+      <input class="finput" type="tel" name="phone" placeholder="Phone number (optional)">
+      <input class="finput" type="password" name="password" placeholder="Password (min 8 characters)" required>
+      <button type="submit" class="fsubmit"><span>Create Account →</span></button>
+    </form>
+    <p class="auth-sep">Secure · Encrypted · No spam ever</p>
+  </div>
+</div>
+
 <!-- ══════════ BOOKING MODAL ══════════ -->
 <div class="modal-overlay" id="consultation-modal">
   <div class="modal-content">
@@ -936,6 +985,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 <script src="/js/toast.js"></script>
 <script src="/js/booking.js"></script>
 <script src="/js/forms.js"></script>
+<script src="/js/auth-modal.js"></script>
 <script src="/js/enhancements.js"></script>
 </body>
 </html>
