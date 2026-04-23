@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /portal-management/
+Disallow: /api/
+
+Sitemap: https://www.theanirudhcode.com/sitemap.xml

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Admin — theanirudhcode</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;1,300&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -83,6 +84,29 @@ select.status-select{background:var(--black);color:var(--muted);border:1px solid
 .alert-success{color:#6fbf73;border-color:rgba(111,191,115,.3);background:rgba(111,191,115,.06)}
 .alert-error{color:var(--amber);border-color:rgba(200,115,58,.3);background:rgba(200,115,58,.06)}
 
+/* Modals */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;display:none}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--black2);border:1px solid var(--line);width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:32px}
+.modal-box.wide{max-width:860px}
+.modal-title{font-family:'Cormorant',serif;font-size:22px;font-weight:300;color:var(--gold2);margin-bottom:20px}
+.modal-close{float:right;background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;line-height:1;margin-top:-4px}
+.modal-close:hover{color:var(--gold)}
+.modal-field{margin-bottom:16px}
+.modal-field label{display:block;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.modal-input{width:100%;padding:10px 12px;background:var(--black3);border:1px solid var(--line);color:var(--white);font-family:'Barlow',sans-serif;font-size:13px;outline:none;transition:border-color .3s}
+.modal-input:focus{border-color:rgba(200,169,81,.4)}
+.modal-textarea{width:100%;padding:10px 12px;background:var(--black3);border:1px solid var(--line);color:var(--white);font-family:'Barlow',sans-serif;font-size:13px;outline:none;resize:vertical;min-height:100px;transition:border-color .3s}
+.modal-textarea:focus{border-color:rgba(200,169,81,.4)}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+.modal-btn{background:var(--gold);color:var(--black);border:none;padding:10px 24px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s}
+.modal-btn:hover{background:var(--gold2)}
+.modal-btn:disabled{opacity:.5}
+.modal-btn.ghost{background:none;border:1px solid var(--line);color:var(--muted)}
+.modal-btn.ghost:hover{border-color:var(--gold);color:var(--gold)}
+.toggle-check{accent-color:var(--gold);transform:scale(1.2);margin-right:6px;cursor:pointer}
+.post-published{color:#6fbf73}.post-draft{color:var(--amber)}
+
 @media(max-width:768px){.settings-grid{grid-template-columns:1fr}.admin-wrap{padding:20px}}
 @media(max-width:540px){.tab-bar{flex-direction:column}}
 </style>
@@ -130,6 +154,7 @@ select.status-select{background:var(--black);color:var(--muted);border:1px solid
       <button class="tab-btn active" data-view="subscribers">Subscribers</button>
       <button class="tab-btn" data-view="consultations">Consultations</button>
       <button class="tab-btn" data-view="appointments">Appointments</button>
+      <button class="tab-btn" data-view="blog">Blog</button>
       <button class="tab-btn" data-view="calendar">Calendar Setup</button>
       <button class="tab-btn" data-view="settings">Settings</button>
     </div>
@@ -142,12 +167,21 @@ select.status-select{background:var(--black);color:var(--muted);border:1px solid
 
     <!-- CONSULTATIONS TAB -->
     <div id="view-consultations" class="tab-view" style="display:none">
-      <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Date</th><th>Message</th><th>Status</th><th>Created</th></tr></thead><tbody id="consult-body"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Date</th><th>Message</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody id="consult-body"></tbody></table></div>
     </div>
 
     <!-- APPOINTMENTS TAB -->
     <div id="view-appointments" class="tab-view" style="display:none">
       <div class="table-wrap"><table><thead><tr><th>Patient</th><th>Email</th><th>Phone</th><th>Date</th><th>Time</th><th>Concerns</th><th>Status</th><th>Actions</th></tr></thead><tbody id="appt-body"></tbody></table></div>
+    </div>
+
+    <!-- BLOG TAB -->
+    <div id="view-blog" class="tab-view" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div class="section-title" style="margin:0">Blog Posts</div>
+        <button class="save-btn" id="new-post-btn">+ New Post</button>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Title</th><th>Category</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody id="posts-body"></tbody></table></div>
     </div>
 
     <!-- CALENDAR SETUP TAB -->
@@ -214,6 +248,76 @@ select.status-select{background:var(--black);color:var(--muted);border:1px solid
       </div>
 
       <button class="save-btn" id="save-settings">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- REPLY MODAL -->
+<div class="modal-overlay" id="reply-modal">
+  <div class="modal-box">
+    <button class="modal-close" id="reply-modal-close">&times;</button>
+    <div class="modal-title">Reply to Consultation</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px" id="reply-modal-to"></div>
+    <div class="modal-field">
+      <label>Your Reply</label>
+      <textarea class="modal-textarea" id="reply-text" rows="6" placeholder="Type your reply to the patient…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn ghost" id="reply-cancel-btn">Cancel</button>
+      <button class="modal-btn" id="reply-send-btn">Send Reply</button>
+    </div>
+  </div>
+</div>
+
+<!-- POST EDITOR MODAL -->
+<div class="modal-overlay" id="post-modal">
+  <div class="modal-box wide">
+    <button class="modal-close" id="post-modal-close">&times;</button>
+    <div class="modal-title" id="post-modal-title">New Post</div>
+    <input type="hidden" id="post-edit-id">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="modal-field">
+        <label>Title *</label>
+        <input class="modal-input" id="post-title" placeholder="Post title">
+      </div>
+      <div class="modal-field">
+        <label>Slug (auto-generated if blank)</label>
+        <input class="modal-input" id="post-slug" placeholder="url-friendly-slug">
+      </div>
+      <div class="modal-field">
+        <label>Category *</label>
+        <input class="modal-input" id="post-category" placeholder="e.g. gut, sleep, ayurveda">
+      </div>
+      <div class="modal-field">
+        <label>Canvas Type</label>
+        <select class="modal-input" id="post-canvas">
+          <option value="gut">gut</option>
+          <option value="sleep">sleep</option>
+          <option value="mind">mind</option>
+          <option value="nutrition">nutrition</option>
+          <option value="ayurveda">ayurveda</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Tags (comma-separated)</label>
+      <input class="modal-input" id="post-tags" placeholder="gut health, inflammation, reset">
+    </div>
+    <div class="modal-field">
+      <label>Excerpt *</label>
+      <textarea class="modal-textarea" id="post-excerpt" rows="2" placeholder="Short description shown in listings…"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>Content * (HTML supported)</label>
+      <textarea class="modal-textarea" id="post-content" rows="12" placeholder="<p>Your article content…</p>"></textarea>
+    </div>
+    <div class="modal-field" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" class="toggle-check" id="post-published" checked>
+      <label for="post-published" style="font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);cursor:pointer">Published</label>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn ghost" id="post-cancel-btn">Cancel</button>
+      <button class="modal-btn" id="post-save-btn">Save Post</button>
     </div>
   </div>
 </div>

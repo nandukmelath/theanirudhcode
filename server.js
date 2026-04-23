@@ -41,11 +41,11 @@ app.use('/api', csrfGuard);
 app.use('/portal-management', csrfGuard);
 
 // Stricter rate limits for auth (must be BEFORE general API limiter)
-app.use('/api/auth/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many login attempts. Please try again later.' } }));
-app.use('/admin-login', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: 'Too many attempts. Please try again later.' }));
-app.use('/api/auth/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: 'Too many registration attempts. Please try again later.' } }));
-app.use('/api/subscribe', rateLimit({ windowMs: 60 * 60 * 1000, max: 8, message: { error: 'Too many requests. Please try again later.' } }));
-app.use('/api/consultation', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/auth/login',          rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many login attempts. Please try again later.' } }));
+app.use('/api/auth/forgot-password', rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/auth/register',        rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many registration attempts. Please try again later.' } }));
+app.use('/api/subscribe',            rateLimit({ windowMs: 60 * 60 * 1000, max: 8,  message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/consultation',         rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
 
 // General rate limiting for API
 app.use('/api', rateLimit({
@@ -72,9 +72,19 @@ app.get('/my-appointments', (req, res) => res.sendFile(path.join(__dirname, 'vie
 app.get('/blog', (req, res) => res.sendFile(path.join(__dirname, 'views', 'blog-list.html')));
 app.get('/blog/:slug', (req, res) => res.sendFile(path.join(__dirname, 'views', 'blog-post.html')));
 
+app.get('/forgot-password', (req, res) => res.sendFile(path.join(__dirname, 'views', 'forgot-password.html')));
+app.get('/reset-password',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'reset-password.html')));
+
+// 404 catch-all (must come after all routes)
+app.use((req, res) => {
+  if (req.accepts('html')) return res.status(404).sendFile(path.join(__dirname, 'views', '404.html'));
+  res.status(404).json({ error: 'Not found' });
+});
+
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
+  if (req.accepts('html')) return res.status(500).sendFile(path.join(__dirname, 'views', '404.html'));
   res.status(500).json({ error: 'Internal server error' });
 });
 

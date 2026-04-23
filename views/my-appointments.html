@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>My Appointments — theanirudhcode</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -100,6 +101,27 @@ body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;
 .loading-dot:nth-child(3){animation-delay:.4s}
 @keyframes dotpulse{0%,80%,100%{opacity:.2;transform:rotate(45deg) scale(.8)}40%{opacity:1;transform:rotate(45deg) scale(1)}}
 .loading-text{color:var(--muted);font-size:14px;font-weight:300;letter-spacing:.06em}
+
+/* ── RESCHEDULE MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--black2);border:1px solid var(--line);width:100%;max-width:480px;padding:32px}
+.modal-title{font-family:'Cormorant',serif;font-size:22px;font-weight:300;color:var(--gold2);margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--faint);margin-bottom:24px;font-weight:300}
+.modal-field{margin-bottom:16px}
+.modal-label{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block}
+.modal-input{width:100%;padding:12px 14px;background:var(--black3);border:1px solid var(--line);color:var(--white);font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border-color .3s}
+.modal-input:focus{border-color:rgba(208,175,82,.4)}
+.modal-select{width:100%;padding:12px 14px;background:var(--black3);border:1px solid var(--line);color:var(--white);font-family:'Barlow',sans-serif;font-size:13px;outline:none;cursor:pointer}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.btn-modal-save{background:var(--gold);color:var(--black);border:none;padding:11px 28px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s}
+.btn-modal-save:hover{background:var(--gold2)}
+.btn-modal-save:disabled{opacity:.5;cursor:default}
+.btn-modal-cancel{background:none;border:1px solid var(--line);color:var(--muted);padding:11px 20px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s}
+.btn-modal-cancel:hover{border-color:var(--gold);color:var(--gold)}
+.slot-loading{color:var(--faint);font-size:12px;padding:8px 0;display:none}
+.btn-reschedule{background:none;border:1px solid rgba(208,175,82,.28);color:var(--gold2);padding:8px 18px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;transition:all .3s;cursor:pointer}
+.btn-reschedule:hover{background:var(--gold-d);border-color:var(--gold)}
 
 /* ── AUTH STATE ── */
 .auth-state{text-align:center;padding:80px 24px}
@@ -234,7 +256,8 @@ function renderCard(a, isPast) {
       ${canCancel ? `
         <div class="appt-actions">
           <button class="btn-cancel" data-id="${a.id}">Cancel Appointment</button>
-          <span class="appt-actions-note">Free cancellation up to 24h before</span>
+          <button class="btn-reschedule" data-id="${a.id}" data-date="${a.date}" data-start="${a.time_start}" data-end="${a.time_end}">Reschedule</button>
+          <span class="appt-actions-note">Free changes up to 24h before</span>
         </div>
       ` : ''}
     </div>`;
@@ -319,6 +342,11 @@ async function loadAppointments() {
     el.querySelectorAll('.btn-cancel[data-id]').forEach(btn => {
       btn.addEventListener('click', () => cancelAppt(parseInt(btn.dataset.id), btn));
     });
+
+    // Reschedule handlers
+    el.querySelectorAll('.btn-reschedule[data-id]').forEach(btn => {
+      btn.addEventListener('click', () => openRescheduleModal(parseInt(btn.dataset.id), btn.dataset.date, btn.dataset.start, btn.dataset.end));
+    });
   } catch (err) {
     el.innerHTML = `
       <div class="auth-state">
@@ -352,6 +380,115 @@ async function cancelAppt(id, btn) {
 }
 
 loadAppointments();
+
+// ── Reschedule Modal ──────────────────────────────────────────────────────
+let rescheduleApptId = null;
+
+function openRescheduleModal(id, currentDate, currentStart, currentEnd) {
+  rescheduleApptId = id;
+  document.getElementById('rs-date').value = '';
+  document.getElementById('rs-slot').innerHTML = '<option value="">Pick a date first</option>';
+  document.getElementById('rs-slot').disabled = true;
+  document.getElementById('rs-current').textContent = `Current: ${fmt(currentDate)} at ${fmtTime(currentStart)}`;
+  document.getElementById('rs-error').style.display = 'none';
+  document.getElementById('reschedule-modal').classList.add('open');
+}
+
+function closeRescheduleModal() {
+  document.getElementById('reschedule-modal').classList.remove('open');
+  rescheduleApptId = null;
+}
+
+document.getElementById('rs-modal-close').addEventListener('click', closeRescheduleModal);
+document.getElementById('rs-cancel-btn').addEventListener('click', closeRescheduleModal);
+document.getElementById('reschedule-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeRescheduleModal();
+});
+
+document.getElementById('rs-date').addEventListener('change', async function () {
+  const date = this.value;
+  const slotEl = document.getElementById('rs-slot');
+  const loadingEl = document.getElementById('rs-loading');
+  if (!date) return;
+  slotEl.disabled = true;
+  slotEl.innerHTML = '<option value="">Loading…</option>';
+  loadingEl.style.display = 'block';
+  try {
+    const res = await fetch(`/api/calendar/available-slots?date=${date}`, { credentials: 'same-origin' });
+    const data = await res.json();
+    const available = (data.slots || []).filter(s => s.available);
+    if (!available.length) {
+      slotEl.innerHTML = '<option value="">No slots available on this date</option>';
+    } else {
+      slotEl.innerHTML = '<option value="">Choose a time slot</option>' +
+        available.map(s => `<option value="${s.start}|${s.end}">${fmtTime(s.start)} — ${fmtTime(s.end)}</option>`).join('');
+      slotEl.disabled = false;
+    }
+  } catch {
+    slotEl.innerHTML = '<option value="">Failed to load slots</option>';
+  }
+  loadingEl.style.display = 'none';
+});
+
+document.getElementById('rs-save-btn').addEventListener('click', async () => {
+  const date  = document.getElementById('rs-date').value;
+  const slot  = document.getElementById('rs-slot').value;
+  const errEl = document.getElementById('rs-error');
+  errEl.style.display = 'none';
+
+  if (!date || !slot) { errEl.textContent = 'Please select a date and time slot.'; errEl.style.display = 'block'; return; }
+
+  const [time_start, time_end] = slot.split('|');
+  const btn = document.getElementById('rs-save-btn');
+  btn.disabled = true; btn.textContent = 'Rescheduling…';
+
+  try {
+    const res = await fetch(`/api/appointments/${rescheduleApptId}/reschedule`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ date, time_start, time_end })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      closeRescheduleModal();
+      loadAppointments();
+    } else {
+      errEl.textContent = data.error || 'Failed to reschedule. Please try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Confirm Reschedule';
+    }
+  } catch {
+    errEl.textContent = 'Connection error. Please try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Confirm Reschedule';
+  }
+});
 </script>
+
+<!-- RESCHEDULE MODAL -->
+<div class="modal-overlay" id="reschedule-modal">
+  <div class="modal-box">
+    <button class="btn-modal-cancel" id="rs-modal-close" style="float:right;border:none;font-size:18px;padding:0;cursor:pointer;background:none;color:var(--faint)">&times;</button>
+    <div class="modal-title">Reschedule</div>
+    <div class="modal-sub" id="rs-current"></div>
+    <div style="color:var(--amber);font-size:12px;margin-bottom:16px;display:none" id="rs-error"></div>
+    <div class="modal-field">
+      <label class="modal-label">New Date</label>
+      <input type="date" class="modal-input" id="rs-date">
+    </div>
+    <div class="modal-field">
+      <label class="modal-label">Available Time Slot</label>
+      <select class="modal-select" id="rs-slot" disabled>
+        <option value="">Pick a date first</option>
+      </select>
+      <div class="slot-loading" id="rs-loading">Loading available slots…</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal-cancel" id="rs-cancel-btn">Cancel</button>
+      <button class="btn-modal-save" id="rs-save-btn">Confirm Reschedule</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

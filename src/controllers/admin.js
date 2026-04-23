@@ -4,6 +4,8 @@ const path = require('path');
 const prisma = require('../lib/prisma');
 const { hybridAdminAuth } = require('../middleware/auth');
 const { getSettings } = require('./calendar');
+const { sanitize } = require('../middleware/validate');
+const { sendConsultationReply } = require('../lib/mailer');
 
 // Serve admin page (protected)
 router.get('/', hybridAdminAuth, (req, res) => {
@@ -123,16 +125,116 @@ router.put('/api/settings', hybridAdminAuth, async (req, res) => {
 
   try {
     const updates = [];
-    if (working_hours_start) updates.push(prisma.setting.upsert({ where: { key: 'working_hours_start' }, update: { value: working_hours_start }, create: { key: 'working_hours_start', value: working_hours_start } }));
-    if (working_hours_end) updates.push(prisma.setting.upsert({ where: { key: 'working_hours_end' }, update: { value: working_hours_end }, create: { key: 'working_hours_end', value: working_hours_end } }));
-    if (slot_duration) updates.push(prisma.setting.upsert({ where: { key: 'slot_duration' }, update: { value: String(slot_duration) }, create: { key: 'slot_duration', value: String(slot_duration) } }));
-    if (working_days) updates.push(prisma.setting.upsert({ where: { key: 'working_days' }, update: { value: working_days }, create: { key: 'working_days', value: working_days } }));
-    if (booking_lead_hours) updates.push(prisma.setting.upsert({ where: { key: 'booking_lead_hours' }, update: { value: String(booking_lead_hours) }, create: { key: 'booking_lead_hours', value: String(booking_lead_hours) } }));
+    if (working_hours_start) { const v = working_hours_start.trim(); updates.push(prisma.setting.upsert({ where: { key: 'working_hours_start' }, update: { value: v }, create: { key: 'working_hours_start', value: v } })); }
+    if (working_hours_end)   { const v = working_hours_end.trim();   updates.push(prisma.setting.upsert({ where: { key: 'working_hours_end'   }, update: { value: v }, create: { key: 'working_hours_end',   value: v } })); }
+    if (slot_duration)       { const v = String(Number(slot_duration));  updates.push(prisma.setting.upsert({ where: { key: 'slot_duration'       }, update: { value: v }, create: { key: 'slot_duration',       value: v } })); }
+    if (working_days)        { const v = working_days.replace(/[^0-6,]/g, ''); updates.push(prisma.setting.upsert({ where: { key: 'working_days'  }, update: { value: v }, create: { key: 'working_days',        value: v } })); }
+    if (booking_lead_hours)  { const v = String(Number(booking_lead_hours)); updates.push(prisma.setting.upsert({ where: { key: 'booking_lead_hours' }, update: { value: v }, create: { key: 'booking_lead_hours', value: v } })); }
     await Promise.all(updates);
     res.json({ success: true });
   } catch (err) {
     console.error('Save settings error:', err);
     res.status(500).json({ error: 'Failed to save settings' });
+  }
+});
+
+// Consultation reply
+router.post('/api/consultations/:id/reply', hybridAdminAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id) return res.status(400).json({ error: 'Invalid ID' });
+  const { reply } = req.body;
+  if (!reply || !reply.trim()) return res.status(400).json({ error: 'Reply message is required' });
+
+  try {
+    const consultation = await prisma.consultation.update({
+      where: { id },
+      data: { adminReply: reply.trim(), repliedAt: new Date(), status: 'contacted' }
+    });
+    sendConsultationReply(consultation.email, consultation.name, reply.trim()).catch(e => console.error('[Mailer] consultation reply failed:', e.message));
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ error: 'Consultation not found' });
+    console.error('Reply consultation error:', err);
+    res.status(500).json({ error: 'Failed to send reply' });
+  }
+});
+
+// Blog CRUD
+router.get('/api/posts', hybridAdminAuth, async (req, res) => {
+  try {
+    const posts = await prisma.post.findMany({
+      select: { id: true, title: true, slug: true, category: true, published: true, createdAt: true },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json({ posts });
+  } catch (err) {
+    console.error('Posts list error:', err);
+    res.status(500).json({ error: 'Failed to load posts' });
+  }
+});
+
+router.post('/api/posts', hybridAdminAuth, async (req, res) => {
+  const { title, slug, category, tags, excerpt, content, canvasType, published } = req.body;
+  if (!title?.trim() || !excerpt?.trim() || !content?.trim() || !category?.trim()) {
+    return res.status(400).json({ error: 'Title, category, excerpt, and content are required' });
+  }
+  const rawSlug = slug?.trim() || title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  try {
+    const post = await prisma.post.create({
+      data: {
+        title: sanitize(title.trim()),
+        slug: rawSlug,
+        category: sanitize(category.trim()),
+        tags: tags ? sanitize(tags.trim()) : null,
+        excerpt: sanitize(excerpt.trim()),
+        content: content.trim(),
+        canvasType: canvasType || 'gut',
+        published: published !== false,
+      }
+    });
+    res.status(201).json({ success: true, post });
+  } catch (err) {
+    if (err.code === 'P2002') return res.status(409).json({ error: 'A post with this slug already exists' });
+    console.error('Create post error:', err);
+    res.status(500).json({ error: 'Failed to create post' });
+  }
+});
+
+router.put('/api/posts/:id', hybridAdminAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id) return res.status(400).json({ error: 'Invalid post ID' });
+  const { title, slug, category, tags, excerpt, content, canvasType, published } = req.body;
+
+  const data = {};
+  if (title !== undefined) data.title = sanitize(title.trim());
+  if (slug !== undefined) data.slug = slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (category !== undefined) data.category = sanitize(category.trim());
+  if (tags !== undefined) data.tags = tags ? sanitize(tags.trim()) : null;
+  if (excerpt !== undefined) data.excerpt = sanitize(excerpt.trim());
+  if (content !== undefined) data.content = content.trim();
+  if (canvasType !== undefined) data.canvasType = canvasType;
+  if (published !== undefined) data.published = published;
+
+  try {
+    const post = await prisma.post.update({ where: { id }, data });
+    res.json({ success: true, post });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ error: 'Post not found' });
+    if (err.code === 'P2002') return res.status(409).json({ error: 'A post with this slug already exists' });
+    console.error('Update post error:', err);
+    res.status(500).json({ error: 'Failed to update post' });
+  }
+});
+
+router.delete('/api/posts/:id', hybridAdminAuth, async (req, res) => {
+  try {
+    await prisma.post.delete({ where: { id: parseInt(req.params.id, 10) } });
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ error: 'Post not found' });
+    console.error('Delete post error:', err);
+    res.status(500).json({ error: 'Failed to delete post' });
   }
 });
 

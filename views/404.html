@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>Page Not Found — theanirudhcode</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;1,300;1,400&family=Tenor+Sans&family=Barlow:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+:root{--black:#070707;--black2:#0e0e0e;--gold:#c8a951;--gold2:#e2c97e;--gold-d:rgba(200,169,81,.13);--white:#f8f4ec;--muted:rgba(248,244,236,.55);--faint:rgba(248,244,236,.22);--line:rgba(200,169,81,.14)}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 24px;text-align:center;overflow:hidden}
+
+/* ambient glow */
+body::before{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:700px;height:700px;background:radial-gradient(ellipse,rgba(200,169,81,.04) 0%,transparent 70%);pointer-events:none}
+
+.gem-wrap{position:relative;width:64px;height:64px;margin:0 auto 40px}
+.gem-outer{position:absolute;inset:0;border:1px solid rgba(200,169,81,.22);transform:rotate(45deg)}
+.gem-inner{position:absolute;inset:12px;background:var(--gold-d);border:1px solid rgba(200,169,81,.1);transform:rotate(45deg)}
+.gem-dot{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(45deg);width:8px;height:8px;background:var(--gold)}
+
+.code{font-family:'Cormorant',serif;font-size:clamp(80px,14vw,140px);font-weight:300;line-height:1;color:transparent;-webkit-text-stroke:1px rgba(200,169,81,.2);letter-spacing:-.02em;margin-bottom:8px}
+.title{font-family:'Cormorant',serif;font-size:clamp(22px,3vw,32px);font-weight:300;color:var(--white);margin-bottom:12px}
+.title em{color:var(--gold2);font-style:italic}
+.sub{font-size:14px;color:var(--muted);font-weight:300;line-height:1.9;max-width:360px;margin:0 auto 48px}
+
+.actions{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.btn-home{display:inline-flex;align-items:center;gap:10px;padding:14px 36px;background:var(--gold);color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;transition:background .3s}
+.btn-home:hover{background:var(--gold2)}
+.btn-ghost{display:inline-flex;align-items:center;gap:10px;padding:14px 28px;border:1px solid var(--line);color:var(--muted);font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;transition:all .3s}
+.btn-ghost:hover{border-color:rgba(200,169,81,.35);color:var(--gold2)}
+.btn-gem{width:5px;height:5px;background:currentColor;transform:rotate(45deg);flex-shrink:0}
+
+.quote{margin-top:64px;border-top:1px solid var(--line);padding-top:32px;max-width:420px}
+.quote p{font-family:'Cormorant',serif;font-size:15px;font-style:italic;color:var(--faint);line-height:1.9}
+.quote cite{font-size:10px;font-family:'Tenor Sans',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:rgba(200,169,81,.35);display:block;margin-top:10px}
+</style>
+</head>
+<body>
+
+<div class="gem-wrap">
+  <div class="gem-outer"></div>
+  <div class="gem-inner"></div>
+  <div class="gem-dot"></div>
+</div>
+
+<div class="code">404</div>
+<h1 class="title">Page <em>not found</em></h1>
+<p class="sub">The page you are looking for may have moved, or the link you followed may be incorrect.</p>
+
+<div class="actions">
+  <a href="/" class="btn-home"><div class="btn-gem"></div>Return Home</a>
+  <a href="/blog" class="btn-ghost"><div class="btn-gem"></div>Read the Blog</a>
+</div>
+
+<div class="quote">
+  <p>"The path back to yourself is always shorter than it seems."</p>
+  <cite>— Dr. Anirudh M. Vaddineni</cite>
+</div>
+
+</body>
+</html>

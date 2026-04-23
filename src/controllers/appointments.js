@@ -116,8 +116,8 @@ router.post('/book', authenticate, async (req, res) => {
 
   // WhatsApp notifications (fire-and-forget)
   const apptData = { date, time_start, time_end, health_concerns: cleanConcerns, goals: cleanGoals, medical_history: cleanHistory };
-  wa.sendBookingConfirmation(req.user.phone, req.user.name, apptData).catch(() => {});
-  wa.sendAdminNewBooking(apptData, req.user).catch(() => {});
+  wa.sendBookingConfirmation(req.user.phone, req.user.name, apptData).catch(e => console.error('[WhatsApp] booking confirmation failed:', e.message));
+  wa.sendAdminNewBooking(apptData, req.user).catch(e => console.error('[WhatsApp] admin booking alert failed:', e.message));
 
   res.status(201).json({
     success: true,
@@ -176,10 +176,10 @@ router.post('/:id/cancel', authenticate, async (req, res) => {
     await prisma.appointment.update({ where: { id }, data: { status: 'cancelled' } });
 
     if (appointment.googleEventId) {
-      deleteCalendarEvent(appointment.googleEventId).catch(() => {});
+      deleteCalendarEvent(appointment.googleEventId).catch(e => console.error('[Calendar] delete event failed:', e.message));
     }
 
-    wa.sendCancellationNotice(req.user.phone, req.user.name, normalize(appointment)).catch(() => {});
+    wa.sendCancellationNotice(req.user.phone, req.user.name, normalize(appointment)).catch(e => console.error('[WhatsApp] cancellation notice failed:', e.message));
 
     res.json({ success: true, message: 'Appointment cancelled' });
   } catch (err) {
@@ -210,6 +210,61 @@ router.get('/all', authenticate, requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/appointments/:id/reschedule (authenticated patient)
+router.post('/:id/reschedule', authenticate, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id || id < 1) return res.status(400).json({ error: 'Invalid appointment ID' });
+
+  const { date, time_start, time_end } = req.body;
+  if (!date || !time_start || !time_end) return res.status(400).json({ error: 'New date and time slot are required' });
+  if (!isValidDate(date)) return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
+  if (!isValidTime(time_start) || !isValidTime(time_end)) return res.status(400).json({ error: 'Invalid time format. Use HH:MM.' });
+
+  try {
+    const appointment = await prisma.appointment.findUnique({ where: { id } });
+    if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
+    if (appointment.status !== 'confirmed') return res.status(400).json({ error: 'Only confirmed appointments can be rescheduled' });
+    if (appointment.userId !== req.user.id) return res.status(403).json({ error: 'You can only reschedule your own appointments' });
+
+    const tzOffset = process.env.PRACTITIONER_TZ_OFFSET || '+05:30';
+    const currentApptTime = new Date(`${appointment.date}T${appointment.timeStart}:00${tzOffset}`);
+    if ((currentApptTime.getTime() - Date.now()) < 24 * 60 * 60 * 1000) {
+      return res.status(400).json({ error: 'Appointments can only be rescheduled at least 24 hours in advance' });
+    }
+
+    if (date === appointment.date && time_start === appointment.timeStart) {
+      return res.status(400).json({ error: 'New slot is the same as your current appointment' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const conflict = await tx.appointment.findFirst({
+        where: { date, timeStart: time_start, status: 'confirmed', NOT: { id } }
+      });
+      if (conflict) { const e = new Error('SLOT_TAKEN'); e.code = 'SLOT_TAKEN'; throw e; }
+      await tx.appointment.update({ where: { id }, data: { date, timeStart: time_start, timeEnd: time_end } });
+    }, { isolationLevel: 'Serializable' });
+
+    if (appointment.googleEventId) {
+      deleteCalendarEvent(appointment.googleEventId).catch(e => console.error('[Calendar] delete event failed:', e.message));
+      try {
+        const newEventId = await createCalendarEvent(
+          { date, time_start, time_end, health_concerns: appointment.healthConcerns, medical_history: appointment.medicalHistory, goals: appointment.goals },
+          req.user
+        );
+        if (newEventId) await prisma.appointment.update({ where: { id }, data: { googleEventId: newEventId } });
+      } catch (e) { console.error('[Calendar] create event failed:', e.message); }
+    }
+
+    res.json({ success: true, message: 'Appointment rescheduled successfully!', appointment: { id, date, time_start, time_end, status: 'confirmed' } });
+  } catch (err) {
+    if (err.code === 'SLOT_TAKEN' || err.code === 'P2002' || err.code === 'P2034') {
+      return res.status(409).json({ error: 'This time slot is already booked. Please choose another.' });
+    }
+    console.error('Reschedule error:', err);
+    res.status(500).json({ error: 'Failed to reschedule appointment. Please try again.' });
+  }
+});
+
 // POST /api/appointments/:id/complete (admin only)
 router.post('/:id/complete', authenticate, requireAdmin, async (req, res) => {
   const id = parseInt(req.params.id, 10);
@@ -229,7 +284,7 @@ router.post('/:id/complete', authenticate, requireAdmin, async (req, res) => {
     await prisma.appointment.update({ where: { id }, data: { status: 'completed' } });
 
     if (appointment.user) {
-      wa.sendCompletionMessage(appointment.user.phone, appointment.user.name).catch(() => {});
+      wa.sendCompletionMessage(appointment.user.phone, appointment.user.name).catch(e => console.error('[WhatsApp] completion message failed:', e.message));
     }
 
     res.json({ success: true });

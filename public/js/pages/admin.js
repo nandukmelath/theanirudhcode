@@ -28,9 +28,13 @@ logoutBtn.addEventListener('click', async () => {
 
 // Event delegation — replaces all inline onclick/onchange in generated table HTML
 document.addEventListener('click', e => {
-  if (e.target.matches('[data-action="delete-sub"]'))    deleteSub(parseInt(e.target.dataset.id));
-  if (e.target.matches('[data-action="cancel-appt"]'))   cancelAppt(parseInt(e.target.dataset.id));
-  if (e.target.matches('[data-action="complete-appt"]')) completeAppt(parseInt(e.target.dataset.id));
+  if (e.target.matches('[data-action="delete-sub"]'))      deleteSub(parseInt(e.target.dataset.id));
+  if (e.target.matches('[data-action="cancel-appt"]'))     cancelAppt(parseInt(e.target.dataset.id));
+  if (e.target.matches('[data-action="complete-appt"]'))   completeAppt(parseInt(e.target.dataset.id));
+  if (e.target.matches('[data-action="reply-consult"]'))   openReplyModal(parseInt(e.target.dataset.id), e.target.dataset.name, e.target.dataset.email);
+  if (e.target.matches('[data-action="edit-post"]'))       openEditPost(parseInt(e.target.dataset.id));
+  if (e.target.matches('[data-action="delete-post"]'))     deletePost(parseInt(e.target.dataset.id));
+  if (e.target.matches('[data-action="toggle-post"]'))     togglePost(parseInt(e.target.dataset.id), e.target.dataset.published === 'true');
 });
 document.addEventListener('change', e => {
   if (e.target.matches('[data-action="update-status"]')) updateStatus(parseInt(e.target.dataset.id), e.target.value);
@@ -99,6 +103,7 @@ async function showDashboard() {
   loadAppointments();
   loadSettings();
   checkCalendarStatus();
+  loadPosts();
 }
 
 async function loadStats() {
@@ -151,6 +156,7 @@ async function loadConsultations() {
       ${['new','read','contacted','completed'].map(s => `<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}
     </select></td>
     <td>${new Date(c.created_at+'Z').toLocaleDateString()}</td>
+    <td><button class="action-btn" data-action="reply-consult" data-id="${c.id}" data-name="${esc(c.name)}" data-email="${esc(c.email)}">${c.admin_reply ? 'Re-reply' : 'Reply'}</button></td>
   </tr>`).join('');
 }
 
@@ -316,3 +322,147 @@ function showAlert(msg, type) {
 }
 
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ── Reply Modal ────────────────────────────────────────────────────────────
+let replyConsultId = null;
+
+function openReplyModal(id, name, email) {
+  replyConsultId = id;
+  document.getElementById('reply-modal-to').textContent = `To: ${name} (${email})`;
+  document.getElementById('reply-text').value = '';
+  document.getElementById('reply-modal').classList.add('open');
+  document.getElementById('reply-text').focus();
+}
+
+function closeReplyModal() {
+  document.getElementById('reply-modal').classList.remove('open');
+  replyConsultId = null;
+}
+
+document.getElementById('reply-modal-close').addEventListener('click', closeReplyModal);
+document.getElementById('reply-cancel-btn').addEventListener('click', closeReplyModal);
+document.getElementById('reply-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeReplyModal(); });
+
+document.getElementById('reply-send-btn').addEventListener('click', async () => {
+  const reply = document.getElementById('reply-text').value.trim();
+  if (!reply) return;
+  const btn = document.getElementById('reply-send-btn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const res = await fetch(`${API}/consultations/${replyConsultId}/reply`, {
+      method: 'POST', headers: getHeaders(), body: JSON.stringify({ reply })
+    });
+    if (res.ok) {
+      closeReplyModal();
+      showAlert('Reply sent successfully!', 'success');
+      loadConsultations();
+    } else {
+      const d = await res.json();
+      showAlert(d.error || 'Failed to send reply', 'error');
+    }
+  } catch { showAlert('Connection error', 'error'); }
+  btn.disabled = false; btn.textContent = 'Send Reply';
+});
+
+// ── Blog CMS ───────────────────────────────────────────────────────────────
+async function loadPosts() {
+  try {
+    const res = await fetch(`${API}/posts`, { headers: getHeaders() });
+    const { posts } = await res.json();
+    const body = document.getElementById('posts-body');
+    if (!posts || !posts.length) { body.innerHTML = '<tr><td colspan="5" class="empty">No posts yet</td></tr>'; return; }
+    body.innerHTML = posts.map(p => `<tr>
+      <td>${esc(p.title)}</td>
+      <td>${esc(p.category)}</td>
+      <td class="${p.published ? 'post-published' : 'post-draft'}">${p.published ? 'Published' : 'Draft'}</td>
+      <td>${new Date(p.createdAt).toLocaleDateString()}</td>
+      <td>
+        <button class="action-btn" data-action="edit-post" data-id="${p.id}">Edit</button>
+        <button class="action-btn" data-action="toggle-post" data-id="${p.id}" data-published="${p.published}">${p.published ? 'Unpublish' : 'Publish'}</button>
+        <button class="action-btn danger" data-action="delete-post" data-id="${p.id}">Delete</button>
+      </td>
+    </tr>`).join('');
+  } catch {}
+}
+
+document.getElementById('new-post-btn').addEventListener('click', () => openPostModal(null));
+
+function openPostModal(post) {
+  document.getElementById('post-edit-id').value = post ? post.id : '';
+  document.getElementById('post-modal-title').textContent = post ? 'Edit Post' : 'New Post';
+  document.getElementById('post-title').value    = post ? post.title    : '';
+  document.getElementById('post-slug').value     = post ? post.slug     : '';
+  document.getElementById('post-category').value = post ? post.category : '';
+  document.getElementById('post-canvas').value   = post ? (post.canvasType || 'gut') : 'gut';
+  document.getElementById('post-tags').value     = post ? (post.tags || '') : '';
+  document.getElementById('post-excerpt').value  = post ? post.excerpt  : '';
+  document.getElementById('post-content').value  = post ? post.content  : '';
+  document.getElementById('post-published').checked = post ? post.published : true;
+  document.getElementById('post-modal').classList.add('open');
+}
+
+function closePostModal() { document.getElementById('post-modal').classList.remove('open'); }
+
+document.getElementById('post-modal-close').addEventListener('click', closePostModal);
+document.getElementById('post-cancel-btn').addEventListener('click', closePostModal);
+document.getElementById('post-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closePostModal(); });
+
+document.getElementById('post-save-btn').addEventListener('click', async () => {
+  const id       = document.getElementById('post-edit-id').value;
+  const payload  = {
+    title:      document.getElementById('post-title').value.trim(),
+    slug:       document.getElementById('post-slug').value.trim(),
+    category:   document.getElementById('post-category').value.trim(),
+    canvasType: document.getElementById('post-canvas').value,
+    tags:       document.getElementById('post-tags').value.trim(),
+    excerpt:    document.getElementById('post-excerpt').value.trim(),
+    content:    document.getElementById('post-content').value.trim(),
+    published:  document.getElementById('post-published').checked,
+  };
+  if (!payload.title || !payload.category || !payload.excerpt || !payload.content) {
+    showAlert('Title, category, excerpt, and content are required', 'error'); return;
+  }
+  const btn = document.getElementById('post-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const res = await fetch(id ? `${API}/posts/${id}` : `${API}/posts`, {
+      method: id ? 'PUT' : 'POST', headers: getHeaders(), body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      closePostModal();
+      showAlert(id ? 'Post updated!' : 'Post created!', 'success');
+      loadPosts();
+    } else {
+      const d = await res.json();
+      showAlert(d.error || 'Failed to save post', 'error');
+    }
+  } catch { showAlert('Connection error', 'error'); }
+  btn.disabled = false; btn.textContent = 'Save Post';
+});
+
+async function openEditPost(id) {
+  try {
+    const res = await fetch(`${API}/posts`, { headers: getHeaders() });
+    const { posts } = await res.json();
+    const post = posts.find(p => p.id === id);
+    if (!post) return;
+    // fetch full post content for editing
+    const fullRes = await fetch(`/api/posts/${post.slug}`);
+    const fullData = await fullRes.json();
+    openPostModal({ ...post, content: fullData.post?.content || '', excerpt: fullData.post?.excerpt || post.excerpt });
+  } catch {}
+}
+
+async function deletePost(id) {
+  if (!confirm('Delete this post permanently?')) return;
+  await fetch(`${API}/posts/${id}`, { method: 'DELETE', headers: getHeaders() });
+  loadPosts();
+}
+
+async function togglePost(id, currentlyPublished) {
+  await fetch(`${API}/posts/${id}`, {
+    method: 'PUT', headers: getHeaders(),
+    body: JSON.stringify({ published: !currentlyPublished })
+  });
+  loadPosts();
+}

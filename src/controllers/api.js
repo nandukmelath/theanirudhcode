@@ -67,7 +67,7 @@ router.post('/consultation', async (req, res) => {
 
     // Notify admin via WhatsApp (non-blocking, after response sent)
     const consult = { name: sanitize(name.trim()), email: email.trim().toLowerCase(), phone: sanitize((phone || '').trim()) || null, message: sanitize((message || '').trim()) || null };
-    wa.sendAdminConsultationAlert(consult).catch(() => {});
+    wa.sendAdminConsultationAlert(consult).catch(e => console.error('[WhatsApp] consultation alert failed:', e.message));
   } catch (err) {
     console.error('Consultation error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -146,7 +146,7 @@ router.post('/products/:id/order', async (req, res) => {
       email: email.trim().toLowerCase(),
       phone: sanitize((phone || '').trim()) || null,
       message: `Product order: "${product.title}" — ₹${product.price}`,
-    }).catch(() => {});
+    }).catch(e => console.error('[WhatsApp] admin alert failed:', e.message));
 
     res.status(201).json({ success: true, message: `Order received! We will reach out within 24 hours with payment details for "${product.title}".` });
   } catch (err) {
@@ -202,7 +202,7 @@ router.post('/cohorts/:id/enroll', async (req, res) => {
       email: email.trim().toLowerCase(),
       phone: sanitize((phone || '').trim()) || null,
       message: `Cohort enrollment: "${cohort.name}" — ₹${cohort.price}`,
-    }).catch(() => {});
+    }).catch(e => console.error('[WhatsApp] admin alert failed:', e.message));
 
     res.status(201).json({ success: true, message: `You have been added to the waitlist for "${cohort.name}". We will reach out with next steps!` });
   } catch (err) {

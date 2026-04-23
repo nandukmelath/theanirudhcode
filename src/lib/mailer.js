@@ -196,6 +196,113 @@ function welcomeEmailHtml(name) {
 </html>`;
 }
 
+function passwordResetEmailHtml(name, resetUrl) {
+  const firstName = name.split(' ')[0];
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reset Your Password</title></head>
+<body style="margin:0;padding:0;background:#070707;font-family:'Georgia',serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#070707;padding:40px 20px;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#0e0e0e;border:1px solid rgba(200,169,81,0.15);">
+      <tr><td style="padding:40px 48px 32px;border-bottom:1px solid rgba(200,169,81,0.11);text-align:center;">
+        <div style="display:inline-block;width:8px;height:8px;background:#c8a951;transform:rotate(45deg);margin-bottom:16px;"></div>
+        <div style="font-family:'Georgia',serif;font-size:22px;font-weight:300;letter-spacing:0.14em;color:#f8f4ec;">theanirudhcode</div>
+        <div style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:rgba(200,169,81,0.7);margin-top:6px;">Password Reset</div>
+      </td></tr>
+      <tr><td style="padding:48px 48px 40px;">
+        <p style="font-family:'Georgia',serif;font-size:24px;font-weight:300;color:#f8f4ec;margin:0 0 24px;">Hello, <em style="color:#e2c97e;">${firstName}</em></p>
+        <p style="font-size:15px;color:rgba(248,244,236,0.75);line-height:1.9;margin:0 0 32px;font-family:Arial,sans-serif;font-weight:300;">
+          We received a request to reset the password for your theanirudhcode account. Click the button below to set a new password. This link expires in <strong style="color:#f8f4ec;">1 hour</strong>.
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+          <tr><td align="center">
+            <a href="${resetUrl}" style="display:inline-block;background:#c8a951;color:#070707;text-decoration:none;padding:16px 40px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;font-weight:600;">Reset Password →</a>
+          </td></tr>
+        </table>
+        <p style="font-size:12px;color:rgba(248,244,236,0.4);line-height:1.8;margin:0;font-family:Arial,sans-serif;">
+          If you did not request a password reset, please ignore this email — your password will remain unchanged.<br>
+          For security, this link expires in 1 hour.
+        </p>
+      </td></tr>
+      <tr><td style="padding:28px 48px;border-top:1px solid rgba(200,169,81,0.11);text-align:center;">
+        <p style="font-size:11px;font-family:Arial,sans-serif;color:rgba(248,244,236,0.3);margin:0 0 8px;line-height:1.7;">
+          theanirudhcode · Hyderabad, India<br>
+          <a href="https://theanirudhcode.com" style="color:rgba(200,169,81,0.5);text-decoration:none;">theanirudhcode.com</a>
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+}
+
+function consultationReplyHtml(name, reply) {
+  const firstName = name.split(' ')[0];
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Re: Your Consultation Request</title></head>
+<body style="margin:0;padding:0;background:#070707;font-family:'Georgia',serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#070707;padding:40px 20px;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#0e0e0e;border:1px solid rgba(200,169,81,0.15);">
+      <tr><td style="padding:40px 48px 32px;border-bottom:1px solid rgba(200,169,81,0.11);text-align:center;">
+        <div style="display:inline-block;width:8px;height:8px;background:#c8a951;transform:rotate(45deg);margin-bottom:16px;"></div>
+        <div style="font-family:'Georgia',serif;font-size:22px;font-weight:300;letter-spacing:0.14em;color:#f8f4ec;">theanirudhcode</div>
+        <div style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:rgba(200,169,81,0.7);margin-top:6px;">Consultation Response</div>
+      </td></tr>
+      <tr><td style="padding:48px 48px 40px;">
+        <p style="font-family:'Georgia',serif;font-size:24px;font-weight:300;color:#f8f4ec;margin:0 0 24px;">Hello, <em style="color:#e2c97e;">${firstName}</em></p>
+        <p style="font-size:15px;color:rgba(248,244,236,0.75);line-height:1.9;margin:0 0 24px;font-family:Arial,sans-serif;font-weight:300;">
+          Dr. Anirudh has responded to your consultation request:
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-left:2px solid rgba(200,169,81,0.4);padding-left:20px;margin-bottom:32px;">
+          <tr><td>
+            <p style="font-family:Arial,sans-serif;font-size:15px;color:rgba(248,244,236,0.85);line-height:1.8;margin:0;white-space:pre-wrap;">${reply.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+            <p style="font-size:11px;font-family:Arial,sans-serif;color:rgba(200,169,81,0.6);letter-spacing:0.15em;text-transform:uppercase;margin:12px 0 0;">— Dr. Anirudh M. Vaddineni</p>
+          </td></tr>
+        </table>
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr><td align="center">
+            <a href="https://theanirudhcode.com" style="display:inline-block;background:#c8a951;color:#070707;text-decoration:none;padding:16px 40px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;font-weight:600;">Visit theanirudhcode →</a>
+          </td></tr>
+        </table>
+      </td></tr>
+      <tr><td style="padding:28px 48px;border-top:1px solid rgba(200,169,81,0.11);text-align:center;">
+        <p style="font-size:11px;font-family:Arial,sans-serif;color:rgba(248,244,236,0.3);margin:0;line-height:1.7;">
+          theanirudhcode · Hyderabad, India &middot; <a href="https://theanirudhcode.com" style="color:rgba(200,169,81,0.5);text-decoration:none;">theanirudhcode.com</a>
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+}
+
+async function sendPasswordResetEmail(email, name, resetUrl) {
+  const subject = `Reset your theanirudhcode password`;
+  const html    = passwordResetEmailHtml(name, resetUrl);
+  for (const provider of [sendViaResend, sendViaSmtp]) {
+    const sent = await trySend(provider, email, subject, html);
+    if (sent) { console.log(`[Mailer] ✓ Password reset email sent via ${provider.name} to ${email}`); return true; }
+  }
+  console.error(`[Mailer] All delivery attempts failed for ${email}`);
+  return false;
+}
+
+async function sendConsultationReply(email, name, reply) {
+  const subject = `Re: Your consultation request — theanirudhcode`;
+  const html    = consultationReplyHtml(name, reply);
+  for (const provider of [sendViaResend, sendViaSmtp]) {
+    const sent = await trySend(provider, email, subject, html);
+    if (sent) { console.log(`[Mailer] ✓ Consultation reply sent via ${provider.name} to ${email}`); return true; }
+  }
+  console.error(`[Mailer] All delivery attempts failed for ${email}`);
+  return false;
+}
+
 async function sendWelcomeEmail(email, name) {
   const subject = `Welcome to theanirudhcode, ${name.split(' ')[0]} — Your healing journey begins`;
   const html    = welcomeEmailHtml(name);
@@ -210,4 +317,4 @@ async function sendWelcomeEmail(email, name) {
   return false;
 }
 
-module.exports = { sendWelcomeEmail };
+module.exports = { sendWelcomeEmail, sendPasswordResetEmail, sendConsultationReply };
