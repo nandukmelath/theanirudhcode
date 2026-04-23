@@ -6,156 +6,345 @@
 <title>My Appointments — theanirudhcode</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
 <style>
-:root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--black4:#1a1a1a;--gold:#c8a951;--gold2:#e2c97e;--gold3:#f5e6b8;--gold-d:rgba(200,169,81,.15);--gold-g:rgba(200,169,81,.35);--white:#f8f4ec;--muted:rgba(248,244,236,.42);--faint:rgba(248,244,236,.14);--amber:#c8733a;--line:rgba(200,169,81,.11)}
+:root{
+  --black:#070707;--black2:#0e0e0e;--black3:#141414;--black4:#1a1a1a;
+  --gold:#d0af52;--gold2:#eedc88;--gold3:#f8edbe;
+  --gold-d:rgba(208,175,82,.13);--gold-g:rgba(208,175,82,.38);
+  --white:#f9f5ee;--muted:rgba(249,245,238,.84);--faint:rgba(249,245,238,.52);
+  --amber:#d4793e;--line:rgba(208,175,82,.18);
+  --px:clamp(22px,5.5vw,80px);
+}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden;line-height:1.6}
 
-.page-nav{padding:20px clamp(22px,5.5vw,92px);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line)}
-.nav-logo{font-family:'Cormorant',serif;font-size:20px;font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;display:flex;align-items:center;gap:9px}
-.nav-gem{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);flex-shrink:0}
-.nav-back{font-size:13px;color:var(--muted);text-decoration:none;transition:color .3s;font-weight:200}
+/* ── NAV ── */
+.page-nav{padding:18px var(--px);display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(7,7,7,.94);backdrop-filter:blur(20px);z-index:100}
+.nav-logo{font-family:'Cormorant',serif;font-size:18px;font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;display:flex;align-items:center;gap:9px}
+.nav-gem{width:7px;height:7px;background:var(--gold);transform:rotate(45deg);box-shadow:0 0 10px var(--gold-g);flex-shrink:0}
+.nav-back{font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .3s;display:flex;align-items:center;gap:8px}
+.nav-back::before{content:'←';font-size:14px}
 .nav-back:hover{color:var(--gold2)}
 
-.page-content{max-width:800px;margin:0 auto;padding:clamp(32px,5vw,64px) clamp(22px,5.5vw,92px)}
-.page-title{font-family:'Cormorant',serif;font-size:clamp(30px,4vw,48px);font-weight:300;margin-bottom:8px}
-.page-title em{color:var(--gold2);font-style:italic}
-.page-sub{color:var(--muted);font-size:14px;font-weight:200;margin-bottom:40px}
+/* ── HERO BAND ── */
+.appt-hero{padding:clamp(36px,6vh,72px) var(--px) clamp(28px,4vh,52px);border-bottom:1px solid var(--line);position:relative;overflow:hidden}
+.appt-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 100% at 0% 50%,rgba(208,175,82,.06) 0%,transparent 65%);pointer-events:none}
+.appt-hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.appt-hero h1{font-family:'Cormorant',serif;font-size:clamp(32px,5vw,60px);font-weight:300;line-height:1}
+.appt-hero h1 em{color:var(--gold2);font-style:italic}
+.appt-hero-sub{color:var(--muted);font-size:14px;font-weight:300;margin-top:8px;max-width:440px}
+.btn-book-new{background:var(--gold);color:var(--black);border:none;padding:12px 24px;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:background .3s,box-shadow .3s;white-space:nowrap;flex-shrink:0}
+.btn-book-new:hover{background:var(--gold2);box-shadow:0 8px 32px rgba(208,175,82,.28)}
+.btn-book-new-gem{width:5px;height:5px;background:var(--black);transform:rotate(45deg)}
 
-.section-label{font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+/* ── STATS ROW ── */
+.appt-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.appt-stat{background:var(--black);padding:clamp(18px,3vw,28px) clamp(16px,2.5vw,28px);text-align:center}
+.appt-stat-n{font-family:'Cormorant',serif;font-size:clamp(32px,4vw,52px);font-weight:300;color:var(--gold2);line-height:1}
+.appt-stat-l{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-top:6px}
 
-.appt-card{background:var(--black2);border:1px solid var(--line);padding:20px 24px;margin-bottom:12px;transition:border-color .3s}
-.appt-card:hover{border-color:rgba(200,169,81,.25)}
-.appt-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px;flex-wrap:wrap}
-.appt-date{font-family:'Cormorant',serif;font-size:20px;font-weight:300}
-.appt-time{color:var(--gold2);font-size:14px;font-weight:300}
-.appt-status{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.15em;text-transform:uppercase;padding:4px 12px;border:1px solid}
-.status-confirmed{color:var(--gold);border-color:rgba(200,169,81,.3);background:rgba(200,169,81,.08)}
-.status-cancelled{color:var(--amber);border-color:rgba(200,115,58,.3);background:rgba(200,115,58,.08)}
-.status-completed{color:#4a9;border-color:rgba(68,170,153,.3);background:rgba(68,170,153,.08)}
-.appt-concerns{color:var(--muted);font-size:13px;font-weight:200;line-height:1.5}
-.appt-actions{margin-top:12px;display:flex;gap:12px}
-.btn-cancel{background:none;border:1px solid rgba(200,115,58,.3);color:var(--amber);padding:8px 16px;font-family:'Barlow',sans-serif;font-size:12px;transition:all .3s}
-.btn-cancel:hover{background:rgba(200,115,58,.1);border-color:var(--amber)}
-.btn-cancel:disabled{opacity:.4}
+/* ── MAIN CONTENT ── */
+.appt-main{max-width:860px;margin:0 auto;padding:clamp(32px,5vh,60px) var(--px)}
 
-.empty-state{text-align:center;padding:60px 20px}
-.empty-icon{font-size:48px;margin-bottom:16px;color:var(--faint)}
-.empty-text{color:var(--muted);font-size:15px;margin-bottom:24px;font-weight:200}
-.btn-book{display:inline-block;padding:14px 32px;background:var(--gold);color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:12px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;transition:background .3s}
-.btn-book:hover{background:var(--gold2)}
+.section-hd{display:flex;align-items:center;gap:16px;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.section-hd-label{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold)}
+.section-hd-count{background:var(--gold-d);border:1px solid var(--line);color:var(--gold2);font-family:'Barlow',sans-serif;font-size:11px;padding:2px 10px;letter-spacing:.08em}
 
-.loading{text-align:center;padding:60px 0;color:var(--muted);font-weight:200}
-.auth-msg{text-align:center;padding:60px 20px}
-.auth-msg a{color:var(--gold2);text-decoration:none}
+/* ── APPOINTMENT CARD ── */
+.appt-card{background:var(--black2);border:1px solid var(--line);margin-bottom:10px;transition:border-color .3s,box-shadow .3s;overflow:hidden}
+.appt-card:hover{border-color:rgba(208,175,82,.28);box-shadow:0 8px 40px rgba(0,0,0,.35)}
+.appt-card-inner{padding:clamp(18px,2.5vw,28px) clamp(20px,3vw,32px)}
+.appt-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.appt-date-block{}
+.appt-date{font-family:'Cormorant',serif;font-size:clamp(18px,2.2vw,26px);font-weight:300;line-height:1.2}
+.appt-time{color:var(--gold2);font-size:13px;font-weight:300;margin-top:4px;letter-spacing:.04em}
+.appt-status-badge{font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.18em;text-transform:uppercase;padding:5px 14px;border:1px solid;flex-shrink:0}
+.status-confirmed{color:var(--gold);border-color:rgba(208,175,82,.3);background:rgba(208,175,82,.07)}
+.status-cancelled{color:var(--amber);border-color:rgba(212,121,62,.3);background:rgba(212,121,62,.07)}
+.status-completed{color:#4db89e;border-color:rgba(77,184,158,.3);background:rgba(77,184,158,.07)}
+.status-rescheduled{color:var(--gold3);border-color:rgba(248,237,190,.2);background:rgba(248,237,190,.05)}
+
+/* ── CONCERN DETAILS ── */
+.appt-detail-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px}
+.appt-detail-row:last-of-type{margin-bottom:0}
+.appt-detail-label{font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);flex-shrink:0;padding-top:2px;min-width:72px}
+.appt-detail-val{font-size:13px;color:var(--muted);font-weight:300;line-height:1.7}
+
+/* ── TIMELINE BAR ── */
+.appt-timeline{height:2px;background:var(--line);margin:16px 0 0;position:relative}
+.appt-timeline-fill{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .6s ease}
+.appt-timeline-label{font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin-top:6px}
+
+/* ── ACTIONS ── */
+.appt-actions{padding:14px clamp(20px,3vw,32px);border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;background:rgba(0,0,0,.2);flex-wrap:wrap}
+.btn-cancel{background:none;border:1px solid rgba(212,121,62,.28);color:var(--amber);padding:8px 18px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;transition:all .3s;cursor:pointer}
+.btn-cancel:hover{background:rgba(212,121,62,.09);border-color:var(--amber)}
+.btn-cancel:disabled{opacity:.35;cursor:default}
+.appt-actions-note{font-size:11px;color:var(--faint);font-weight:300;margin-left:auto}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:80px 24px}
+.empty-gem{width:32px;height:32px;border:1px solid var(--line);transform:rotate(45deg);margin:0 auto 28px;position:relative}
+.empty-gem::after{content:'';position:absolute;inset:6px;background:var(--gold-d);border:1px solid rgba(208,175,82,.12)}
+.empty-title{font-family:'Cormorant',serif;font-size:clamp(24px,3vw,36px);font-weight:300;margin-bottom:12px}
+.empty-title em{color:var(--gold2);font-style:italic}
+.empty-text{color:var(--muted);font-size:14px;font-weight:300;margin-bottom:32px;max-width:380px;margin-left:auto;margin-right:auto;line-height:2}
+.btn-book-first{display:inline-flex;align-items:center;gap:10px;padding:14px 36px;background:var(--gold);color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;transition:all .3s}
+.btn-book-first:hover{background:var(--gold2);box-shadow:0 8px 32px rgba(208,175,82,.28)}
+
+/* ── LOADING ── */
+.loading-state{text-align:center;padding:80px 24px}
+.loading-dots{display:flex;gap:8px;justify-content:center;margin-bottom:24px}
+.loading-dot{width:6px;height:6px;background:var(--gold);transform:rotate(45deg);animation:dotpulse 1.4s ease-in-out infinite}
+.loading-dot:nth-child(2){animation-delay:.2s}
+.loading-dot:nth-child(3){animation-delay:.4s}
+@keyframes dotpulse{0%,80%,100%{opacity:.2;transform:rotate(45deg) scale(.8)}40%{opacity:1;transform:rotate(45deg) scale(1)}}
+.loading-text{color:var(--muted);font-size:14px;font-weight:300;letter-spacing:.06em}
+
+/* ── AUTH STATE ── */
+.auth-state{text-align:center;padding:80px 24px}
+.auth-state p{color:var(--muted);font-size:15px;font-weight:300;margin-bottom:24px;line-height:2}
+.auth-state a{display:inline-block;padding:13px 32px;background:var(--gold);color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;transition:background .3s}
+.auth-state a:hover{background:var(--gold2)}
+
+/* ── PAST SECTION ── */
+.past-section{margin-top:clamp(40px,6vh,64px)}
+.appt-card.is-past{opacity:.72}
+.appt-card.is-past:hover{opacity:1}
+
+/* ── FOOTER ── */
+.page-footer{border-top:1px solid var(--line);padding:24px var(--px);text-align:center;font-size:11px;color:var(--faint);letter-spacing:.08em}
+
+@media(max-width:680px){
+  .page-nav{flex-wrap:wrap;gap:10px}
+  .appt-hero-top{flex-direction:column}
+  .btn-book-new{width:100%;justify-content:center}
+  .appt-stats{grid-template-columns:1fr}
+  .appt-card-top{flex-direction:column;align-items:flex-start}
+  .appt-actions{flex-direction:column;align-items:flex-start}
+  .appt-actions .btn-cancel{width:100%;text-align:center}
+  .appt-actions-note{margin-left:0}
+}
 </style>
 </head>
 <body>
 
-<div class="page-nav">
+<!-- NAV -->
+<nav class="page-nav">
   <a href="/" class="nav-logo"><div class="nav-gem"></div>theanirudhcode</a>
-  <a href="/" class="nav-back">&larr; Back to Home</a>
-</div>
+  <a href="/" class="nav-back">Back to Home</a>
+</nav>
 
-<div class="page-content">
-  <h1 class="page-title">My <em>Appointments</em></h1>
-  <p class="page-sub">Manage your consultations with Dr. Anirudh</p>
-  <div id="content">
-    <div class="loading">Loading your appointments...</div>
+<!-- HERO BAND -->
+<div class="appt-hero">
+  <div class="appt-hero-top">
+    <div>
+      <h1>My <em>Appointments</em></h1>
+      <p class="appt-hero-sub">Manage your consultations with Dr. Anirudh M. Vaddineni</p>
+    </div>
+    <a href="/?booking=open" class="btn-book-new" id="hero-book-btn">
+      <div class="btn-book-new-gem"></div>Book New Consultation
+    </a>
   </div>
 </div>
 
+<!-- STATS ROW -->
+<div class="appt-stats" id="stats-row" style="display:none">
+  <div class="appt-stat"><div class="appt-stat-n" id="stat-total">0</div><div class="appt-stat-l">Total Consultations</div></div>
+  <div class="appt-stat"><div class="appt-stat-n" id="stat-upcoming">0</div><div class="appt-stat-l">Upcoming</div></div>
+  <div class="appt-stat"><div class="appt-stat-n" id="stat-completed">0</div><div class="appt-stat-l">Completed</div></div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="appt-main">
+  <div id="content">
+    <div class="loading-state">
+      <div class="loading-dots"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>
+      <div class="loading-text">Loading your appointments…</div>
+    </div>
+  </div>
+</div>
+
+<div class="page-footer">&copy; 2026 theanirudhcode &middot; All rights reserved</div>
+
 <script>
-async function checkAuth() {
-  try {
-    const res = await fetch('/api/auth/me');
-    if (!res.ok) throw new Error();
-    return true;
-  } catch {
-    document.getElementById('content').innerHTML = `
-      <div class="auth-msg">
-        <p style="color:var(--muted);margin-bottom:16px">Please sign in to view your appointments</p>
-        <a href="/login?redirect=/my-appointments" class="btn-book">Sign In</a>
-      </div>`;
-    return false;
-  }
+// ── Helpers ──────────────────────────────────────────────────────────────
+function fmt(dateStr) {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+  });
+}
+function fmtTime(hhmm) {
+  const h = parseInt(hhmm.split(':')[0]);
+  const m = hhmm.split(':')[1];
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const dh = h > 12 ? h - 12 : (h || 12);
+  return dh + ':' + m + '\u202f' + ampm;
+}
+function daysUntil(dateStr, timeStart) {
+  const apptMs = new Date(dateStr + 'T' + timeStart + ':00+05:30').getTime();
+  return (apptMs - Date.now()) / (1000 * 60 * 60 * 24);
 }
 
+// ── Auth check ───────────────────────────────────────────────────────────
+async function checkAuth() {
+  try {
+    const r = await fetch('/api/auth/me', { credentials: 'same-origin' });
+    if (r.ok) return (await r.json()).user;
+  } catch {}
+  return null;
+}
+
+// ── Card renderer ────────────────────────────────────────────────────────
+function renderCard(a, isPast) {
+  const timeStr = fmtTime(a.time_start) + ' \u2014 ' + fmtTime(a.time_end);
+  const statusCls = 'status-' + a.status;
+  const canCancel = !isPast && a.status === 'confirmed' && daysUntil(a.date, a.time_start) > 1;
+  const hoursAway = !isPast && a.status === 'confirmed' ? daysUntil(a.date, a.time_start) * 24 : 0;
+
+  // timeline fill: 0 = far away, 100 = now
+  const totalWindow = 7 * 24; // 7 days
+  const pct = Math.min(100, Math.max(0, Math.round((1 - hoursAway / totalWindow) * 100)));
+  const showTimeline = !isPast && a.status === 'confirmed' && hoursAway < totalWindow;
+
+  let details = '';
+  if (a.health_concerns) details += `<div class="appt-detail-row"><span class="appt-detail-label">Concerns</span><span class="appt-detail-val">${a.health_concerns}</span></div>`;
+  if (a.medical_history) details += `<div class="appt-detail-row"><span class="appt-detail-label">History</span><span class="appt-detail-val">${a.medical_history}</span></div>`;
+  if (a.goals)           details += `<div class="appt-detail-row"><span class="appt-detail-label">Goals</span><span class="appt-detail-val">${a.goals}</span></div>`;
+
+  return `
+    <div class="appt-card${isPast ? ' is-past' : ''}" id="card-${a.id}">
+      <div class="appt-card-inner">
+        <div class="appt-card-top">
+          <div class="appt-date-block">
+            <div class="appt-date">${fmt(a.date)}</div>
+            <div class="appt-time">${timeStr}</div>
+          </div>
+          <span class="appt-status-badge ${statusCls}">${a.status}</span>
+        </div>
+        ${details ? `<div style="margin-top:4px">${details}</div>` : ''}
+        ${showTimeline ? `
+          <div class="appt-timeline">
+            <div class="appt-timeline-fill" style="width:${pct}%"></div>
+          </div>
+          <div class="appt-timeline-label">${hoursAway < 24 ? 'Tomorrow' : Math.round(hoursAway / 24) + ' days away'}</div>
+        ` : ''}
+      </div>
+      ${canCancel ? `
+        <div class="appt-actions">
+          <button class="btn-cancel" data-id="${a.id}">Cancel Appointment</button>
+          <span class="appt-actions-note">Free cancellation up to 24h before</span>
+        </div>
+      ` : ''}
+    </div>`;
+}
+
+// ── Load & render ─────────────────────────────────────────────────────────
 async function loadAppointments() {
-  if (!(await checkAuth())) return;
+  const user = await checkAuth();
+  const el = document.getElementById('content');
+
+  if (!user) {
+    el.innerHTML = `
+      <div class="auth-state">
+        <p>Please sign in to view your appointments.</p>
+        <a href="/login?redirect=/my-appointments">Sign In</a>
+      </div>`;
+    return;
+  }
 
   try {
-    const res = await fetch('/api/appointments/my');
-    const data = await res.json();
-    const el = document.getElementById('content');
+    const res = await fetch('/api/appointments/my', { credentials: 'same-origin' });
 
-    if (!data.upcoming.length && !data.past.length) {
+    if (res.status === 401) {
+      el.innerHTML = `
+        <div class="auth-state">
+          <p>Your session has expired. Please sign in again.</p>
+          <a href="/login?redirect=/my-appointments">Sign In</a>
+        </div>`;
+      return;
+    }
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to load');
+
+    const upcoming = Array.isArray(data.upcoming) ? data.upcoming : [];
+    const past     = Array.isArray(data.past)     ? data.past     : [];
+    const completed = past.filter(a => a.status === 'completed').length;
+
+    // Show stats
+    const statsRow = document.getElementById('stats-row');
+    statsRow.style.display = 'grid';
+    document.getElementById('stat-total').textContent    = upcoming.length + past.length;
+    document.getElementById('stat-upcoming').textContent = upcoming.length;
+    document.getElementById('stat-completed').textContent = completed;
+
+    if (!upcoming.length && !past.length) {
       el.innerHTML = `
         <div class="empty-state">
-          <div class="empty-icon">&#9737;</div>
-          <p class="empty-text">You haven't booked any appointments yet</p>
-          <a href="/" class="btn-book">Book Your First Consultation</a>
+          <div class="empty-gem"></div>
+          <h2 class="empty-title">No <em>appointments</em> yet</h2>
+          <p class="empty-text">You haven't booked a consultation with Dr. Anirudh yet. Begin your healing journey today.</p>
+          <a href="/?booking=open" class="btn-book-first"><span>Book Your First Consultation</span></a>
         </div>`;
       return;
     }
 
     let html = '';
-    if (data.upcoming.length) {
-      html += `<div class="section-label">Upcoming Appointments</div>`;
-      data.upcoming.forEach(a => { html += renderCard(a, true); });
+
+    if (upcoming.length) {
+      html += `
+        <div class="section-hd">
+          <span class="section-hd-label">Upcoming Consultations</span>
+          <span class="section-hd-count">${upcoming.length}</span>
+        </div>`;
+      upcoming.forEach(a => { html += renderCard(a, false); });
     }
-    if (data.past.length) {
-      html += `<div class="section-label" style="margin-top:40px">Past Appointments</div>`;
-      data.past.forEach(a => { html += renderCard(a, false); });
+
+    if (past.length) {
+      html += `<div class="past-section">`;
+      html += `
+        <div class="section-hd">
+          <span class="section-hd-label">Past Consultations</span>
+          <span class="section-hd-count">${past.length}</span>
+        </div>`;
+      past.forEach(a => { html += renderCard(a, true); });
+      html += `</div>`;
     }
+
     el.innerHTML = html;
 
-    // Attach cancel handlers
-    el.querySelectorAll('.btn-cancel').forEach(btn => {
-      btn.addEventListener('click', () => cancelAppt(btn.dataset.id, btn));
+    // Cancel handlers
+    el.querySelectorAll('.btn-cancel[data-id]').forEach(btn => {
+      btn.addEventListener('click', () => cancelAppt(parseInt(btn.dataset.id), btn));
     });
-  } catch {
-    document.getElementById('content').innerHTML = '<div class="loading">Failed to load appointments. Please refresh.</div>';
+  } catch (err) {
+    el.innerHTML = `
+      <div class="auth-state">
+        <p>${err.message || 'Could not load appointments. Please refresh.'}</p>
+        <a href="/my-appointments">Try Again</a>
+      </div>`;
   }
-}
-
-function renderCard(a, canCancel) {
-  const d = new Date(a.date + 'T00:00:00');
-  const dateStr = d.toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-  const startH = parseInt(a.time_start.split(':')[0]);
-  const ampm = startH >= 12 ? 'PM' : 'AM';
-  const dH = startH > 12 ? startH - 12 : (startH || 12);
-  const timeStr = dH + ':' + a.time_start.split(':')[1] + ' ' + ampm;
-
-  const statusCls = 'status-' + a.status;
-  const apptTime = new Date(a.date + 'T' + a.time_start + ':00+05:30');
-  const canCancelNow = canCancel && a.status === 'confirmed' && (apptTime - Date.now()) > 24 * 60 * 60 * 1000;
-
-  return '<div class="appt-card">' +
-    '<div class="appt-top">' +
-      '<div><div class="appt-date">' + dateStr + '</div><div class="appt-time">' + timeStr + '</div></div>' +
-      '<span class="appt-status ' + statusCls + '">' + a.status + '</span>' +
-    '</div>' +
-    (a.health_concerns ? '<div class="appt-concerns">' + a.health_concerns + '</div>' : '') +
-    (canCancelNow ? '<div class="appt-actions"><button class="btn-cancel" data-id="' + a.id + '">Cancel Appointment</button></div>' : '') +
-  '</div>';
 }
 
 async function cancelAppt(id, btn) {
   if (!confirm('Are you sure you want to cancel this appointment?')) return;
   btn.disabled = true;
-  btn.textContent = 'Cancelling...';
+  btn.textContent = 'Cancelling…';
   try {
-    const res = await fetch('/api/appointments/' + id + '/cancel', { method: 'POST' });
+    const res = await fetch(`/api/appointments/${id}/cancel`, {
+      method: 'POST', credentials: 'same-origin'
+    });
     const data = await res.json();
     if (res.ok) {
       loadAppointments();
     } else {
-      alert(data.error);
+      alert(data.error || 'Could not cancel. Please try again.');
       btn.disabled = false;
       btn.textContent = 'Cancel Appointment';
     }
   } catch {
-    alert('Failed to cancel. Please try again.');
+    alert('Connection error. Please try again.');
     btn.disabled = false;
     btn.textContent = 'Cancel Appointment';
   }

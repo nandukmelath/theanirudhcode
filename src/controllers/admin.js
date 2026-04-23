@@ -5,8 +5,8 @@ const prisma = require('../lib/prisma');
 const { hybridAdminAuth } = require('../middleware/auth');
 const { getSettings } = require('./calendar');
 
-// Serve admin page
-router.get('/', (req, res) => {
+// Serve admin page (protected)
+router.get('/', hybridAdminAuth, (req, res) => {
   res.sendFile(path.join(__dirname, '..', '..', 'views', 'admin.html'));
 });
 
@@ -65,8 +65,9 @@ router.get('/api/consultations', hybridAdminAuth, async (req, res) => {
     const { status } = req.query;
     const where = status ? { status } : {};
     const consultations = await prisma.consultation.findMany({ where, orderBy: { createdAt: 'desc' } });
-    const counts = await prisma.$queryRaw`SELECT status, COUNT(*)::int as count FROM consultations GROUP BY status`;
-    res.json({ consultations, statusCounts: counts });
+    const all = await prisma.consultation.findMany({ select: { status: true } });
+    const statusCounts = all.reduce((acc, c) => { acc[c.status] = (acc[c.status] || 0) + 1; return acc; }, {});
+    res.json({ consultations, statusCounts });
   } catch (err) {
     console.error('Consultations error:', err);
     res.status(500).json({ error: 'Failed to load consultations' });

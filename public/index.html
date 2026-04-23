@@ -17,17 +17,17 @@
   --black2:  #0e0e0e;
   --black3:  #141414;
   --black4:  #1a1a1a;
-  --gold:    #c8a951;
-  --gold2:   #e2c97e;
-  --gold3:   #f5e6b8;
+  --gold:    #d0af52;
+  --gold2:   #eedc88;
+  --gold3:   #f8edbe;
   --gold4:   #a8872e;
-  --gold-d:  rgba(200,169,81,.15);
-  --gold-g:  rgba(200,169,81,.35);
-  --white:   #f8f4ec;
-  --muted:   rgba(248,244,236,.42);
-  --faint:   rgba(248,244,236,.14);
-  --amber:   #c8733a;
-  --line:    rgba(200,169,81,.11);
+  --gold-d:  rgba(208,175,82,.14);
+  --gold-g:  rgba(208,175,82,.38);
+  --white:   #f9f5ee;
+  --muted:   rgba(249,245,238,.84);
+  --faint:   rgba(249,245,238,.52);
+  --amber:   #d4793e;
+  --line:    rgba(208,175,82,.18);
 
   --fh: clamp(50px,8.5vw,124px);
   --h2: clamp(32px,4.2vw,68px);
@@ -44,18 +44,10 @@
 ═══════════════════════════════════════ */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;overflow-x:hidden;cursor:none}
-button,a{cursor:none}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;overflow-x:hidden;line-height:1.6;text-rendering:optimizeLegibility}
 img,canvas,svg{display:block;max-width:100%}
 section{position:relative;z-index:10}
 
-/* ═══════════════════════════════════════
-   CURSOR
-═══════════════════════════════════════ */
-#cur,#ring{position:fixed;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%)}
-#cur{width:8px;height:8px;background:var(--gold);box-shadow:0 0 12px var(--gold-g)}
-#ring{width:34px;height:34px;border:1px solid rgba(200,169,81,.4)}
-@media(hover:none){#cur,#ring{display:none}}
 
 /* ═══════════════════════════════════════
    BG
@@ -74,7 +66,7 @@ section{position:relative;z-index:10}
 /* ═══════════════════════════════════════
    NAV
 ═══════════════════════════════════════ */
-nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:clamp(14px,2vw,26px) var(--px);display:flex;justify-content:space-between;align-items:center;transition:background .4s,border .4s}
+nav,nav.z{position:fixed;top:0;left:0;right:0;z-index:5000;padding:clamp(14px,2vw,26px) var(--px);display:flex;justify-content:space-between;align-items:center;transition:background .4s,border .4s;isolation:isolate}
 nav.s{background:rgba(7,7,7,.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
 .nlogo{font-family:'Cormorant',serif;font-size:clamp(15px,1.6vw,20px);font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;display:flex;align-items:center;gap:9px}
 .ngem{width:7px;height:7px;background:var(--gold);transform:rotate(45deg);box-shadow:0 0 14px var(--gold-g);animation:gpulse 3s ease-in-out infinite;flex-shrink:0}
@@ -101,7 +93,7 @@ nav.s{background:rgba(7,7,7,.94);backdrop-filter:blur(20px);border-bottom:1px so
 h1.ht{font-family:'Cormorant',serif;font-size:var(--fh);font-weight:300;line-height:.9;opacity:0;animation:rise 1.1s .6s forwards}
 h1.ht .it{font-style:italic;color:var(--gold2)}
 .hsub{font-family:'Cormorant',serif;font-style:italic;font-size:clamp(15px,1.8vw,24px);font-weight:300;color:var(--muted);margin-top:clamp(10px,1.5vh,18px);letter-spacing:.05em;opacity:0;animation:rise 1s .85s forwards}
-.hdesc{font-size:var(--fb);color:var(--muted);line-height:2.05;font-weight:200;margin-top:clamp(18px,2.5vh,32px);max-width:430px;opacity:0;animation:rise 1s 1.05s forwards}
+.hdesc{font-size:var(--fb);color:var(--muted);line-height:2.05;font-weight:300;margin-top:clamp(18px,2.5vh,32px);max-width:480px;opacity:0;animation:rise 1s 1.05s forwards}
 .hcta{display:flex;flex-wrap:wrap;gap:clamp(10px,1.5vw,18px);margin-top:clamp(26px,3.5vh,48px);opacity:0;animation:rise 1s 1.25s forwards}
 .btn-g{background:var(--gold);color:var(--black);border:none;padding:clamp(12px,1.4vw,17px) clamp(26px,2.8vw,48px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;position:relative;overflow:hidden;transition:box-shadow .4s}
 .btn-g::after{content:'';position:absolute;inset:0;background:var(--gold2);transform:translateX(-101%);transition:transform .42s cubic-bezier(.77,0,.18,1)}
@@ -110,13 +102,13 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 .btn-g span{position:relative;z-index:1}
 .btn-o{background:transparent;border:1px solid rgba(200,169,81,.28);color:var(--gold3);padding:clamp(12px,1.4vw,17px) clamp(26px,2.8vw,48px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;transition:all .35s}
 .btn-o:hover{border-color:var(--gold);background:var(--gold-d)}
-.hero-r{display:flex;justify-content:center;align-items:center;position:relative;min-height:clamp(300px,45vw,580px);opacity:0;animation:fadein 1.6s 1.4s forwards}
-.orbwrap{position:relative}
-#orb{border-radius:50%;max-width:100%;height:auto}
+.hero-r{display:flex;justify-content:center;align-items:center;position:relative;min-height:clamp(340px,48vw,620px);width:100%;opacity:0;animation:fadein 1.6s 1.4s forwards}
+.orbwrap{position:relative;width:min(100%,clamp(320px,42vw,620px));aspect-ratio:1/1;display:grid;place-items:center;margin-inline:auto}
+#orb{border-radius:50%;width:100%;height:100%;aspect-ratio:1/1}
 .orbring{position:absolute;inset:-24px;border-radius:50%;border:1px solid rgba(200,169,81,.08);animation:spinring 20s linear infinite}
 .orbring2{position:absolute;inset:-48px;border-radius:50%;border:1px solid rgba(200,169,81,.04);animation:spinring 35s linear infinite reverse}
 @keyframes spinring{to{transform:rotate(360deg)}}
-.orblabel{position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.44em;text-transform:uppercase;color:rgba(200,169,81,.35);white-space:nowrap}
+.orblabel{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.38em;text-transform:uppercase;color:rgba(200,169,81,.48);white-space:nowrap;text-align:center}
 .scue{position:absolute;bottom:clamp(18px,3.5vh,44px);left:var(--px);display:flex;align-items:center;gap:13px;font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.4em;text-transform:uppercase;color:var(--faint);opacity:0;animation:rise 1s 2.2s forwards}
 .scueline{width:48px;height:1px;background:var(--line);position:relative;overflow:hidden}
 .scueline::after{content:'';position:absolute;left:-100%;top:0;width:100%;height:100%;background:var(--gold);animation:scan 2.5s ease-in-out infinite}
@@ -148,16 +140,16 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 .cp-head{margin-bottom:clamp(44px,6vw,88px)}
 .cp-head h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.08;max-width:700px}
 .cp-head h2 em{font-style:italic;color:var(--gold2)}
-.cp-head p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:200;max-width:500px;margin-top:18px}
+.cp-head p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:300;max-width:500px;margin-top:18px}
 .cp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(1px,.15vw,2px)}
 .cp-card{background:var(--black2);border:1px solid var(--line);padding:clamp(28px,3.5vw,52px) clamp(22px,2.8vw,42px);position:relative;overflow:hidden;transition:all .5s cubic-bezier(.22,1,.36,1)}
 .cp-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);transform:scaleX(0);transform-origin:center;transition:transform .6s}
-.cp-card:hover{background:rgba(200,169,81,.04);transform:translateY(-6px);box-shadow:0 36px 72px rgba(0,0,0,.55);border-color:rgba(200,169,81,.2)}
+.cp-card:hover{background:rgba(208,175,82,.05);transform:translateY(-8px);box-shadow:0 40px 80px rgba(0,0,0,.6),0 0 0 1px rgba(208,175,82,.18),0 0 32px rgba(208,175,82,.06);border-color:rgba(208,175,82,.28)}
 .cp-card:hover::after{transform:scaleX(1)}
 .cp-ico{width:48px;height:48px;margin-bottom:clamp(20px,2.5vw,30px);position:relative}
 .cp-num{position:absolute;top:-6px;right:-4px;font-family:'Cormorant',serif;font-size:72px;font-weight:300;color:rgba(200,169,81,.07);line-height:1;pointer-events:none}
 .cp-card h3{font-family:'Cormorant',serif;font-size:var(--h3);font-weight:300;color:var(--white);margin-bottom:14px}
-.cp-card p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:200}
+.cp-card p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:300}
 .cp-tag{display:inline-block;margin-top:24px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);border-bottom:1px solid rgba(200,169,81,.28);padding-bottom:2px}
 
 /* ═══════════════════════════════════════
@@ -166,7 +158,7 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 .philo{padding:var(--py) var(--px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(36px,7vw,112px);align-items:center}
 .phi-t h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
 .phi-t h2 em{font-style:italic;color:var(--gold2)}
-.phi-t p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:200;margin-top:clamp(14px,2vw,24px);max-width:470px}
+.phi-t p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:300;margin-top:clamp(14px,2vw,24px);max-width:470px}
 .phi-t .qpull{margin-top:clamp(24px,3.5vw,44px);padding:clamp(18px,2.5vw,28px);border-left:2px solid var(--gold);background:rgba(200,169,81,.04);font-family:'Cormorant',serif;font-style:italic;font-size:clamp(16px,1.8vw,22px);font-weight:300;color:var(--gold3);line-height:1.65}
 .phi-v{position:relative;display:flex;justify-content:center;align-items:center;height:clamp(340px,48vw,540px)}
 .phi-glow{position:absolute;inset:-20%;border-radius:50%;background:radial-gradient(ellipse,rgba(200,169,81,.05) 0%,transparent 65%);pointer-events:none}
@@ -186,11 +178,11 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 .ppanel.active{display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,5vw,72px);align-items:center}
 .pp-text h3{font-family:'Cormorant',serif;font-size:clamp(28px,3.2vw,48px);font-weight:300;line-height:1.15}
 .pp-text h3 em{font-style:italic;color:var(--gold2)}
-.pp-text p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:200;margin-top:20px;max-width:440px}
+.pp-text p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:300;margin-top:20px;max-width:440px}
 .pp-steps{margin-top:32px;display:flex;flex-direction:column;gap:16px}
 .pp-step{display:flex;gap:16px;align-items:flex-start}
 .pp-step-n{font-family:'Cormorant',serif;font-size:28px;font-weight:300;color:rgba(200,169,81,.35);flex-shrink:0;line-height:1.1;min-width:28px}
-.pp-step-t{font-size:var(--fb);color:var(--muted);font-weight:200;line-height:1.9}
+.pp-step-t{font-size:var(--fb);color:var(--muted);font-weight:300;line-height:1.9}
 .pp-step-t strong{color:var(--gold3);font-weight:400}
 .pp-visual{height:clamp(280px,35vw,440px);display:flex;justify-content:center;align-items:center;position:relative}
 
@@ -201,14 +193,14 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 .fb-text{}
 .fb-text h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
 .fb-text h2 em{font-style:italic;color:var(--gold2)}
-.fb-text p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:200;margin-top:20px;max-width:440px}
+.fb-text p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:300;margin-top:20px;max-width:440px}
 .fb-list{margin-top:28px;display:flex;flex-direction:column;gap:14px}
-.fb-item{display:flex;align-items:center;gap:14px;font-size:var(--fb);color:var(--muted);font-weight:200}
+.fb-item{display:flex;align-items:center;gap:14px;font-size:var(--fb);color:var(--muted);font-weight:300}
 .fb-item::before{content:'◆';color:var(--gold);font-size:7px;flex-shrink:0}
 .fb-form{background:var(--black2);border:1px solid var(--line);padding:clamp(28px,4vw,52px)}
 .fb-form h3{font-family:'Cormorant',serif;font-size:clamp(22px,2.5vw,34px);font-weight:300}
 .fb-form h3 em{font-style:italic;color:var(--gold2)}
-.fb-form p{font-size:var(--fb);color:var(--muted);font-weight:200;margin-top:10px;line-height:1.8}
+.fb-form p{font-size:var(--fb);color:var(--muted);font-weight:300;margin-top:10px;line-height:1.8}
 .finput{width:100%;margin-top:20px;background:rgba(200,169,81,.04);border:1px solid var(--line);color:var(--white);padding:clamp(12px,1.4vw,16px) clamp(16px,1.8vw,20px);font-family:'Barlow',sans-serif;font-size:var(--fb);font-weight:300;transition:border-color .3s;outline:none}
 .finput::placeholder{color:var(--faint)}
 .finput:focus{border-color:rgba(200,169,81,.4)}
@@ -227,17 +219,17 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 .ins-head h2 em{font-style:italic;color:var(--gold2)}
 .ins-link{font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.25em;text-transform:uppercase;color:var(--gold);text-decoration:none;display:flex;align-items:center;gap:10px;transition:gap .3s}
 .ins-link:hover{gap:16px}
-.ins-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(1px,.15vw,2px)}
-.ins-card{background:var(--black2);border:1px solid var(--line);overflow:hidden;transition:all .5s cubic-bezier(.22,1,.36,1);text-decoration:none;color:inherit;display:block}
-.ins-card:hover{transform:translateY(-6px);box-shadow:0 40px 80px rgba(0,0,0,.5);border-color:rgba(200,169,81,.2)}
-.ins-img{height:clamp(160px,18vw,240px);background:var(--black3);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
-.ins-img-inner{position:absolute;inset:0}
-.ins-tag{position:absolute;top:16px;left:16px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);background:rgba(7,7,7,.85);padding:5px 12px;border:1px solid rgba(200,169,81,.28)}
-.ins-body{padding:clamp(20px,2.5vw,32px)}
+.ins-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,1.6vw,20px)}
+.ins-card{background:var(--black2);border:1px solid var(--line);overflow:hidden;transition:all .5s cubic-bezier(.22,1,.36,1);text-decoration:none;color:inherit;display:flex;flex-direction:column;height:100%}
+.ins-card:hover{transform:translateY(-8px);box-shadow:0 44px 88px rgba(0,0,0,.55),0 0 32px rgba(208,175,82,.07);border-color:rgba(208,175,82,.28)}
+.ins-img{height:clamp(190px,20vw,260px);background:var(--black3);position:relative;overflow:hidden;display:block}
+.ins-img-inner{position:absolute;inset:0;width:100%;height:100%;display:block}
+.ins-tag{position:absolute;top:16px;left:16px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);background:rgba(7,7,7,.85);padding:5px 12px;border:1px solid rgba(200,169,81,.28);z-index:1}
+.ins-body{padding:clamp(20px,2.5vw,32px);display:flex;flex-direction:column;flex:1}
 .ins-cat{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
 .ins-title{font-family:'Cormorant',serif;font-size:clamp(18px,1.8vw,24px);font-weight:300;line-height:1.35;color:var(--white)}
-.ins-excerpt{font-size:var(--fb);color:var(--muted);line-height:1.9;font-weight:200;margin-top:10px}
-.ins-meta{display:flex;align-items:center;justify-content:space-between;margin-top:20px}
+.ins-excerpt{font-size:var(--fb);color:var(--muted);line-height:1.9;font-weight:300;margin-top:10px}
+.ins-meta{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:20px}
 .ins-date{font-size:10px;color:var(--faint);letter-spacing:.15em}
 .ins-arrow{font-size:14px;color:var(--gold);transition:transform .3s}
 .ins-card:hover .ins-arrow{transform:translateX(6px)}
@@ -273,7 +265,7 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 .jstep:hover .jbar{transform:scaleY(1)}
 .jsn{font-family:'Cormorant',serif;font-size:clamp(44px,4.8vw,68px);font-weight:300;color:rgba(200,169,81,.14);line-height:1;margin-bottom:clamp(14px,1.8vw,22px)}
 .jstep h4{font-family:'Cormorant',serif;font-size:clamp(17px,1.9vw,24px);font-weight:300;color:var(--white);margin-bottom:11px}
-.jstep p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:200}
+.jstep p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:300}
 
 /* ═══════════════════════════════════════
    TESTIMONIALS
@@ -284,7 +276,7 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 .thead h2 em{font-style:italic;color:var(--gold2)}
 .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(1px,.15vw,2px)}
 .tcard{background:var(--black2);border:1px solid var(--line);padding:clamp(24px,3vw,44px) clamp(20px,2.6vw,36px);transition:border-color .4s}
-.tcard:hover{border-color:rgba(200,169,81,.22)}
+.tcard:hover{border-color:rgba(208,175,82,.32);background:rgba(208,175,82,.03);box-shadow:0 24px 60px rgba(0,0,0,.4),0 0 24px rgba(208,175,82,.05)}
 .tq{font-family:'Cormorant',serif;font-size:32px;color:var(--gold);opacity:.38;line-height:.8;margin-bottom:10px}
 .ttext{font-family:'Cormorant',serif;font-style:italic;font-size:clamp(15px,1.55vw,19px);font-weight:300;color:var(--white);line-height:1.75}
 .tauthor{margin-top:22px;display:flex;align-items:center;gap:13px}
@@ -300,7 +292,7 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 @keyframes obreathe{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.14)}}
 .cta h2{font-family:'Cormorant',serif;font-size:var(--fh);font-weight:300;line-height:.9;position:relative}
 .cta h2 em{font-style:italic;color:var(--gold2);display:block}
-.cta p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:200;margin:clamp(18px,2.5vw,32px) auto 0;max-width:480px;position:relative}
+.cta p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:300;margin:clamp(18px,2.5vw,32px) auto 0;max-width:520px;position:relative}
 .cta-acts{display:flex;justify-content:center;gap:clamp(10px,1.8vw,22px);margin-top:clamp(28px,4.5vw,56px);flex-wrap:wrap;position:relative}
 .cta-note{font-size:11px;color:var(--faint);margin-top:18px;letter-spacing:.1em;position:relative}
 
@@ -310,9 +302,9 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line);display:grid;grid-template-columns:1.4fr 1fr 1fr;align-items:start;gap:clamp(32px,5vw,72px)}
 .fbrand .fl{font-family:'Cormorant',serif;font-size:clamp(17px,1.8vw,24px);font-weight:300;letter-spacing:.13em;display:flex;align-items:center;gap:9px}
 .fbrand .fs{font-family:'Cormorant',serif;font-style:italic;font-size:clamp(12px,1.1vw,14px);color:rgba(200,169,81,.45);margin-top:8px}
-.fbrand .fdesc{font-size:12px;color:var(--faint);line-height:1.9;margin-top:14px;max-width:240px;font-weight:200}
+.fbrand .fdesc{font-size:12px;color:var(--muted);line-height:1.9;margin-top:14px;max-width:280px;font-weight:300}
 .flinks-col h5{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.38em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
-.flinks-col a{display:block;font-size:13px;color:var(--muted);text-decoration:none;margin-bottom:10px;transition:color .3s;font-weight:200;letter-spacing:.04em}
+.flinks-col a{display:block;font-size:13px;color:var(--muted);text-decoration:none;margin-bottom:10px;transition:color .3s;font-weight:300;letter-spacing:.04em}
 .flinks-col a:hover{color:var(--gold)}
 .fsocial{display:flex;gap:12px;margin-top:24px}
 .fsoc-btn{width:36px;height:36px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);text-decoration:none;font-size:13px;transition:all .3s;font-weight:300}
@@ -331,12 +323,13 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 /* ═══════════════════════════════════════
    AUTH NAV + BOOKING
 ═══════════════════════════════════════ */
-.nav-auth{display:flex;align-items:center}
-.nav-user{position:relative}
+.nav-auth{display:flex;align-items:center;position:relative;z-index:5001}
+.nav-user{position:relative;z-index:5002}
 .nav-user-btn{background:transparent;border:1px solid rgba(200,169,81,.32);color:var(--gold2);padding:clamp(7px,.9vw,11px) clamp(18px,1.8vw,30px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;transition:all .35s}
 .nav-user-btn:hover{background:var(--gold-d);border-color:var(--gold)}
-.nav-dropdown{display:none;position:absolute;top:100%;right:0;margin-top:8px;background:var(--black2);border:1px solid var(--line);min-width:200px;z-index:600}
-.nav-user:hover .nav-dropdown,.nav-dropdown:hover{display:block}
+.nav-user.open .nav-user-btn{background:var(--gold-d);border-color:var(--gold)}
+.nav-dropdown{position:absolute;top:calc(100% + 10px);right:0;background:rgba(14,14,14,.98);border:1px solid var(--line);min-width:min(220px,calc(100vw - 32px));z-index:5003;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(8px);transition:opacity .22s ease,transform .22s ease,visibility .22s ease;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.nav-user.open .nav-dropdown{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0)}
 .nav-dropdown a,.nav-dropdown button{display:block;width:100%;padding:14px 20px;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);color:var(--muted);font-family:'Barlow',sans-serif;font-size:13px;text-decoration:none;transition:all .3s;font-weight:300;letter-spacing:.04em}
 .nav-dropdown a:hover,.nav-dropdown button:hover{color:var(--gold2);background:var(--gold-d)}
 .nav-dropdown a:last-child,.nav-dropdown button:last-child{border-bottom:none}
@@ -442,7 +435,8 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   .hero{grid-template-columns:1fr;text-align:center}
   .hdesc{margin:clamp(16px,2vh,28px) auto 0}
   .hcta{justify-content:center}
-  .hero-r{min-height:clamp(250px,48vw,380px)}
+  .hero-r{min-height:clamp(360px,52vw,520px)}
+  .orbwrap{width:min(100%,clamp(360px,56vw,520px))}
   .scue{display:none}
   .philo{grid-template-columns:1fr}
   .phi-t{order:1}.phi-v{order:0;height:clamp(240px,38vw,380px)}
@@ -450,48 +444,250 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   .freebie{grid-template-columns:1fr}
   .ppanel.active{grid-template-columns:1fr}
   .pp-visual{display:none}
+  .prof-wrap{grid-template-columns:1fr;text-align:center}
+  .prof-img{margin-bottom:clamp(24px,4vw,40px)}
+  .prof-card{margin:0 auto}
+  .prof-bio{max-width:100%}
+  .prof-creds{grid-template-columns:1fr;text-align:left}
+  .prof-cred{justify-content:flex-start}
+  .prof-actions{justify-content:center}
+  .prof-spec{text-align:center}
 }
 @media(max-width:900px){
   .stats{grid-template-columns:repeat(2,1fr)}
-  .cp-grid{grid-template-columns:1fr}
-  .ins-grid{grid-template-columns:1fr}
-  .tgrid{grid-template-columns:1fr}
+  .cp-grid,.ins-grid,.tgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
   footer{grid-template-columns:1fr 1fr}
   .fbrand{grid-column:1/-1}
-  #truths-grid{grid-template-columns:1fr !important}
+  #truths-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
 }
 @media(max-width:768px){
+  nav{padding:14px 20px;gap:14px}
   .nlinks,.ncta{display:none}
   .hamburger{display:flex}
   .jsteps{grid-template-columns:1fr;background:none;gap:1px}
   .jstep{border:1px solid var(--line);border-top:none}
   .jstep:first-child{border-top:1px solid var(--line)}
-  .hero{padding-top:clamp(88px,16vh,120px)}
+  .hero{padding-top:clamp(88px,16vh,120px);padding-bottom:56px;gap:32px}
+  .hero-r{min-height:clamp(340px,92vw,440px)}
+  .orbwrap{width:min(100%,430px)}
+  .orbring{inset:-18px}
+  .orbring2{inset:-32px}
+  .orblabel{bottom:-24px;font-size:9px;letter-spacing:.3em}
+  .cp-grid,.ins-grid,.tgrid,#truths-grid{grid-template-columns:1fr !important}
+  .ins-head{align-items:flex-start}
   .prot-tabs{gap:4px}
+  .modal-content{width:94vw;padding:24px 20px 28px}
+  .booking-nav{flex-direction:column}
+  .cal-header{flex-wrap:wrap;gap:10px}
+  .confirm-row{flex-direction:column;align-items:flex-start}
   #toast-container{left:16px;right:16px;bottom:16px}
   .toast{min-width:auto}
 }
 @media(max-width:540px){
-  .stats{grid-template-columns:1fr 1fr}
+  .hero{text-align:left;padding-left:18px;padding-right:18px}
+  .hdesc{max-width:100%}
+  .hcta{flex-direction:column}
+  .hcta .btn-g,.hcta .btn-o{width:100%}
+  .hero-r{min-height:min(92vw,420px)}
+  .orbwrap{width:min(100%,400px)}
+  .orbring{inset:-14px}
+  .orbring2{inset:-24px}
+  .stats{grid-template-columns:1fr}
+  .booking-slots{grid-template-columns:1fr}
   footer{grid-template-columns:1fr}
   .flinks-col{display:none}
   .flinks-col:last-child{display:block}
 }
+@media(max-width:420px){
+  .orblabel{max-width:220px;white-space:normal;line-height:1.6}
+}
+/* ═══════════════════════════════════════
+   DR. PROFILE SECTION
+═══════════════════════════════════════ */
+.profile{padding:var(--py) var(--px);background:var(--black2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.prof-wrap{display:grid;grid-template-columns:1fr 1.6fr;gap:clamp(40px,7vw,96px);align-items:center}
+.prof-img{display:flex;justify-content:center;align-items:center}
+.prof-card{width:min(100%,330px);aspect-ratio:3/4;background:var(--black3);border:1px solid var(--line);position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.prof-card-top{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);z-index:2}
+.prof-card-bot{position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(208,175,82,.3),transparent);z-index:2}
+.prof-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+.prof-photo-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(7,7,7,.72) 0%,rgba(7,7,7,.08) 55%,transparent 100%);z-index:1;pointer-events:none}
+.prof-name-badge{position:absolute;bottom:20px;left:0;right:0;text-align:center;z-index:2;padding:0 16px}
+.prof-name-badge-inner{display:inline-block;background:rgba(7,7,7,.78);border:1px solid var(--line);padding:10px 20px;backdrop-filter:blur(10px)}
+.prof-name-badge-name{font-family:'Cormorant',serif;font-size:15px;font-weight:300;color:var(--gold2);letter-spacing:.06em}
+.prof-name-badge-title{font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:rgba(208,175,82,.62);margin-top:4px}
+
+.prof-text .gl{margin-bottom:clamp(14px,2vw,22px)}
+.prof-text h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.08}
+.prof-text h2 em{font-style:italic;color:var(--gold2)}
+.prof-spec{font-family:'Cormorant',serif;font-style:italic;font-size:clamp(14px,1.5vw,19px);color:var(--gold);margin:10px 0 24px;letter-spacing:.04em;font-weight:300}
+.prof-bio{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:300;max-width:540px}
+.prof-creds{margin-top:28px;display:grid;grid-template-columns:1fr 1fr;gap:12px 24px}
+.prof-cred{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--muted);font-weight:300;line-height:1.6}
+.prof-cred::before{content:'◆';color:var(--gold);font-size:6px;flex-shrink:0;margin-top:5px}
+.prof-actions{margin-top:36px;display:flex;gap:clamp(10px,1.5vw,18px);flex-wrap:wrap}
+
+/* ═══════════════════════════════════════
+   FAQ ACCORDION
+═══════════════════════════════════════ */
+.faq{padding:var(--py) var(--px)}
+.faq-inner{display:grid;grid-template-columns:1fr 1.5fr;gap:clamp(40px,7vw,96px);align-items:start}
+.faq-left h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
+.faq-left h2 em{font-style:italic;color:var(--gold2)}
+.faq-left p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:300;margin-top:18px;max-width:380px}
+.faq-left .btn-g{margin-top:32px}
+.faq-list{display:flex;flex-direction:column;gap:2px}
+.faq-item{border:1px solid var(--line);background:var(--black2);overflow:hidden;transition:border-color .3s}
+.faq-item.open{border-color:rgba(208,175,82,.28)}
+.faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:clamp(16px,2vw,22px) clamp(18px,2.2vw,26px);background:none;border:none;text-align:left;font-family:'Cormorant',serif;font-size:clamp(16px,1.6vw,20px);font-weight:300;color:var(--white);transition:color .3s}
+.faq-q:hover{color:var(--gold2)}
+.faq-item.open .faq-q{color:var(--gold2)}
+.faq-icon{width:20px;height:20px;flex-shrink:0;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--gold);transition:transform .35s,border-color .3s}
+.faq-item.open .faq-icon{transform:rotate(45deg);border-color:var(--gold)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .45s cubic-bezier(.22,1,.36,1)}
+.faq-item.open .faq-a{max-height:300px}
+.faq-a-inner{padding:0 clamp(18px,2.2vw,26px) clamp(16px,2vw,22px);font-size:var(--fb);color:var(--muted);line-height:2.05;font-weight:300}
+@media(max-width:900px){.faq-inner{grid-template-columns:1fr}.faq-left p{max-width:100%}.faq-left .btn-g{display:none}}
+
+/* ═══════════════════════════════════════
+   FLOATING CONSULTATION CTA
+═══════════════════════════════════════ */
+.float-cta{position:fixed;bottom:90px;right:clamp(16px,3vw,32px);z-index:500;background:var(--gold);color:var(--black);border:none;padding:12px 22px;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;display:flex;align-items:center;gap:9px;opacity:0;transform:translateY(16px);transition:all .45s cubic-bezier(.22,1,.36,1);pointer-events:none;box-shadow:0 8px 36px rgba(208,175,82,.28)}
+.float-cta.visible{opacity:1;transform:translateY(0);pointer-events:auto}
+.float-cta:hover{background:var(--gold2);box-shadow:0 14px 52px rgba(208,175,82,.44)}
+.float-cta-gem{width:6px;height:6px;background:var(--black);transform:rotate(45deg);flex-shrink:0}
+@media(max-width:540px){.float-cta{padding:10px 16px;font-size:10px;bottom:80px}}
+
 /* ═══════════════════════════════════════
    AUTH MODAL
 ═══════════════════════════════════════ */
 .auth-overlay{display:none;position:fixed;inset:0;z-index:1100;background:rgba(7,7,7,.94);backdrop-filter:blur(24px);justify-content:center;align-items:center}
 .auth-overlay.open{display:flex}
 .auth-box{background:var(--black2);border:1px solid var(--line);padding:clamp(32px,5vw,52px);max-width:440px;width:92%;position:relative;animation:rise .5s ease forwards}
-.auth-close{position:absolute;top:14px;right:18px;background:none;border:none;color:var(--gold);font-size:24px;cursor:none}
+.auth-close{position:absolute;top:14px;right:18px;background:none;border:none;color:var(--gold);font-size:24px;}
 .auth-tabs{display:flex;gap:0;margin-bottom:28px}
-.auth-tab{flex:1;padding:14px 0;background:transparent;border:1px solid var(--line);border-bottom:none;color:var(--muted);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.2em;text-transform:uppercase;transition:all .3s;cursor:none}
+.auth-tab{flex:1;padding:14px 0;background:transparent;border:1px solid var(--line);border-bottom:none;color:var(--muted);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.2em;text-transform:uppercase;transition:all .3s;}
 .auth-tab.active{background:var(--gold-d);color:var(--gold2);border-color:var(--gold)}
 .auth-form{display:none}
 .auth-form.active{display:block}
 .auth-form .finput{margin-top:14px}
 .auth-form .fsubmit{margin-top:18px}
 .auth-sep{text-align:center;color:var(--faint);font-size:12px;margin-top:16px;letter-spacing:.08em}
+
+/* ═══════════════════════════════════════
+   CONSULTATION TIERS
+═══════════════════════════════════════ */
+.tiers-section{padding:var(--py) var(--px);background:var(--black2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.tiers-head{text-align:center;max-width:680px;margin:0 auto clamp(40px,6vw,80px)}
+.tiers-head h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
+.tiers-head h2 em{font-style:italic;color:var(--gold2)}
+.tiers-head p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:300;margin-top:16px}
+.tiers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(1px,.15vw,2px)}
+.tier-pricing-card{background:var(--black);border:1px solid var(--line);padding:clamp(28px,3.5vw,52px) clamp(22px,2.8vw,38px);position:relative;transition:all .5s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column}
+.tier-pricing-card.featured{border-color:rgba(208,175,82,.38);background:rgba(208,175,82,.04)}
+.tier-pricing-card:hover{transform:translateY(-8px);box-shadow:0 40px 80px rgba(0,0,0,.6),0 0 0 1px rgba(208,175,82,.18);border-color:rgba(208,175,82,.28)}
+.tier-pricing-card.featured:hover{box-shadow:0 40px 80px rgba(0,0,0,.6),0 0 0 1px rgba(208,175,82,.38),0 0 40px rgba(208,175,82,.08)}
+.tier-p-badge{display:inline-block;font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.32em;text-transform:uppercase;color:var(--black);background:var(--gold);padding:5px 14px;margin-bottom:20px;align-self:flex-start}
+.tier-p-duration{font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.tier-p-name{font-family:'Cormorant',serif;font-size:clamp(22px,2.4vw,32px);font-weight:300;color:var(--white);margin-bottom:14px;line-height:1.2}
+.tier-p-price{font-family:'Cormorant',serif;font-size:clamp(36px,4vw,56px);font-weight:300;color:var(--gold2);line-height:1;margin-bottom:6px}
+.tier-p-price span{font-size:.42em;font-family:'Tenor Sans',sans-serif;vertical-align:top;margin-top:.6em;display:inline-block;color:var(--muted)}
+.tier-p-desc{font-size:var(--fb);color:var(--muted);line-height:1.9;font-weight:300;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid var(--line);flex:1}
+.tier-p-includes{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+.tier-p-includes li{font-size:var(--fb);color:var(--muted);font-weight:300;display:flex;gap:12px;align-items:flex-start;line-height:1.5}
+.tier-p-includes li::before{content:'◆';color:var(--gold);font-size:6px;flex-shrink:0;margin-top:6px}
+.tier-p-cta{width:100%;padding:clamp(12px,1.4vw,16px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;background:transparent;border:1px solid rgba(200,169,81,.32);color:var(--gold2);transition:all .35s;position:relative;overflow:hidden;cursor:pointer}
+.tier-p-cta::after{content:'';position:absolute;inset:0;background:var(--gold-d);transform:translateX(-101%);transition:transform .42s cubic-bezier(.77,0,.18,1)}
+.tier-p-cta:hover::after{transform:translateX(0)}
+.tier-p-cta span{position:relative;z-index:1}
+.tier-pricing-card.featured .tier-p-cta{background:var(--gold);color:var(--black);border-color:var(--gold)}
+.tier-pricing-card.featured .tier-p-cta::after{background:var(--gold2)}
+@media(max-width:900px){.tiers-grid{grid-template-columns:1fr}}
+
+/* ═══════════════════════════════════════
+   DIGITAL PRODUCTS / THE VAULT
+═══════════════════════════════════════ */
+.vault-section{padding:var(--py) var(--px)}
+.vault-head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px;margin-bottom:clamp(36px,5vw,72px)}
+.vault-head h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
+.vault-head h2 em{font-style:italic;color:var(--gold2)}
+.vault-head p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:300;max-width:420px;margin-top:14px}
+.vault-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(12px,1.6vw,20px)}
+.product-card{background:var(--black2);border:1px solid var(--line);padding:clamp(24px,3vw,38px);display:flex;flex-direction:column;transition:all .5s cubic-bezier(.22,1,.36,1);position:relative}
+.product-card:hover{transform:translateY(-6px);box-shadow:0 36px 72px rgba(0,0,0,.55);border-color:rgba(208,175,82,.24)}
+.product-badge{display:inline-block;font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(208,175,82,.3);padding:4px 12px;margin-bottom:16px;align-self:flex-start}
+.product-category{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+.product-title{font-family:'Cormorant',serif;font-size:clamp(18px,2vw,26px);font-weight:300;color:var(--white);margin-bottom:10px;line-height:1.3}
+.product-desc{font-size:var(--fb);color:var(--muted);line-height:1.9;font-weight:300;margin-bottom:18px;flex:1}
+.product-features{list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:22px;padding-top:16px;border-top:1px solid var(--line)}
+.product-features li{font-size:12px;color:var(--muted);font-weight:300;display:flex;gap:10px;align-items:flex-start}
+.product-features li::before{content:'◆';color:var(--gold);font-size:5px;flex-shrink:0;margin-top:5px}
+.product-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto}
+.product-price{font-family:'Cormorant',serif;font-size:clamp(24px,2.8vw,36px);font-weight:300;color:var(--gold2)}
+.product-buy-btn{background:transparent;border:1px solid rgba(200,169,81,.32);color:var(--gold2);padding:10px 22px;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.2em;text-transform:uppercase;transition:all .35s;cursor:pointer;white-space:nowrap}
+.product-buy-btn:hover{background:var(--gold-d);border-color:var(--gold)}
+@media(max-width:900px){.vault-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:580px){.vault-grid{grid-template-columns:1fr}}
+
+/* Product Order Modal */
+.product-modal{display:none;position:fixed;inset:0;z-index:1200;background:rgba(7,7,7,.94);backdrop-filter:blur(24px);justify-content:center;align-items:center}
+.product-modal.open{display:flex}
+.product-modal-box{background:var(--black2);border:1px solid var(--line);padding:clamp(28px,4vw,48px);max-width:480px;width:92%;position:relative;animation:rise .5s ease forwards}
+.product-modal-close{position:absolute;top:14px;right:18px;background:none;border:none;color:var(--gold);font-size:24px;cursor:pointer}
+
+/* ═══════════════════════════════════════
+   COHORT PROGRAMS
+═══════════════════════════════════════ */
+.cohorts-section{padding:var(--py) var(--px);background:var(--black2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.cohorts-head{text-align:center;max-width:680px;margin:0 auto clamp(40px,6vw,80px)}
+.cohorts-head h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
+.cohorts-head h2 em{font-style:italic;color:var(--gold2)}
+.cohorts-head p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:300;margin-top:16px}
+.cohorts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:clamp(12px,2vw,28px)}
+.cohort-card{background:var(--black);border:1px solid var(--line);padding:clamp(32px,4vw,56px) clamp(24px,3vw,44px);position:relative;overflow:hidden;transition:all .5s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column}
+.cohort-card:hover{border-color:rgba(208,175,82,.28);background:rgba(208,175,82,.03);box-shadow:0 40px 80px rgba(0,0,0,.55)}
+.cohort-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0;transition:opacity .5s}
+.cohort-card:hover::before{opacity:1}
+.cohort-tag{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+.cohort-name{font-family:'Cormorant',serif;font-size:clamp(26px,3vw,42px);font-weight:300;color:var(--white);line-height:1.1;margin-bottom:10px}
+.cohort-desc{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:300;margin-bottom:28px;flex:1}
+.cohort-meta{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:28px}
+.cohort-meta-item{}
+.cohort-meta-label{font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--faint);margin-bottom:5px}
+.cohort-meta-val{font-family:'Cormorant',serif;font-size:clamp(18px,2vw,24px);font-weight:300;color:var(--white)}
+.cohort-meta-val.price{color:var(--gold2)}
+.cohort-spots{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.cohort-spots-bar{flex:1;height:4px;background:rgba(200,169,81,.12);position:relative;overflow:hidden}
+.cohort-spots-fill{position:absolute;left:0;top:0;bottom:0;background:var(--gold);transition:width .8s cubic-bezier(.22,1,.36,1)}
+.cohort-spots-text{font-size:11px;color:var(--muted);white-space:nowrap;letter-spacing:.04em}
+.cohort-enroll-btn{padding:clamp(13px,1.5vw,17px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;background:var(--gold);color:var(--black);border:none;cursor:pointer;position:relative;overflow:hidden;transition:box-shadow .4s}
+.cohort-enroll-btn::after{content:'';position:absolute;inset:0;background:var(--gold2);transform:translateX(-101%);transition:transform .42s cubic-bezier(.77,0,.18,1)}
+.cohort-enroll-btn:hover{box-shadow:0 16px 48px rgba(200,169,81,.3)}
+.cohort-enroll-btn:hover::after{transform:translateX(0)}
+.cohort-enroll-btn span{position:relative;z-index:1}
+@media(max-width:760px){.cohorts-grid{grid-template-columns:1fr}}
+
+/* Cohort Enrollment Modal */
+.cohort-modal{display:none;position:fixed;inset:0;z-index:1200;background:rgba(7,7,7,.94);backdrop-filter:blur(24px);justify-content:center;align-items:center}
+.cohort-modal.open{display:flex}
+.cohort-modal-box{background:var(--black2);border:1px solid var(--line);padding:clamp(28px,4vw,48px);max-width:480px;width:92%;position:relative;animation:rise .5s ease forwards;max-height:90vh;overflow-y:auto}
+.cohort-modal-close{position:absolute;top:14px;right:18px;background:none;border:none;color:var(--gold);font-size:24px;cursor:pointer}
+
+/* Tier selection inside booking modal */
+.tier-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px}
+.tier-card{background:var(--black3);border:1px solid var(--line);padding:clamp(16px,2vw,24px) clamp(12px,1.5vw,18px);cursor:pointer;transition:all .4s cubic-bezier(.22,1,.36,1);position:relative;display:flex;flex-direction:column}
+.tier-card:hover,.tier-card.selected{border-color:rgba(208,175,82,.5);background:rgba(208,175,82,.06)}
+.tier-badge{display:inline-block;font-family:'Tenor Sans',sans-serif;font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:var(--black);background:var(--gold);padding:3px 10px;margin-bottom:12px;align-self:flex-start}
+.tier-duration{font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.tier-name{font-family:'Cormorant',serif;font-size:clamp(15px,1.6vw,19px);font-weight:300;color:var(--white);margin-bottom:8px;line-height:1.2}
+.tier-price{font-family:'Cormorant',serif;font-size:clamp(20px,2.2vw,28px);font-weight:300;color:var(--gold2);margin-bottom:8px}
+.tier-desc{font-size:11px;color:var(--muted);line-height:1.7;font-weight:300;margin-bottom:10px;flex:1}
+.tier-includes{list-style:none;display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.tier-includes li{font-size:10px;color:var(--faint);display:flex;gap:7px;align-items:flex-start}
+.tier-includes li::before{content:'◆';color:var(--gold);font-size:5px;flex-shrink:0;margin-top:4px}
+.tier-select-btn{padding:8px 12px;font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.24em;text-transform:uppercase;background:transparent;border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:all .3s;margin-top:auto}
+.tier-select-btn:hover,.tier-select-btn.chosen{background:var(--gold-d);border-color:var(--gold);color:var(--gold2)}
+@media(max-width:680px){.tier-grid{grid-template-columns:1fr}}
 
 </style>
 </head>
@@ -500,7 +696,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 <!-- Scroll Progress -->
 <div class="scroll-progress" id="scroll-progress"></div>
 
-<div id="cur"></div><div id="ring"></div>
+
 <canvas id="bg"></canvas>
 <div class="grain"></div>
 
@@ -508,6 +704,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 <nav id="nav" class="z">
   <a href="/" class="nlogo"><div class="ngem"></div>theanirudhcode</a>
   <ul class="nlinks">
+    <li><a href="#about">About</a></li>
     <li><a href="#protocols">Protocols</a></li>
     <li><a href="#philo">Philosophy</a></li>
     <li><a href="#insights">Insights</a></li>
@@ -521,6 +718,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 </nav>
 <div class="mmenu" id="mm">
   <button class="mclose" id="mc">&#10005;</button>
+  <a href="#about" class="mml">About</a>
   <a href="#protocols" class="mml">Protocols</a>
   <a href="#philo" class="mml">Philosophy</a>
   <a href="#insights" class="mml">Insights</a>
@@ -580,10 +778,10 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 
 <!-- ══════════ STATS ══════════ -->
 <div class="stats z rv">
-  <div class="stat"><div class="stn" data-target="12">0<sup>K+</sup></div><div class="stl">Lives Transformed</div></div>
+  <div class="stat"><div class="stn" data-target="500">0<sup>+</sup></div><div class="stl">Lives Transformed</div></div>
   <div class="stat"><div class="stn" data-target="94">0<sup>%</sup></div><div class="stl">Report Lasting Change</div></div>
   <div class="stat"><div class="stn" data-target="8">0<sup>+</sup></div><div class="stl">Healing Modalities</div></div>
-  <div class="stat"><div class="stn" data-target="50">0<sup>K+</sup></div><div class="stl">Instagram Community</div></div>
+  <div class="stat"><div class="stn" data-target="30">0<sup>K+</sup></div><div class="stl">Instagram Community</div></div>
 </div>
 
 <!-- ══════════ CONTENT PILLARS ══════════ -->
@@ -654,6 +852,52 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   <div class="phi-v rv" style="transition-delay:.2s">
     <div class="phi-glow"></div>
     <canvas id="dna" width="340" height="460"></canvas>
+  </div>
+</section>
+
+<!-- ══════════ DR. PROFILE ══════════ -->
+<section class="profile z" id="about">
+  <div class="prof-wrap">
+    <div class="prof-img rv">
+      <div class="prof-card">
+        <div class="prof-card-top"></div>
+        <div class="prof-card-bot"></div>
+        <img src="/images/dr-anirudh.jpg" alt="Dr. Anirudh M. Vaddineni" class="prof-photo" id="prof-img"
+             onerror="this.style.display='none';document.getElementById('prof-overlay').style.display='none';document.getElementById('prof-fb').style.display='flex'">
+        <div class="prof-photo-overlay" id="prof-overlay"></div>
+        <div id="prof-fb" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;z-index:1">
+          <div style="font-family:'Cormorant',serif;font-size:clamp(80px,14vw,110px);font-weight:300;color:var(--gold2);opacity:.8;line-height:1">A</div>
+          <div style="font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.42em;text-transform:uppercase;color:rgba(208,175,82,.55);margin-top:10px">Dr. Anirudh</div>
+          <div style="width:40px;height:1px;background:var(--line);margin:14px auto"></div>
+          <div style="font-family:'Cormorant',serif;font-style:italic;font-size:11px;color:var(--faint);letter-spacing:.06em;padding:0 20px;text-align:center">Specialist in<br>Metabolic Biochemistry</div>
+        </div>
+        <div class="prof-name-badge">
+          <div class="prof-name-badge-inner">
+            <div class="prof-name-badge-name">Dr. Anirudh M. Vaddineni</div>
+            <div class="prof-name-badge-title">Specialist · Metabolic Biochemistry</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="prof-text rv" style="transition-delay:.15s">
+      <div class="gl" style="margin-bottom:clamp(14px,2vw,22px)">Meet the Doctor</div>
+      <h2>Dr. Anirudh M.<br><em>Vaddineni</em></h2>
+      <p class="prof-spec">Specialist in Metabolic Biochemistry · Integrative Healing · Ayurveda</p>
+      <p class="prof-bio">Based in Hyderabad, India — Dr. Anirudh bridges 5,000 years of Ayurvedic intelligence with the latest advances in metabolic biochemistry, gut science, and longevity research. His approach is not about quick fixes. It is about understanding the root language your body speaks — and responding with wisdom, precision, and deep care.</p>
+      <p class="prof-bio" style="margin-top:16px">Trained in Western medicine and deeply immersed in Ayurvedic tradition, he has guided over 500 individuals through complex chronic conditions — reversing what others labelled irreversible.</p>
+      <div class="prof-creds">
+        <div class="prof-cred">MBBS · Medical Graduate</div>
+        <div class="prof-cred">Specialist, Metabolic Biochemistry</div>
+        <div class="prof-cred">Ayurveda &amp; Integrative Medicine</div>
+        <div class="prof-cred">500+ Consultations · 30K+ Community</div>
+        <div class="prof-cred">Hyderabad-based, healing globally</div>
+        <div class="prof-cred">8+ healing modalities practised</div>
+      </div>
+      <div class="prof-actions">
+        <button class="btn-g" data-action="open-consultation"><span>Book a Consultation</span></button>
+        <a href="#protocols" class="btn-o">Explore Protocols</a>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -858,6 +1102,57 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   </div>
 </section>
 
+<!-- ══════════ CONSULTATION TIERS ══════════ -->
+<section class="tiers-section z" id="sessions">
+  <div class="tiers-head rv">
+    <div class="gl" style="justify-content:center;margin-bottom:clamp(14px,2vw,22px)">Book a Session</div>
+    <h2>Choose your<br><em>consultation</em></h2>
+    <p>Every session is a focused, root-cause conversation — built around your biology. Pick the depth that fits your need.</p>
+  </div>
+  <div class="tiers-grid rv">
+    <div class="tier-pricing-card">
+      <div class="tier-p-duration">30 Minutes</div>
+      <div class="tier-p-name">Discovery Call</div>
+      <div class="tier-p-price">₹<span>per session</span>1,500</div>
+      <p class="tier-p-desc">Ideal for first-timers. A focused conversation to map your health story, identify root causes, and understand if Dr. Anirudh's approach is right for you.</p>
+      <ul class="tier-p-includes">
+        <li>Root cause mapping</li>
+        <li>Priority health concerns review</li>
+        <li>Protocol direction</li>
+        <li>Supplement overview</li>
+      </ul>
+      <button class="tier-p-cta" data-action="open-consultation" data-tier="discovery"><span>Book Discovery →</span></button>
+    </div>
+    <div class="tier-pricing-card featured">
+      <div class="tier-p-badge">Most Popular</div>
+      <div class="tier-p-duration">60 Minutes</div>
+      <div class="tier-p-name">Deep Dive</div>
+      <div class="tier-p-price">₹<span>per session</span>5,000</div>
+      <p class="tier-p-desc">The complete diagnostic consultation. We go deep — metabolic, hormonal, gut, and lifestyle — and build your initial protocol during the session.</p>
+      <ul class="tier-p-includes">
+        <li>Full root cause mapping</li>
+        <li>Personalised nutrition plan</li>
+        <li>Fasting protocol design</li>
+        <li>Supplement & lab review</li>
+      </ul>
+      <button class="tier-p-cta" data-action="open-consultation" data-tier="deepdive"><span>Book Deep Dive →</span></button>
+    </div>
+    <div class="tier-pricing-card">
+      <div class="tier-p-duration">90 Minutes</div>
+      <div class="tier-p-name">Comprehensive</div>
+      <div class="tier-p-price">₹<span>per session</span>8,000</div>
+      <p class="tier-p-desc">For complex, chronic, or multi-system conditions. The deepest single session available — with a written protocol report delivered within 48 hours.</p>
+      <ul class="tier-p-includes">
+        <li>Everything in Deep Dive</li>
+        <li>Written protocol report (48h)</li>
+        <li>Dosha & metabolic profiling</li>
+        <li>2-week follow-up message</li>
+      </ul>
+      <button class="tier-p-cta" data-action="open-consultation" data-tier="comprehensive"><span>Book Comprehensive →</span></button>
+    </div>
+  </div>
+</section>
+
 <!-- ══════════ TESTIMONIALS ══════════ -->
 <section class="testis z" id="stories">
   <div class="thead rv">
@@ -882,6 +1177,210 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
       <p class="ttext">I came for the breathwork and stayed for the complete transformation. This isn't wellness theatre — it's precise, personalised, and profoundly effective.</p>
       <div class="tauthor"><div class="tdot"></div><div class="tname">Anika R. · Delhi</div></div>
       <div class="tresult">Anxiety reduced by 80%</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ COHORT PROGRAMS ══════════ -->
+<section class="cohorts-section z" id="programs">
+  <div class="cohorts-head rv">
+    <div class="gl" style="justify-content:center;margin-bottom:clamp(14px,2vw,22px)">Transform Together</div>
+    <h2>Group programs<br>for <em>deep change</em></h2>
+    <p>Same transformation as 1:1 — at a fraction of the cost. Group dynamics improve outcomes. Accountability compounds results.</p>
+  </div>
+  <div class="cohorts-grid" id="cohorts-grid">
+    <!-- Loaded dynamically -->
+    <div class="cohort-card rv">
+      <div class="cohort-tag">4 Weeks · Group Cohort · Starts June 2026</div>
+      <div class="cohort-name">Metabolic Reset</div>
+      <p class="cohort-desc">A 4-week guided group programme covering gut healing, fasting protocols, sleep optimisation, and daily accountability check-ins. Same transformation as 1:1 — at group pricing.</p>
+      <div class="cohort-meta">
+        <div class="cohort-meta-item">
+          <div class="cohort-meta-label">Investment</div>
+          <div class="cohort-meta-val price">₹15,000</div>
+        </div>
+        <div class="cohort-meta-item">
+          <div class="cohort-meta-label">Duration</div>
+          <div class="cohort-meta-val">4 weeks</div>
+        </div>
+        <div class="cohort-meta-item">
+          <div class="cohort-meta-label">Group Size</div>
+          <div class="cohort-meta-val">Max 20</div>
+        </div>
+        <div class="cohort-meta-item">
+          <div class="cohort-meta-label">Format</div>
+          <div class="cohort-meta-val">Live + async</div>
+        </div>
+      </div>
+      <div class="cohort-spots">
+        <div class="cohort-spots-bar"><div class="cohort-spots-fill" style="width:30%"></div></div>
+        <span class="cohort-spots-text">14 of 20 spots open</span>
+      </div>
+      <button class="cohort-enroll-btn" data-cohort-id="1" data-cohort-name="4-Week Metabolic Reset"><span>Join Waitlist →</span></button>
+    </div>
+    <div class="cohort-card rv" style="transition-delay:.1s">
+      <div class="cohort-tag">12 Weeks · Premium Cohort · Starts July 2026</div>
+      <div class="cohort-name">Longevity Blueprint</div>
+      <p class="cohort-desc">The complete transformation: metabolic labs review, personalised protocols, weekly group sessions, monthly 1:1 check-ins, and a private community. Built for lasting change.</p>
+      <div class="cohort-meta">
+        <div class="cohort-meta-item">
+          <div class="cohort-meta-label">Investment</div>
+          <div class="cohort-meta-val price">₹45,000</div>
+        </div>
+        <div class="cohort-meta-item">
+          <div class="cohort-meta-label">Duration</div>
+          <div class="cohort-meta-val">12 weeks</div>
+        </div>
+        <div class="cohort-meta-item">
+          <div class="cohort-meta-label">Group Size</div>
+          <div class="cohort-meta-val">Max 12</div>
+        </div>
+        <div class="cohort-meta-item">
+          <div class="cohort-meta-label">1:1 Check-ins</div>
+          <div class="cohort-meta-val">Monthly</div>
+        </div>
+      </div>
+      <div class="cohort-spots">
+        <div class="cohort-spots-bar"><div class="cohort-spots-fill" style="width:42%"></div></div>
+        <span class="cohort-spots-text">7 of 12 spots open</span>
+      </div>
+      <button class="cohort-enroll-btn" data-cohort-id="2" data-cohort-name="12-Week Longevity Blueprint"><span>Join Waitlist →</span></button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FAQ ══════════ -->
+<section class="faq z" id="faq">
+  <div class="hr"></div>
+  <div style="padding-top:var(--py)">
+    <div class="faq-inner">
+      <div class="faq-left rv">
+        <div class="gl" style="margin-bottom:clamp(14px,2vw,22px)">Your Questions</div>
+        <h2>Answers you<br>deserve to <em>know</em></h2>
+        <p>Before your first consultation, here are the questions most people ask — answered honestly, without the jargon.</p>
+        <button class="btn-g" style="margin-top:32px" data-action="open-consultation"><span>Still have questions?</span></button>
+      </div>
+      <div class="faq-list rv" style="transition-delay:.12s" id="faq-list">
+        <div class="faq-item">
+          <button class="faq-q">Is this suitable for someone with no prior health knowledge?<span class="faq-icon">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Absolutely. Dr. Anirudh's approach is designed for real people — not medical professionals. Every protocol is explained in plain language with practical, day-by-day steps. You don't need to know anything when you start. That's what the first consultation is for.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">How is this different from seeing a regular doctor?<span class="faq-icon">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Standard medicine treats symptoms with medication. Dr. Anirudh's methodology goes deeper — identifying the metabolic, hormonal, and gut root causes behind your condition, then building a personalised protocol to correct them. You leave with a blueprint, not just a prescription.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">How long before I see real results?<span class="faq-icon">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Most patients report noticeable changes — better sleep, clearer digestion, more stable energy — within 2–3 weeks of following the protocol. Deeper hormonal and metabolic shifts typically become measurable within 30–90 days, depending on your starting point and adherence.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">What happens in the first consultation?<span class="faq-icon">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">The first session is a deep root-cause mapping conversation — covering your symptoms, history, lifestyle, stress, sleep, and dietary patterns. From this, Dr. Anirudh builds a personalised framework specific to your biology. No generic plans. No guesswork.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Do I need to follow a strict diet?<span class="faq-icon">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Not in the restrictive sense. The nutritional approach is built around your dosha, food preferences, and metabolic state — so it feels intuitive, not punishing. The goal is to develop an eating intelligence aligned with your unique biology, not to count calories or starve.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Is Ayurveda scientifically validated?<span class="faq-icon">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Many core Ayurvedic principles — circadian eating, anti-inflammatory spices, fasting protocols, breathwork — are now validated by peer-reviewed research. Dr. Anirudh combines only those elements of Ayurveda that are supported by modern science, filtering out anything not evidence-based.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ THE VAULT / DIGITAL PRODUCTS ══════════ -->
+<section class="vault-section z" id="vault">
+  <div class="vault-head rv">
+    <div>
+      <div class="gl" style="margin-bottom:clamp(12px,1.8vw,20px)">The Vault</div>
+      <h2>Healing resources<br>you can start <em>today</em></h2>
+      <p>Distilled protocols and guides built from years of clinical practice. Instant access. No consultation needed to begin.</p>
+    </div>
+  </div>
+  <div class="vault-grid" id="vault-grid">
+    <div class="product-card rv">
+      <div class="product-badge">Bestseller</div>
+      <div class="product-category">E-Book</div>
+      <div class="product-title">7-Day Gut Reset Protocol</div>
+      <p class="product-desc">A step-by-step digital guide to eliminate bloating, reset your gut microbiome, and restore digestive clarity in one week — using food, fasting, and targeted supplements.</p>
+      <ul class="product-features">
+        <li>7-day meal &amp; fasting plan</li>
+        <li>Supplement stack guide</li>
+        <li>Daily tracking sheets</li>
+        <li>Lifetime access &amp; updates</li>
+      </ul>
+      <div class="product-footer">
+        <div class="product-price">₹499</div>
+        <button class="product-buy-btn" data-product-id="1" data-product-title="7-Day Gut Reset Protocol" data-product-price="₹499">Order Now</button>
+      </div>
+    </div>
+    <div class="product-card rv" style="transition-delay:.08s">
+      <div class="product-category">E-Book</div>
+      <div class="product-title">Fasting for Women: The Complete Guide</div>
+      <p class="product-desc">Why standard fasting protocols fail women — and the cycle-synced approach that actually works. Covers hormones, hair loss, thyroid, fertility, and sustainable fat loss.</p>
+      <ul class="product-features">
+        <li>Cycle-synced fasting schedules</li>
+        <li>Hormone safety protocols</li>
+        <li>Hair &amp; thyroid protection</li>
+        <li>Real case studies</li>
+      </ul>
+      <div class="product-footer">
+        <div class="product-price">₹799</div>
+        <button class="product-buy-btn" data-product-id="2" data-product-title="Fasting for Women" data-product-price="₹799">Order Now</button>
+      </div>
+    </div>
+    <div class="product-card rv" style="transition-delay:.16s">
+      <div class="product-badge">New</div>
+      <div class="product-category">E-Book</div>
+      <div class="product-title">Dosha Cookbook: 60 Metabolic Recipes</div>
+      <p class="product-desc">Sixty seasonal, dosha-specific recipes built around metabolic biochemistry. Each dish targets gut healing, insulin sensitivity, or hormonal balance.</p>
+      <ul class="product-features">
+        <li>60 dosha-specific recipes</li>
+        <li>Seasonal eating calendar</li>
+        <li>Metabolic nutrition notes</li>
+        <li>Shopping lists included</li>
+      </ul>
+      <div class="product-footer">
+        <div class="product-price">₹999</div>
+        <button class="product-buy-btn" data-product-id="3" data-product-title="Dosha Cookbook" data-product-price="₹999">Order Now</button>
+      </div>
+    </div>
+    <div class="product-card rv" style="transition-delay:.04s">
+      <div class="product-badge">Premium</div>
+      <div class="product-category">Audio Bundle</div>
+      <div class="product-title">Breathwork &amp; Healing Audio Bundle</div>
+      <p class="product-desc">Four guided breathwork sessions (15–30 min each) for nervous system reset, cortisol reduction, deep sleep, and morning energy activation.</p>
+      <ul class="product-features">
+        <li>4 guided sessions (60+ min total)</li>
+        <li>Morning activation protocol</li>
+        <li>Deep sleep breathwork</li>
+        <li>Stress reset session</li>
+      </ul>
+      <div class="product-footer">
+        <div class="product-price">₹1,299</div>
+        <button class="product-buy-btn" data-product-id="4" data-product-title="Breathwork Audio Bundle" data-product-price="₹1,299">Order Now</button>
+      </div>
+    </div>
+    <div class="product-card rv" style="transition-delay:.12s;grid-column:span 2;background:rgba(208,175,82,.04);border-color:rgba(208,175,82,.22)">
+      <div class="product-badge">Best Value · 30% Off</div>
+      <div class="product-category">Bundle</div>
+      <div class="product-title">Metabolic Reset Starter Bundle</div>
+      <p class="product-desc">Everything you need to begin: 7-Day Gut Reset + Fasting for Women + Breathwork Bundle. The complete starter stack at a 30% saving — ₹740 off individual price.</p>
+      <ul class="product-features" style="grid-template-columns:1fr 1fr;display:grid;gap:8px">
+        <li>7-Day Gut Reset ebook</li>
+        <li>Fasting for Women guide</li>
+        <li>Breathwork audio bundle</li>
+        <li>30% off individual price</li>
+      </ul>
+      <div class="product-footer" style="margin-top:20px">
+        <div>
+          <div class="product-price">₹1,799</div>
+          <div style="font-size:11px;color:var(--faint);text-decoration:line-through">₹2,597 individually</div>
+        </div>
+        <button class="product-buy-btn" style="background:var(--gold);color:var(--black);border-color:var(--gold);padding:12px 28px" data-product-id="5" data-product-title="Metabolic Reset Starter Bundle" data-product-price="₹1,799">Get the Bundle</button>
+      </div>
     </div>
   </div>
 </section>
@@ -914,11 +1413,13 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   </div>
   <div class="flinks-col">
     <h5>Explore</h5>
+    <a href="#about">About Dr. Anirudh</a>
     <a href="#philo">Philosophy</a>
     <a href="#protocols">Protocols</a>
     <a href="#insights">Insights</a>
     <a href="#journey">Journey</a>
     <a href="#stories">Stories</a>
+    <a href="#faq">FAQ</a>
   </div>
   <div class="flinks-col">
     <h5>Connect</h5>
@@ -974,6 +1475,67 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   </div>
 </div>
 
+<!-- ══════════ PRODUCT ORDER MODAL ══════════ -->
+<div class="product-modal" id="product-modal">
+  <div class="product-modal-box">
+    <button class="product-modal-close" id="product-modal-close">&times;</button>
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="width:7px;height:7px;background:var(--gold);transform:rotate(45deg);margin:0 auto 16px"></div>
+      <h3 style="font-family:'Cormorant',serif;font-size:clamp(20px,2.4vw,28px);font-weight:300;margin-bottom:4px">
+        Order <em id="product-modal-title" style="color:var(--gold2)">Product</em>
+      </h3>
+      <p style="color:var(--muted);font-size:var(--fb);font-weight:200">
+        <span id="product-modal-price" style="color:var(--gold2);font-family:'Cormorant',serif;font-size:1.3em;font-weight:300"></span>
+        · Payment details sent via WhatsApp/email within 24h
+      </p>
+    </div>
+    <form id="product-order-form">
+      <input type="hidden" id="product-order-id" value="">
+      <label class="finput-label">Full Name <span style="color:var(--amber)">*</span></label>
+      <input class="finput" type="text" name="name" placeholder="Your full name" required>
+      <label class="finput-label">Email Address <span style="color:var(--amber)">*</span></label>
+      <input class="finput" type="email" name="email" placeholder="your@email.com" required>
+      <label class="finput-label">WhatsApp Number</label>
+      <input class="finput" type="tel" name="phone" placeholder="+91 98765 43210">
+      <button type="submit" class="fsubmit" style="margin-top:20px"><span>Confirm Order →</span></button>
+      <p class="fprivacy">Secure · Instant download link sent after payment · No spam ever</p>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════ COHORT ENROLLMENT MODAL ══════════ -->
+<div class="cohort-modal" id="cohort-modal">
+  <div class="cohort-modal-box">
+    <button class="cohort-modal-close" id="cohort-modal-close">&times;</button>
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="width:7px;height:7px;background:var(--gold);transform:rotate(45deg);margin:0 auto 16px"></div>
+      <h3 style="font-family:'Cormorant',serif;font-size:clamp(20px,2.4vw,28px);font-weight:300;margin-bottom:4px">
+        Join <em id="cohort-modal-title" style="color:var(--gold2)">Program</em>
+      </h3>
+      <p style="color:var(--muted);font-size:var(--fb);font-weight:200">Reserve your spot · We will reach out with next steps</p>
+    </div>
+    <form id="cohort-enroll-form">
+      <input type="hidden" id="cohort-enroll-id" value="">
+      <label class="finput-label">Full Name <span style="color:var(--amber)">*</span></label>
+      <input class="finput" type="text" name="name" placeholder="Your full name" required>
+      <label class="finput-label">Email Address <span style="color:var(--amber)">*</span></label>
+      <input class="finput" type="email" name="email" placeholder="your@email.com" required>
+      <label class="finput-label">WhatsApp Number</label>
+      <input class="finput" type="tel" name="phone" placeholder="+91 98765 43210">
+      <label class="finput-label">What brings you to this program?</label>
+      <textarea class="finput" name="message" rows="2" placeholder="Briefly describe your health goals..."></textarea>
+      <button type="submit" class="fsubmit" style="margin-top:20px"><span>Reserve My Spot →</span></button>
+      <p class="fprivacy">Limited spots · No payment now · We will confirm your place within 24h</p>
+    </form>
+  </div>
+</div>
+
+<!-- Floating Consultation CTA -->
+<button id="float-cta" class="float-cta" aria-label="Book a consultation">
+  <div class="float-cta-gem"></div>
+  <span>Book Consultation</span>
+</button>
+
 <!-- Toast Container -->
 <div id="toast-container"></div>
 
@@ -987,5 +1549,146 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 <script src="/js/forms.js"></script>
 <script src="/js/auth-modal.js"></script>
 <script src="/js/enhancements.js"></script>
+<script>
+/* ═══ CONSULTATION TIER BUTTONS → open booking modal at correct tier ═══ */
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-action="open-consultation"][data-tier]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tier = btn.dataset.tier;
+      if (!window.bookingModal) return;
+      if (!Auth.isLoggedIn()) { window.bookingModal.showLoginPrompt(); return; }
+      window.bookingModal.step = 1;
+      window.bookingModal.selectedTier = tier;
+      window.bookingModal.selectedDate = null;
+      window.bookingModal.selectedSlot = null;
+      window.bookingModal.healthData = {};
+      const now = new Date();
+      window.bookingModal.currentMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      window.bookingModal.render();
+      window.bookingModal.modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  /* ═══ PRODUCT ORDER MODAL ═══ */
+  const productModal   = document.getElementById('product-modal');
+  const productClose   = document.getElementById('product-modal-close');
+  const productForm    = document.getElementById('product-order-form');
+  const productTitleEl = document.getElementById('product-modal-title');
+  const productPriceEl = document.getElementById('product-modal-price');
+  const productIdEl    = document.getElementById('product-order-id');
+
+  document.querySelectorAll('.product-buy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      productIdEl.value        = btn.dataset.productId;
+      productTitleEl.textContent = btn.dataset.productTitle;
+      productPriceEl.textContent = btn.dataset.productPrice;
+      productForm.reset();
+      productModal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  productClose.addEventListener('click', () => {
+    productModal.classList.remove('open');
+    document.body.style.overflow = '';
+  });
+  productModal.addEventListener('click', e => {
+    if (e.target === productModal) { productModal.classList.remove('open'); document.body.style.overflow = ''; }
+  });
+
+  productForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = productForm.querySelector('[type=submit]');
+    const span = btn.querySelector('span');
+    btn.disabled = true; span.textContent = 'Sending...'; btn.style.opacity = '.7';
+
+    const fd = new FormData(productForm);
+    try {
+      const res = await fetch(`/api/products/${productIdEl.value}/order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(fd))
+      });
+      const data = await res.json();
+      if (res.ok) {
+        productModal.classList.remove('open');
+        document.body.style.overflow = '';
+        if (typeof Toast !== 'undefined') Toast.success(data.message || 'Order received! We\'ll reach out shortly.');
+      } else {
+        if (typeof Toast !== 'undefined') Toast.error(data.error || 'Something went wrong.');
+        btn.disabled = false; span.textContent = 'Confirm Order →'; btn.style.opacity = '';
+      }
+    } catch {
+      if (typeof Toast !== 'undefined') Toast.error('Connection error. Please try again.');
+      btn.disabled = false; span.textContent = 'Confirm Order →'; btn.style.opacity = '';
+    }
+  });
+
+  /* ═══ COHORT ENROLLMENT MODAL ═══ */
+  const cohortModal   = document.getElementById('cohort-modal');
+  const cohortClose   = document.getElementById('cohort-modal-close');
+  const cohortForm    = document.getElementById('cohort-enroll-form');
+  const cohortTitleEl = document.getElementById('cohort-modal-title');
+  const cohortIdEl    = document.getElementById('cohort-enroll-id');
+
+  document.querySelectorAll('.cohort-enroll-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      cohortIdEl.value          = btn.dataset.cohortId;
+      cohortTitleEl.textContent = btn.dataset.cohortName;
+      cohortForm.reset();
+      cohortModal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  cohortClose.addEventListener('click', () => {
+    cohortModal.classList.remove('open');
+    document.body.style.overflow = '';
+  });
+  cohortModal.addEventListener('click', e => {
+    if (e.target === cohortModal) { cohortModal.classList.remove('open'); document.body.style.overflow = ''; }
+  });
+
+  cohortForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = cohortForm.querySelector('[type=submit]');
+    const span = btn.querySelector('span');
+    btn.disabled = true; span.textContent = 'Reserving...'; btn.style.opacity = '.7';
+
+    const fd = new FormData(cohortForm);
+    try {
+      const res = await fetch(`/api/cohorts/${cohortIdEl.value}/enroll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(fd))
+      });
+      const data = await res.json();
+      if (res.ok) {
+        cohortModal.classList.remove('open');
+        document.body.style.overflow = '';
+        if (typeof Toast !== 'undefined') Toast.success(data.message || 'You\'re on the waitlist! We\'ll be in touch.');
+      } else {
+        if (typeof Toast !== 'undefined') Toast.error(data.error || 'Something went wrong.');
+        btn.disabled = false; span.textContent = 'Reserve My Spot →'; btn.style.opacity = '';
+      }
+    } catch {
+      if (typeof Toast !== 'undefined') Toast.error('Connection error. Please try again.');
+      btn.disabled = false; span.textContent = 'Reserve My Spot →'; btn.style.opacity = '';
+    }
+  });
+
+  /* ═══ NAV: add Sessions, Programs, Vault links ═══ */
+  const navLinks = document.querySelector('.nlinks');
+  if (navLinks) {
+    ['#sessions:Sessions', '#programs:Programs', '#vault:Vault'].forEach(pair => {
+      const [href, label] = pair.split(':');
+      const li = document.createElement('li');
+      li.innerHTML = `<a href="${href}">${label}</a>`;
+      navLinks.appendChild(li);
+    });
+  }
+});
+</script>
 </body>
 </html>

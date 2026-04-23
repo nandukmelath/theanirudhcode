@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const { startReminderScheduler } = require('./src/lib/reminders');
 
 const app = express();
 
@@ -32,6 +33,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/auth/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many login attempts. Please try again later.' } }));
 app.use('/admin-login', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: 'Too many attempts. Please try again later.' }));
 app.use('/api/auth/register', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: 'Too many registration attempts. Please try again later.' } }));
+app.use('/api/subscribe', rateLimit({ windowMs: 60 * 60 * 1000, max: 8, message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/consultation', rateLimit({ windowMs: 60 * 60 * 1000, max: 5, message: { error: 'Too many requests. Please try again later.' } }));
 
 // General rate limiting for API
 app.use('/api', rateLimit({
@@ -68,4 +71,5 @@ const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 app.listen(PORT, HOST, () => {
   console.log(`theanirudhcode server running at http://${HOST}:${PORT}`);
+  startReminderScheduler();
 });

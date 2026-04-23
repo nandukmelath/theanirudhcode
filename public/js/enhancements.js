@@ -72,6 +72,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // ═══════════ FAQ ACCORDION ═══════════
+  document.querySelectorAll('.faq-item .faq-q').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.closest('.faq-item');
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
+    });
+  });
+
+  // ═══════════ FLOATING CONSULTATION CTA ═══════════
+  const floatCta = document.getElementById('float-cta');
+  if (floatCta) {
+    window.addEventListener('scroll', () => {
+      floatCta.classList.toggle('visible', scrollY > 500);
+    }, { passive: true });
+    floatCta.addEventListener('click', () => {
+      const trigger = document.querySelector('[data-action="open-consultation"]');
+      if (trigger) trigger.click();
+    });
+  }
+
   // ═══════════ MAGNETIC CURSOR ON CTA BUTTONS ═══════════
   document.querySelectorAll('.btn-g, .btn-o, .ncta').forEach(btn => {
     btn.addEventListener('mousemove', (e) => {
@@ -85,20 +107,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ═══════════ CURSOR GROW ON INTERACTIVE ELEMENTS ═══════════
-  const ring = document.getElementById('ring');
-  if (ring) {
-    document.querySelectorAll('button, a, .ins-card, .cp-card, .ptab').forEach(el => {
-      el.addEventListener('mouseenter', () => {
-        ring.style.width = '52px';
-        ring.style.height = '52px';
-        ring.style.borderColor = 'rgba(200,169,81,.6)';
-      });
-      el.addEventListener('mouseleave', () => {
-        ring.style.width = '34px';
-        ring.style.height = '34px';
-        ring.style.borderColor = 'rgba(200,169,81,.4)';
-      });
-    });
-  }
+
 });

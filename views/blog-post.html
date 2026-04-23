@@ -6,10 +6,10 @@
 <title>Loading... — theanirudhcode</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
 <style>
-:root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--gold:#c8a951;--gold2:#e2c97e;--gold3:#f5e6b8;--gold-d:rgba(200,169,81,.15);--white:#f8f4ec;--muted:rgba(248,244,236,.42);--faint:rgba(248,244,236,.14);--amber:#c8733a;--line:rgba(200,169,81,.11);--px:clamp(22px,5.5vw,92px);--fb:clamp(13px,1.15vw,15.5px);--fs:clamp(10px,.9vw,12px)}
+:root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--gold:#c8a951;--gold2:#e2c97e;--gold3:#f5e6b8;--gold-d:rgba(200,169,81,.15);--white:#f8f4ec;--muted:rgba(248,244,236,.72);--faint:rgba(248,244,236,.34);--amber:#c8733a;--line:rgba(200,169,81,.16);--px:clamp(22px,5.5vw,92px);--fb:clamp(13px,1.15vw,15.5px);--fs:clamp(10px,.9vw,12px)}
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;overflow-x:hidden}
 .gl{display:inline-flex;align-items:center;gap:12px;font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.38em;text-transform:uppercase;color:var(--gold)}
 .gl::before{content:'';width:26px;height:1px;background:var(--gold);flex-shrink:0}
 nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:clamp(14px,2vw,26px) var(--px);display:flex;justify-content:space-between;align-items:center;background:rgba(7,7,7,.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
@@ -24,9 +24,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:clamp(14px,2vw,26px)
 .breadcrumb a:hover{color:var(--gold)}
 .article-cat{font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
 .article-title{font-family:'Cormorant',serif;font-size:clamp(32px,4.5vw,56px);font-weight:300;line-height:1.1;margin-bottom:20px}
-.article-meta{display:flex;align-items:center;gap:20px;font-size:12px;color:var(--faint);margin-bottom:clamp(32px,5vw,56px);padding-bottom:clamp(24px,3vw,40px);border-bottom:1px solid var(--line)}
+.article-meta{display:flex;align-items:center;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--faint);margin-bottom:clamp(32px,5vw,56px);padding-bottom:clamp(24px,3vw,40px);border-bottom:1px solid var(--line)}
 .article-meta .tag{color:var(--gold);font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;padding:3px 10px;border:1px solid rgba(200,169,81,.25)}
-.article-content{font-size:clamp(15px,1.3vw,17px);color:rgba(248,244,236,.7);line-height:2.1;font-weight:300}
+.article-content{font-size:clamp(15px,1.3vw,17px);color:rgba(248,244,236,.84);line-height:1.95;font-weight:300}
 .article-content h2{font-family:'Cormorant',serif;font-size:clamp(24px,2.8vw,36px);font-weight:300;color:var(--white);margin:clamp(32px,4vw,52px) 0 clamp(14px,2vw,20px)}
 .article-content p{margin-bottom:clamp(16px,2vw,24px)}
 .article-content ul,.article-content ol{margin:clamp(12px,1.5vw,20px) 0 clamp(16px,2vw,24px) clamp(20px,2vw,32px)}
@@ -34,7 +34,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:clamp(14px,2vw,26px)
 .article-content strong{color:var(--gold3);font-weight:400}
 .article-content blockquote{border-left:2px solid var(--gold);padding:clamp(16px,2vw,24px);margin:clamp(20px,3vw,36px) 0;background:rgba(200,169,81,.04);font-family:'Cormorant',serif;font-style:italic;font-size:clamp(17px,1.8vw,22px);color:var(--gold3);line-height:1.7}
 
-.share-bar{margin-top:clamp(36px,5vw,56px);padding-top:clamp(24px,3vw,36px);border-top:1px solid var(--line);display:flex;align-items:center;gap:16px}
+.share-bar{margin-top:clamp(36px,5vw,56px);padding-top:clamp(24px,3vw,36px);border-top:1px solid var(--line);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .share-btn{background:none;border:1px solid var(--line);color:var(--muted);padding:8px 20px;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s}
 .share-btn:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-d)}
 .share-copied{color:var(--gold);font-size:12px;display:none}
@@ -42,14 +42,16 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:clamp(14px,2vw,26px)
 .related{max-width:760px;margin:0 auto;padding:0 var(--px) clamp(60px,8vh,100px)}
 .related h3{font-family:'Cormorant',serif;font-size:clamp(24px,2.8vw,36px);font-weight:300;margin-bottom:clamp(24px,3vw,36px)}
 .related h3 em{font-style:italic;color:var(--gold2)}
-.related-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.related-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px}
 .related-card{background:var(--black2);border:1px solid var(--line);padding:clamp(20px,2.5vw,28px);text-decoration:none;color:inherit;transition:all .4s}
 .related-card:hover{border-color:rgba(200,169,81,.2);transform:translateY(-4px)}
 .related-card .rc-cat{font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
 .related-card .rc-title{font-family:'Cormorant',serif;font-size:clamp(16px,1.6vw,20px);font-weight:300;line-height:1.35}
-.loading{text-align:center;padding:60px;color:var(--faint);font-family:'Cormorant',serif;font-style:italic;font-size:18px}
+.loading{text-align:center;padding:60px;color:var(--muted);font-family:'Cormorant',serif;font-style:italic;font-size:18px}
 
-footer{text-align:center;padding:clamp(20px,3vw,32px) var(--px);font-size:11px;color:rgba(248,244,236,.16);letter-spacing:.1em;border-top:1px solid var(--line)}
+footer{text-align:center;padding:clamp(20px,3vw,32px) var(--px);font-size:11px;color:rgba(248,244,236,.28);letter-spacing:.1em;border-top:1px solid var(--line)}
+@media(max-width:780px){nav{flex-wrap:wrap;gap:12px;align-items:flex-start}.back-link{width:100%}.article-wrap{padding-top:120px}}
+@media(max-width:540px){.article-wrap,.related{padding-left:18px;padding-right:18px}.article-content{line-height:1.85}}
 </style>
 </head>
 <body>

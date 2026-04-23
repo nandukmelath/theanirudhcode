@@ -137,6 +137,90 @@ async function main() {
   }
   console.log('  ✓ Blog posts seeded');
 
+  // ═══════════ PRODUCTS ═══════════
+  const products = [
+    {
+      title: '7-Day Gut Reset Protocol',
+      description: 'A step-by-step digital guide to eliminate bloating, reset your gut microbiome, and restore digestive clarity in one week — using food, fasting, and targeted supplements.',
+      price: 499,
+      category: 'ebook',
+      badge: 'Bestseller',
+      features: JSON.stringify(['7-day meal & fasting plan', 'Supplement stack guide', 'Daily tracking sheets', 'Lifetime access & updates']),
+    },
+    {
+      title: 'Fasting for Women: The Complete Guide',
+      description: 'Why standard fasting protocols fail women — and the cycle-synced approach that actually works. Covers hormones, hair loss, thyroid, fertility, and sustainable fat loss.',
+      price: 799,
+      category: 'ebook',
+      badge: null,
+      features: JSON.stringify(['Cycle-synced fasting schedules', 'Hormone safety protocols', 'Hair & thyroid protection', 'Real case studies']),
+    },
+    {
+      title: 'Dosha Cookbook: 60 Metabolic Recipes',
+      description: 'Sixty seasonal, dosha-specific recipes built around metabolic biochemistry. Each dish targets gut healing, insulin sensitivity, or hormonal balance — with full nutritional notes.',
+      price: 999,
+      category: 'ebook',
+      badge: 'New',
+      features: JSON.stringify(['60 dosha-specific recipes', 'Seasonal eating calendar', 'Metabolic nutrition notes', 'Shopping lists included']),
+    },
+    {
+      title: 'Breathwork & Healing Audio Bundle',
+      description: 'Four guided breathwork sessions (15–30 min each) for nervous system reset, cortisol reduction, deep sleep, and morning energy activation. Created by Dr. Anirudh.',
+      price: 1299,
+      category: 'audio',
+      badge: 'Premium',
+      features: JSON.stringify(['4 guided sessions (60+ min total)', 'Morning activation protocol', 'Deep sleep breathwork', 'Stress reset session']),
+    },
+    {
+      title: 'Metabolic Reset Starter Bundle',
+      description: 'Everything you need to begin: 7-Day Gut Reset + Fasting for Women + Breathwork Bundle. The complete starter stack at a 30% saving.',
+      price: 1799,
+      category: 'bundle',
+      badge: 'Best Value',
+      features: JSON.stringify(['7-Day Gut Reset ebook', 'Fasting for Women guide', 'Breathwork audio bundle', '30% off individual price']),
+    },
+  ];
+
+  for (const p of products) {
+    const existing = await prisma.product.findFirst({ where: { title: p.title } });
+    if (!existing) {
+      await prisma.product.create({ data: p });
+    }
+  }
+  console.log('  ✓ Products seeded');
+
+  // ═══════════ COHORTS ═══════════
+  const cohorts = [
+    {
+      name: '4-Week Metabolic Reset',
+      tagline: 'Group cohort · 20 seats · Starts June 2026',
+      description: 'A 4-week guided group programme covering gut healing, fasting protocols, sleep optimisation, and daily accountability check-ins. Same transformation as 1:1 — at group pricing.',
+      startDate: '2026-06-02',
+      durationWeeks: 4,
+      price: 15000,
+      maxParticipants: 20,
+      spotsLeft: 14,
+    },
+    {
+      name: '12-Week Longevity Blueprint',
+      tagline: 'Premium cohort · 12 seats · Starts July 2026',
+      description: 'The complete transformation: metabolic labs review, personalised protocols, weekly group sessions, monthly 1:1 check-ins, and a private community. Built for lasting change.',
+      startDate: '2026-07-07',
+      durationWeeks: 12,
+      price: 45000,
+      maxParticipants: 12,
+      spotsLeft: 7,
+    },
+  ];
+
+  for (const c of cohorts) {
+    const existing = await prisma.cohort.findFirst({ where: { name: c.name } });
+    if (!existing) {
+      await prisma.cohort.create({ data: c });
+    }
+  }
+  console.log('  ✓ Cohorts seeded');
+
   console.log('Database seeded successfully!');
 }
 

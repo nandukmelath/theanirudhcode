@@ -73,9 +73,9 @@ async function hybridAdminAuth(req, res, next) {
       }
     } catch {}
   }
-  // Fall back to old x-admin-token header
+  // Fall back to x-admin-token header (header only — no query param to avoid token leakage in logs)
   const adminToken = req.headers['x-admin-token'];
-  if (adminToken === process.env.ADMIN_PASSWORD) {
+  if (adminToken && adminToken === process.env.ADMIN_PASSWORD) {
     req.user = { id: 0, name: 'Admin', email: 'admin@theanirudhcode.com', role: 'admin' };
     return next();
   }

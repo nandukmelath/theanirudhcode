@@ -1,110 +1,119 @@
-/* ═══════════════════════════════════════
-   AUTH STATE MANAGER
-   Manages login state across all pages
-═══════════════════════════════════════ */
-
 const Auth = {
   user: null,
-  initialized: false,
+  _ddListener: null,
 
   async init() {
     try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const data = await res.json();
-        Auth.user = data.user;
-      }
+      const r = await fetch('/api/auth/me', { credentials: 'same-origin' });
+      if (r.ok) this.user = (await r.json()).user;
     } catch {}
-    Auth.initialized = true;
-    Auth.updateNavUI();
+    this._render();
     document.dispatchEvent(new CustomEvent('auth:ready'));
   },
 
-  isLoggedIn() { return !!Auth.user; },
-  isAdmin() { return Auth.user && Auth.user.role === 'admin'; },
+  isLoggedIn() { return !!this.user; },
+  isAdmin()    { return this.user?.role === 'admin'; },
+  updateNavUI(){ this._render(); },
 
-  updateNavUI() {
-    // Desktop nav
+  _render() {
+    this._renderDesktopNav();
+    this._renderMobileMenu();
+  },
+
+  _renderDesktopNav() {
     const navAuth = document.querySelector('.nav-auth');
-    if (navAuth) {
-      if (Auth.isLoggedIn()) {
-        const firstName = Auth.user.name.split(' ')[0];
-        navAuth.innerHTML = `
-          <div class="nav-user">
-            <button class="ncta nav-user-btn">${firstName}</button>
-            <div class="nav-dropdown">
-              <a href="/my-appointments">My Appointments</a>
-              ${Auth.isAdmin() ? '<a href="/admin">Admin Dashboard</a>' : ''}
-              <button id="nav-logout">Logout</button>
-            </div>
-          </div>`;
-        const logoutBtn = document.getElementById('nav-logout');
-        if (logoutBtn) logoutBtn.addEventListener('click', () => Auth.logout());
-      } else {
-        navAuth.innerHTML = `
-          <a href="/login" class="ncta">Login</a>`;
-      }
+    if (!navAuth) return;
+
+    if (this._ddListener) {
+      document.removeEventListener('click', this._ddListener);
+      this._ddListener = null;
     }
 
-    // Mobile menu
-    const mmenu = document.getElementById('mm');
-    if (mmenu) {
-      let authLink = mmenu.querySelector('.mm-auth');
-      if (authLink) authLink.remove();
+    if (this.isLoggedIn()) {
+      const first = this.user.name.split(' ')[0];
+      navAuth.innerHTML =
+        '<div class="nav-user" id="_nuw">' +
+          '<button type="button" class="ncta nav-user-btn" id="_ntb">' +
+            first + ' <span style="font-size:.75em;opacity:.7">&#9660;</span>' +
+          '</button>' +
+          '<div class="nav-dropdown" id="_ndd">' +
+            '<a href="/my-appointments" id="_nap">My Appointments</a>' +
+            (this.isAdmin() ? '<a href="/portal-management" id="_nad">Admin Dashboard</a>' : '') +
+            '<button type="button" id="_nlo">Sign Out</button>' +
+          '</div>' +
+        '</div>';
 
-      const el = document.createElement('div');
-      el.className = 'mm-auth';
-      el.style.marginTop = '8px';
+      const wrap = document.getElementById('_nuw');
 
-      if (Auth.isLoggedIn()) {
-        el.innerHTML = `
-          <a href="/my-appointments" class="mml" style="font-size:clamp(20px,4vw,32px)">My Appointments</a>
-          <button class="btn-o mm-logout" style="margin-top:12px"><span>Logout</span></button>`;
-        el.querySelector('.mm-logout').addEventListener('click', () => Auth.logout());
-      } else {
-        el.innerHTML = `
-          <a href="/login" class="mml" style="font-size:clamp(20px,4vw,32px);color:var(--gold2)">Login</a>
-          <a href="/register" class="mml" style="font-size:clamp(20px,4vw,32px)">Register</a>`;
-      }
-      mmenu.appendChild(el);
+      document.getElementById('_ntb').onclick = e => {
+        e.stopPropagation();
+        wrap.classList.toggle('open');
+      };
+
+      document.getElementById('_nlo').onclick = e => {
+        e.stopPropagation();
+        this.logout();
+      };
+
+      this._ddListener = e => {
+        if (!wrap.contains(e.target)) wrap.classList.remove('open');
+      };
+      document.addEventListener('click', this._ddListener);
+    } else {
+      navAuth.innerHTML = '<a href="/login" class="ncta">Login</a>';
     }
+  },
+
+  _renderMobileMenu() {
+    const mm = document.getElementById('mm');
+    if (!mm) return;
+    mm.querySelector('.mm-auth')?.remove();
+
+    const el = document.createElement('div');
+    el.className = 'mm-auth';
+    el.style.cssText = 'margin-top:8px;display:flex;flex-direction:column;align-items:center;gap:10px;width:100%';
+
+    if (this.isLoggedIn()) {
+      el.innerHTML =
+        '<a href="/my-appointments" class="mml" style="font-size:clamp(20px,4vw,32px)">My Appointments</a>' +
+        (this.isAdmin() ? '<a href="/portal-management" class="mml" style="font-size:clamp(20px,4vw,32px)">Admin</a>' : '') +
+        '<button type="button" class="btn-o mm-lo" style="margin-top:12px"><span>Sign Out</span></button>';
+      el.querySelector('.mm-lo').onclick = () => this.logout();
+    } else {
+      el.innerHTML =
+        '<a href="/login"    class="mml" style="font-size:clamp(20px,4vw,32px);color:var(--gold2)">Login</a>' +
+        '<a href="/register" class="mml" style="font-size:clamp(20px,4vw,32px)">Register</a>';
+    }
+    mm.appendChild(el);
   },
 
   async login(email, password) {
     const res = await fetch('/api/auth/login', {
-      method: 'POST',
+      method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
     const data = await res.json();
-    if (res.ok) {
-      Auth.user = data.user;
-      Auth.updateNavUI();
-    }
+    if (res.ok) { this.user = data.user; this._render(); }
     return { ok: res.ok, data };
   },
 
   async register(name, email, password, phone) {
     const res = await fetch('/api/auth/register', {
-      method: 'POST',
+      method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password, phone })
     });
     const data = await res.json();
-    if (res.ok) {
-      Auth.user = data.user;
-      Auth.updateNavUI();
-    }
+    if (res.ok) { this.user = data.user; this._render(); }
     return { ok: res.ok, data };
   },
 
   async logout() {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
-    } catch (e) { /* ignore network errors */ }
-    Auth.user = null;
-    Auth.updateNavUI();
-    window.location.href = '/';
+    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch {}
+    this.user = null;
+    this._render();
+    location.href = '/';
   }
 };
 

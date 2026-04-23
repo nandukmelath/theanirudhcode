@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../lib/db');
+const prisma = require('../lib/prisma');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { sanitize } = require('../middleware/validate');
 const { createCalendarEvent, deleteCalendarEvent } = require('./calendar');
@@ -14,13 +14,35 @@ function isValidTime(t) {
   return /^\d{2}:\d{2}$/.test(t);
 }
 
-function isValidId(id) {
-  return /^\d+$/.test(id);
+// Normalize Prisma appointment to snake_case for the frontend
+function normalize(a) {
+  return {
+    id:                   a.id,
+    user_id:              a.userId,
+    date:                 a.date,
+    time_start:           a.timeStart,
+    time_end:             a.timeEnd,
+    status:               a.status,
+    consultation_type:    a.consultationType,
+    consultation_price:   a.consultationPrice,
+    health_concerns:      a.healthConcerns,
+    medical_history:      a.medicalHistory,
+    goals:                a.goals,
+    google_event_id:      a.googleEventId,
+    created_at:           a.createdAt,
+    updated_at:           a.updatedAt,
+  };
 }
+
+const CONSULTATION_TYPES = {
+  discovery:     { label: '30-min Discovery',     price: 1500, duration: 30 },
+  deepdive:      { label: '60-min Deep Dive',     price: 5000, duration: 60 },
+  comprehensive: { label: '90-min Comprehensive', price: 8000, duration: 90 },
+};
 
 // POST /api/appointments/book (authenticated)
 router.post('/book', authenticate, async (req, res) => {
-  const { date, time_start, time_end, health_concerns, medical_history, goals } = req.body;
+  const { date, time_start, time_end, health_concerns, medical_history, goals, consultation_type } = req.body;
 
   if (!date || !time_start || !time_end) {
     return res.status(400).json({ error: 'Date and time slot are required' });
@@ -35,51 +57,50 @@ router.post('/book', authenticate, async (req, res) => {
     return res.status(400).json({ error: 'Please describe your health concerns' });
   }
 
+  const tierKey   = CONSULTATION_TYPES[consultation_type] ? consultation_type : 'deepdive';
+  const tier      = CONSULTATION_TYPES[tierKey];
   const cleanConcerns = sanitize(health_concerns.trim());
-  const cleanHistory = sanitize((medical_history || '').trim());
-  const cleanGoals = sanitize((goals || '').trim());
+  const cleanHistory  = sanitize((medical_history || '').trim());
+  const cleanGoals    = sanitize((goals || '').trim());
 
   try {
-    // Check for conflict
-    const { data: existing } = await supabase
-      .from('appointments')
-      .select('id')
-      .eq('date', date)
-      .eq('time_start', time_start)
-      .eq('status', 'confirmed')
-      .maybeSingle();
-
+    // Check for slot conflict
+    const existing = await prisma.appointment.findFirst({
+      where: { date, timeStart: time_start, status: 'confirmed' }
+    });
     if (existing) {
       return res.status(409).json({ error: 'This time slot has already been booked. Please choose another.' });
     }
 
-    const { data: appointment, error } = await supabase
-      .from('appointments')
-      .insert({
-        user_id: req.user.id,
+    const appointment = await prisma.appointment.create({
+      data: {
+        userId:              req.user.id,
         date,
-        time_start,
-        time_end,
-        health_concerns: cleanConcerns,
-        medical_history: cleanHistory || null,
-        goals: cleanGoals || null,
-      })
-      .select()
-      .single();
+        timeStart:           time_start,
+        timeEnd:             time_end,
+        consultationType:    tierKey,
+        consultationPrice:   tier.price,
+        healthConcerns:      cleanConcerns,
+        medicalHistory:      cleanHistory || null,
+        goals:               cleanGoals  || null,
+      }
+    });
 
-    if (error) throw error;
+    // Google Calendar (non-critical — swallow errors)
+    try {
+      const eventId = await createCalendarEvent(
+        { date, time_start, time_end, health_concerns: cleanConcerns, medical_history: cleanHistory, goals: cleanGoals },
+        req.user
+      );
+      if (eventId) {
+        await prisma.appointment.update({
+          where: { id: appointment.id },
+          data: { googleEventId: eventId }
+        });
+      }
+    } catch {}
 
-    // Create Google Calendar event (non-critical)
-    const eventId = await createCalendarEvent(
-      { date, time_start, time_end, health_concerns: cleanConcerns, medical_history: cleanHistory, goals: cleanGoals },
-      req.user
-    );
-
-    if (eventId) {
-      await supabase.from('appointments').update({ google_event_id: eventId }).eq('id', appointment.id);
-    }
-
-    // WhatsApp notifications (non-blocking)
+    // WhatsApp notifications (fire-and-forget)
     const apptData = { date, time_start, time_end, health_concerns: cleanConcerns, goals: cleanGoals, medical_history: cleanHistory };
     wa.sendBookingConfirmation(req.user.phone, req.user.name, apptData).catch(() => {});
     wa.sendAdminNewBooking(apptData, req.user).catch(() => {});
@@ -98,18 +119,15 @@ router.post('/book', authenticate, async (req, res) => {
 // GET /api/appointments/my (authenticated)
 router.get('/my', authenticate, async (req, res) => {
   try {
-    const { data: appointments, error } = await supabase
-      .from('appointments')
-      .select('*')
-      .eq('user_id', req.user.id)
-      .order('date', { ascending: false })
-      .order('time_start', { ascending: true });
+    const appointments = await prisma.appointment.findMany({
+      where:   { userId: req.user.id },
+      orderBy: [{ date: 'desc' }, { timeStart: 'asc' }]
+    });
 
-    if (error) throw error;
-
-    const today = new Date().toISOString().split('T')[0];
-    const upcoming = appointments.filter(a => a.date >= today && a.status === 'confirmed');
-    const past = appointments.filter(a => a.date < today || a.status !== 'confirmed');
+    const normalized = appointments.map(normalize);
+    const today    = new Date().toISOString().split('T')[0];
+    const upcoming = normalized.filter(a => a.date >= today && a.status === 'confirmed');
+    const past     = normalized.filter(a => a.date < today  || a.status !== 'confirmed');
 
     res.json({ upcoming, past });
   } catch (err) {
@@ -120,16 +138,11 @@ router.get('/my', authenticate, async (req, res) => {
 
 // POST /api/appointments/:id/cancel (authenticated)
 router.post('/:id/cancel', authenticate, async (req, res) => {
-  if (!isValidId(req.params.id)) {
-    return res.status(400).json({ error: 'Invalid appointment ID' });
-  }
+  const id = parseInt(req.params.id, 10);
+  if (!id || id < 1) return res.status(400).json({ error: 'Invalid appointment ID' });
 
   try {
-    const { data: appointment } = await supabase
-      .from('appointments')
-      .select('*')
-      .eq('id', parseInt(req.params.id))
-      .maybeSingle();
+    const appointment = await prisma.appointment.findUnique({ where: { id } });
 
     if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
 
@@ -137,26 +150,25 @@ router.post('/:id/cancel', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Only confirmed appointments can be cancelled' });
     }
 
-    if (req.user.role !== 'admin' && appointment.user_id !== req.user.id) {
+    if (req.user.role !== 'admin' && appointment.userId !== req.user.id) {
       return res.status(403).json({ error: 'You can only cancel your own appointments' });
     }
 
     if (req.user.role !== 'admin') {
-      const apptTime = new Date(`${appointment.date}T${appointment.time_start}:00+05:30`);
+      const apptTime = new Date(`${appointment.date}T${appointment.timeStart}:00+05:30`);
       const hoursUntil = (apptTime.getTime() - Date.now()) / (1000 * 60 * 60);
       if (hoursUntil < 24) {
         return res.status(400).json({ error: 'Appointments can only be cancelled at least 24 hours in advance' });
       }
     }
 
-    await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', parseInt(req.params.id));
+    await prisma.appointment.update({ where: { id }, data: { status: 'cancelled' } });
 
-    if (appointment.google_event_id) {
-      await deleteCalendarEvent(appointment.google_event_id);
+    if (appointment.googleEventId) {
+      deleteCalendarEvent(appointment.googleEventId).catch(() => {});
     }
 
-    // WhatsApp cancellation notice (non-blocking)
-    wa.sendCancellationNotice(req.user.phone, req.user.name, appointment).catch(() => {});
+    wa.sendCancellationNotice(req.user.phone, req.user.name, normalize(appointment)).catch(() => {});
 
     res.json({ success: true, message: 'Appointment cancelled' });
   } catch (err) {
@@ -168,30 +180,16 @@ router.post('/:id/cancel', authenticate, async (req, res) => {
 // GET /api/appointments/all (admin only)
 router.get('/all', authenticate, requireAdmin, async (req, res) => {
   try {
-    const { data: appointments, error } = await supabase
-      .from('appointments')
-      .select('*, users(name, email, phone)')
-      .order('date', { ascending: false })
-      .order('time_start', { ascending: true });
-
-    if (error) throw error;
+    const appointments = await prisma.appointment.findMany({
+      include:  { user: { select: { name: true, email: true, phone: true } } },
+      orderBy: [{ date: 'desc' }, { timeStart: 'asc' }]
+    });
 
     const formatted = appointments.map(a => ({
-      id: a.id,
-      user_id: a.user_id,
-      date: a.date,
-      time_start: a.time_start,
-      time_end: a.time_end,
-      status: a.status,
-      health_concerns: a.health_concerns,
-      medical_history: a.medical_history,
-      goals: a.goals,
-      google_event_id: a.google_event_id,
-      created_at: a.created_at,
-      updated_at: a.updated_at,
-      patient_name: a.users?.name,
-      patient_email: a.users?.email,
-      patient_phone: a.users?.phone,
+      ...normalize(a),
+      patient_name:  a.user?.name,
+      patient_email: a.user?.email,
+      patient_phone: a.user?.phone,
     }));
 
     res.json({ appointments: formatted });
@@ -203,27 +201,25 @@ router.get('/all', authenticate, requireAdmin, async (req, res) => {
 
 // POST /api/appointments/:id/complete (admin only)
 router.post('/:id/complete', authenticate, requireAdmin, async (req, res) => {
-  if (!isValidId(req.params.id)) {
-    return res.status(400).json({ error: 'Invalid appointment ID' });
-  }
+  const id = parseInt(req.params.id, 10);
+  if (!id || id < 1) return res.status(400).json({ error: 'Invalid appointment ID' });
 
   try {
-    const { data: appointment } = await supabase
-      .from('appointments')
-      .select('id, status')
-      .eq('id', parseInt(req.params.id))
-      .maybeSingle();
+    const appointment = await prisma.appointment.findUnique({
+      where:   { id },
+      include: { user: { select: { name: true, phone: true } } }
+    });
 
     if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
     if (appointment.status !== 'confirmed') {
       return res.status(400).json({ error: 'Only confirmed appointments can be marked complete' });
     }
 
-    await supabase.from('appointments').update({ status: 'completed' }).eq('id', parseInt(req.params.id));
+    await prisma.appointment.update({ where: { id }, data: { status: 'completed' } });
 
-    // WhatsApp thank-you message to patient (non-blocking)
-    const { data: patient } = await supabase.from('users').select('name, phone').eq('id', appointment.user_id).maybeSingle();
-    if (patient) wa.sendCompletionMessage(patient.phone, patient.name).catch(() => {});
+    if (appointment.user) {
+      wa.sendCompletionMessage(appointment.user.phone, appointment.user.name).catch(() => {});
+    }
 
     res.json({ success: true });
   } catch (err) {
