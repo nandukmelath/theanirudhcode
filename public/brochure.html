@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dr. Anirudh — Consultation Packages</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── Reset & base ─────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold:   #d0af52;
+    --gold2:  #b8962e;
+    --dark:   #070707;
+    --dark2:  #0e0e0e;
+    --dark3:  #141414;
+    --dark4:  #1a1a1a;
+    --muted:  #888;
+    --light:  #e8e0cc;
+    --white:  #fff;
+  }
+
+  html { font-size: 10pt; }
+  body {
+    background: var(--dark);
+    color: var(--white);
+    font-family: 'Barlow', sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── Typography ───────────────────────────────── */
+  h1, h2, h3, h4 { font-family: 'Cormorant Garamond', serif; font-weight: 500; line-height: 1.15; }
+  h1 { font-size: 3.6rem; letter-spacing: -0.02em; }
+  h2 { font-size: 2.4rem; }
+  h3 { font-size: 1.7rem; }
+  h4 { font-size: 1.2rem; font-weight: 600; }
+  .serif-italic { font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 300; }
+  .gold { color: var(--gold); }
+  .muted { color: var(--muted); font-size: 0.85rem; }
+
+  /* ── Print page setup ─────────────────────────── */
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  /* Each .page fills one A4 sheet */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 14mm 14mm 12mm;
+    page-break-after: always;
+    page-break-inside: avoid;
+    position: relative;
+    overflow: hidden;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  /* ── Decorative line ──────────────────────────── */
+  .rule {
+    width: 48px;
+    height: 1px;
+    background: var(--gold);
+    margin: 10px 0 16px;
+  }
+  .rule-full {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, var(--gold) 0%, transparent 100%);
+    margin: 12px 0;
+  }
+
+  /* ── Ornament corner ──────────────────────────── */
+  .corner-ornament {
+    position: absolute;
+    top: 10mm;
+    right: 12mm;
+    width: 30px;
+    height: 30px;
+    border-top: 1px solid var(--gold);
+    border-right: 1px solid var(--gold);
+    opacity: 0.4;
+  }
+  .corner-ornament-bl {
+    position: absolute;
+    bottom: 10mm;
+    left: 12mm;
+    width: 30px;
+    height: 30px;
+    border-bottom: 1px solid var(--gold);
+    border-left: 1px solid var(--gold);
+    opacity: 0.4;
+  }
+
+  /* ── Page footer ──────────────────────────────── */
+  .page-footer {
+    position: absolute;
+    bottom: 8mm;
+    left: 14mm;
+    right: 14mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.72rem;
+    color: var(--muted);
+    border-top: 1px solid #1e1e1e;
+    padding-top: 5px;
+  }
+
+  /* ══════════════════════════════════════════════
+     PAGE 1 — COVER
+  ══════════════════════════════════════════════ */
+  .page-cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    background: var(--dark);
+    background-image:
+      radial-gradient(ellipse 70% 50% at 80% 50%, rgba(208,175,82,0.06) 0%, transparent 70%);
+  }
+
+  .cover-eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 18px;
+  }
+  .cover-name {
+    font-size: 4.6rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    line-height: 1.05;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+  .cover-name span { color: var(--gold); }
+  .cover-credential {
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 28px;
+  }
+  .cover-tagline {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 1.35rem;
+    font-weight: 300;
+    color: var(--light);
+    max-width: 320px;
+    line-height: 1.5;
+    margin-bottom: 40px;
+  }
+  .cover-divider {
+    width: 60px;
+    height: 1px;
+    background: var(--gold);
+    margin-bottom: 36px;
+  }
+
+  .cover-pillars {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+  .pillar {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .pillar-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    color: var(--gold);
+    font-weight: 300;
+  }
+  .pillar-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .cover-sidebar {
+    position: absolute;
+    right: 14mm;
+    top: 14mm;
+    bottom: 20mm;
+    width: 74mm;
+    background: var(--dark3);
+    border-left: 1px solid #1e1e1e;
+    padding: 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .sidebar-heading {
+    font-size: 0.65rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .sidebar-item {
+    border-bottom: 1px solid #1e1e1e;
+    padding-bottom: 16px;
+  }
+  .sidebar-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .sidebar-tier-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.15rem;
+    color: var(--white);
+    margin-bottom: 2px;
+  }
+  .sidebar-tier-price {
+    font-size: 1.05rem;
+    color: var(--gold);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .sidebar-tier-desc {
+    font-size: 0.73rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ══════════════════════════════════════════════
+     PAGE 2 — ABOUT + PHILOSOPHY
+  ══════════════════════════════════════════════ */
+  .page-about { background: var(--dark2); }
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 24px;
+  }
+  .about-bio {
+    font-size: 0.92rem;
+    line-height: 1.75;
+    color: var(--light);
+  }
+  .about-bio p + p { margin-top: 12px; }
+
+  .philosophy-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .philosophy-list li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .philosophy-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.2rem;
+    color: var(--gold);
+    min-width: 22px;
+    line-height: 1.2;
+  }
+  .philosophy-text {
+    font-size: 0.85rem;
+    color: var(--light);
+    line-height: 1.6;
+  }
+  .philosophy-text strong {
+    color: var(--white);
+    font-weight: 500;
+    display: block;
+    font-size: 0.92rem;
+    margin-bottom: 2px;
+  }
+
+  /* ══════════════════════════════════════════════
+     PAGE 3 — CONSULTATION TIERS (main feature)
+  ══════════════════════════════════════════════ */
+  .page-tiers { background: var(--dark); }
+
+  .tiers-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-top: 22px;
+  }
+
+  .tier-card {
+    background: var(--dark3);
+    border: 1px solid #1e1e1e;
+    border-radius: 2px;
+    padding: 22px 18px 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .tier-card.featured {
+    background: #0d0d0d;
+    border-color: var(--gold2);
+    border-width: 1.5px;
+  }
+  .tier-badge {
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gold);
+    color: var(--dark);
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    white-space: nowrap;
+  }
+  .tier-duration {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .tier-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.55rem;
+    font-weight: 500;
+    color: var(--white);
+    margin-bottom: 6px;
+    line-height: 1.1;
+  }
+  .tier-price {
+    font-size: 1.65rem;
+    font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 4px;
+    font-family: 'Barlow', sans-serif;
+  }
+  .tier-price-note {
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .tier-rule { width: 30px; height: 1px; background: var(--gold); margin-bottom: 14px; opacity: 0.5; }
+  .tier-desc {
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+    flex: 1;
+  }
+  .tier-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .tier-features li {
+    font-size: 0.76rem;
+    color: var(--light);
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    line-height: 1.4;
+  }
+  .tier-features li::before {
+    content: '✓';
+    color: var(--gold);
+    font-size: 0.75rem;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  /* what's included strip */
+  .included-strip {
+    margin-top: 22px;
+    background: var(--dark3);
+    border: 1px solid #1e1e1e;
+    border-radius: 2px;
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    text-align: center;
+  }
+  .included-item-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+  .included-item-val {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.05rem;
+    color: var(--white);
+  }
+
+  /* ══════════════════════════════════════════════
+     PAGE 4 — COHORT PROGRAMS
+  ══════════════════════════════════════════════ */
+  .page-cohorts { background: var(--dark2); }
+
+  .cohorts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-top: 22px;
+  }
+
+  .cohort-card {
+    background: var(--dark3);
+    border: 1px solid #1e1e1e;
+    border-radius: 2px;
+    padding: 22px 20px;
+  }
+  .cohort-card.premium {
+    border-color: #2a2517;
+    background: linear-gradient(160deg, #0e0c08 0%, var(--dark3) 100%);
+  }
+  .cohort-tag {
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .cohort-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.5rem;
+    color: var(--white);
+    margin-bottom: 4px;
+    line-height: 1.1;
+  }
+  .cohort-tagline {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .cohort-price {
+    font-size: 1.55rem;
+    font-weight: 600;
+    color: var(--gold);
+    margin-bottom: 2px;
+  }
+  .cohort-price-note {
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .cohort-rule { width: 28px; height: 1px; background: var(--gold); margin-bottom: 12px; opacity: 0.5; }
+  .cohort-desc {
+    font-size: 0.79rem;
+    color: var(--muted);
+    line-height: 1.65;
+    margin-bottom: 16px;
+  }
+  .cohort-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .cohort-features li {
+    font-size: 0.76rem;
+    color: var(--light);
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    line-height: 1.35;
+  }
+  .cohort-features li::before {
+    content: '→';
+    color: var(--gold);
+    font-size: 0.72rem;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+  .cohort-spots {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .spots-bar-bg {
+    flex: 1;
+    height: 3px;
+    background: #222;
+    border-radius: 2px;
+  }
+  .spots-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--gold);
+  }
+  .spots-text {
+    font-size: 0.7rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* comparison table */
+  .cohort-compare {
+    margin-top: 22px;
+    background: var(--dark3);
+    border: 1px solid #1e1e1e;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .cohort-compare table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+  }
+  .cohort-compare thead tr {
+    border-bottom: 1px solid #222;
+  }
+  .cohort-compare th {
+    padding: 8px 14px;
+    text-align: left;
+    font-size: 0.65rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 400;
+  }
+  .cohort-compare td {
+    padding: 8px 14px;
+    color: var(--light);
+    border-bottom: 1px solid #181818;
+    vertical-align: middle;
+  }
+  .cohort-compare tr:last-child td { border-bottom: none; }
+  .cohort-compare td:first-child { color: var(--muted); font-size: 0.72rem; }
+  .check { color: var(--gold); }
+
+  /* ══════════════════════════════════════════════
+     PAGE 5 — DIGITAL PRODUCTS + CTA
+  ══════════════════════════════════════════════ */
+  .page-products { background: var(--dark); }
+
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 22px;
+  }
+
+  .product-card {
+    background: var(--dark3);
+    border: 1px solid #1e1e1e;
+    border-radius: 2px;
+    padding: 16px 14px;
+    position: relative;
+  }
+  .product-badge {
+    position: absolute;
+    top: -1px;
+    right: 12px;
+    background: var(--gold);
+    color: var(--dark);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+  }
+  .product-cat {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 5px;
+  }
+  .product-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.05rem;
+    color: var(--white);
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+  .product-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.55;
+    margin-bottom: 10px;
+  }
+  .product-price {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--gold);
+  }
+
+  /* CTA section */
+  .cta-section {
+    margin-top: 24px;
+    background: linear-gradient(135deg, #0d0b06 0%, var(--dark3) 100%);
+    border: 1px solid #2a2010;
+    border-radius: 2px;
+    padding: 22px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+  }
+  .cta-left {}
+  .cta-heading {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: var(--white);
+    margin-bottom: 6px;
+    line-height: 1.15;
+  }
+  .cta-sub {
+    font-size: 0.8rem;
+    color: var(--muted);
+    max-width: 280px;
+    line-height: 1.6;
+  }
+  .cta-contacts {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 200px;
+  }
+  .cta-contact-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .contact-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    min-width: 40px;
+  }
+  .contact-val {
+    font-size: 0.82rem;
+    color: var(--light);
+  }
+
+  /* ══════════════════════════════════════════════
+     Print media overrides
+  ══════════════════════════════════════════════ */
+  @media print {
+    body { background: var(--dark); }
+    .page { page-break-after: always; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     PAGE 1 — COVER
+════════════════════════════════════════ -->
+<div class="page page-cover">
+  <div class="corner-ornament"></div>
+  <div class="corner-ornament-bl"></div>
+
+  <!-- LEFT CONTENT -->
+  <div style="max-width: 108mm;">
+    <div class="cover-eyebrow">Consultation Packages &amp; Programmes</div>
+
+    <div class="cover-name">
+      Dr.<br><span>Anirudh</span>
+    </div>
+    <div class="cover-credential">Metabolic &amp; Functional Health Specialist</div>
+
+    <div class="cover-tagline">
+      Root-cause wellness.<br>Backed by biochemistry.
+    </div>
+
+    <div class="cover-divider"></div>
+
+    <div style="font-size:0.8rem; color:var(--muted); line-height:1.65; margin-bottom:30px; max-width:290px;">
+      A private practice built around metabolic intelligence — combining functional medicine, Ayurvedic wisdom, and precision nutrition to reverse chronic conditions at their source.
+    </div>
+
+    <div class="cover-pillars">
+      <div class="pillar">
+        <span class="pillar-num">3</span>
+        <span class="pillar-label">Consultation<br>Tiers</span>
+      </div>
+      <div class="pillar">
+        <span class="pillar-num">2</span>
+        <span class="pillar-label">Group<br>Programmes</span>
+      </div>
+      <div class="pillar">
+        <span class="pillar-num">5</span>
+        <span class="pillar-label">Digital<br>Products</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div class="cover-sidebar">
+    <div>
+      <div class="sidebar-heading">Consultation Tiers</div>
+    </div>
+
+    <div class="sidebar-item">
+      <div class="sidebar-tier-name">Discovery</div>
+      <div class="sidebar-tier-price">₹1,500</div>
+      <div class="sidebar-tier-desc">30-minute intro session. Understand your root issues &amp; whether we're the right fit.</div>
+    </div>
+
+    <div class="sidebar-item">
+      <div class="sidebar-tier-name">Deep Dive</div>
+      <div class="sidebar-tier-price">₹5,000</div>
+      <div class="sidebar-tier-desc">60-minute comprehensive review. Detailed protocol + follow-up support included.</div>
+    </div>
+
+    <div class="sidebar-item">
+      <div class="sidebar-tier-name">Comprehensive</div>
+      <div class="sidebar-tier-price">₹8,000</div>
+      <div class="sidebar-tier-desc">90-minute full case review. Lab analysis, personalised roadmap &amp; priority access.</div>
+    </div>
+
+    <div style="border-top: 1px solid #1e1e1e; padding-top: 14px; margin-top: auto;">
+      <div class="sidebar-heading">Book via</div>
+      <div style="font-size:0.75rem; color:var(--light);">theanirudhcode.com</div>
+      <div style="font-size:0.7rem; color:var(--muted); margin-top:4px; line-height:1.5;">All bookings &amp; enquiries<br>through the website.</div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Dr. Anirudh — Metabolic &amp; Functional Health</span>
+    <span>theanirudhcode.com</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 2 — ABOUT + PHILOSOPHY
+════════════════════════════════════════ -->
+<div class="page page-about">
+  <div class="corner-ornament"></div>
+
+  <div class="cover-eyebrow" style="margin-bottom:4px;">About</div>
+  <h2 style="font-size:2rem; margin-bottom:4px;">Why <span class="gold">theanirudhcode</span></h2>
+  <div class="rule-full"></div>
+
+  <div class="about-grid">
+    <div>
+      <div class="about-bio">
+        <p>Dr. Anirudh is a metabolic and functional health specialist whose practice sits at the intersection of modern biochemistry and ancient Ayurvedic intelligence. He has spent years studying the root causes of chronic conditions — insulin resistance, hormonal imbalance, gut dysfunction, and inflammatory disease — and built a clinical system that addresses them at their source, not just at the surface.</p>
+
+        <p>The practice rejects the band-aid model of healthcare. Where conventional medicine often masks symptoms, Dr. Anirudh's approach is built on understanding why the body is signalling distress — and creating the precise conditions for it to reverse course.</p>
+
+        <p>Every client receives a bespoke protocol. No templates, no generic advice — a system calibrated to your biology, your lifestyle, and your metabolic data.</p>
+      </div>
+
+      <div style="margin-top: 18px; background: var(--dark4); border-left: 2px solid var(--gold); padding: 14px 16px;">
+        <div class="serif-italic" style="font-size:1.1rem; color:var(--light); line-height:1.55;">
+          "Your body is not broken. It is responding rationally to irrational inputs. Change the inputs, and the body responds."
+        </div>
+        <div style="font-size:0.7rem; color:var(--muted); margin-top:8px;">— Dr. Anirudh</div>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); margin-bottom:14px;">The Practice Philosophy</div>
+
+      <ul class="philosophy-list">
+        <li>
+          <span class="philosophy-num">01</span>
+          <div class="philosophy-text">
+            <strong>Root Cause, Not Symptom Suppression</strong>
+            Every protocol begins with finding the biological source of dysfunction — not managing it with medication.
+          </div>
+        </li>
+        <li>
+          <span class="philosophy-num">02</span>
+          <div class="philosophy-text">
+            <strong>Metabolic Intelligence</strong>
+            Insulin sensitivity, hormonal rhythm, gut microbiome, and circadian alignment — the four pillars that govern health.
+          </div>
+        </li>
+        <li>
+          <span class="philosophy-num">03</span>
+          <div class="philosophy-text">
+            <strong>Integrative Precision</strong>
+            Functional labs meet ancient Ayurvedic markers. No ideology — only what your data confirms.
+          </div>
+        </li>
+        <li>
+          <span class="philosophy-num">04</span>
+          <div class="philosophy-text">
+            <strong>Personalised by Design</strong>
+            No programme is standard. Every recommendation is adapted to your dosha type, metabolic state, and lifestyle.
+          </div>
+        </li>
+        <li>
+          <span class="philosophy-num">05</span>
+          <div class="philosophy-text">
+            <strong>Long-term Reversal</strong>
+            The goal is not short-term weight loss or temporary relief — it is permanent metabolic recalibration.
+          </div>
+        </li>
+      </ul>
+
+      <div style="margin-top:22px; display:flex; gap:20px; flex-wrap:wrap;">
+        <div style="text-align:center;">
+          <div style="font-family:'Cormorant Garamond',serif; font-size:2rem; color:var(--gold); font-weight:300;">Gut</div>
+          <div style="font-size:0.62rem; color:var(--muted); letter-spacing:0.12em; text-transform:uppercase;">Healing</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Cormorant Garamond',serif; font-size:2rem; color:var(--gold); font-weight:300;">Hormones</div>
+          <div style="font-size:0.62rem; color:var(--muted); letter-spacing:0.12em; text-transform:uppercase;">Rebalancing</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Cormorant Garamond',serif; font-size:2rem; color:var(--gold); font-weight:300;">Fasting</div>
+          <div style="font-size:0.62rem; color:var(--muted); letter-spacing:0.12em; text-transform:uppercase;">Protocols</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Cormorant Garamond',serif; font-size:2rem; color:var(--gold); font-weight:300;">Sleep</div>
+          <div style="font-size:0.62rem; color:var(--muted); letter-spacing:0.12em; text-transform:uppercase;">Optimisation</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Dr. Anirudh — Metabolic &amp; Functional Health</span>
+    <span>theanirudhcode.com</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 3 — CONSULTATION TIERS
+════════════════════════════════════════ -->
+<div class="page page-tiers">
+  <div class="corner-ornament"></div>
+
+  <div class="cover-eyebrow" style="margin-bottom:4px;">1:1 Consultations</div>
+  <h2 style="font-size:2rem; margin-bottom:4px;">Choose Your <span class="gold">Session</span></h2>
+  <div class="rule-full"></div>
+
+  <div class="tiers-grid">
+
+    <!-- Tier 1: Discovery -->
+    <div class="tier-card">
+      <div class="tier-duration">30 Minutes</div>
+      <div class="tier-name">Discovery<br>Call</div>
+      <div class="tier-price">₹1,500</div>
+      <div class="tier-price-note">One-time session</div>
+      <div class="tier-rule"></div>
+      <div class="tier-desc">
+        The ideal starting point. We map your primary health concerns, review your current approach, and establish whether we are the right fit for a longer engagement.
+      </div>
+      <ul class="tier-features">
+        <li>Health history overview</li>
+        <li>Primary concern assessment</li>
+        <li>Initial protocol direction</li>
+        <li>Supplement/diet starting points</li>
+        <li>Recommended next steps &amp; labs</li>
+      </ul>
+    </div>
+
+    <!-- Tier 2: Deep Dive — FEATURED -->
+    <div class="tier-card featured">
+      <div class="tier-badge">Most Popular</div>
+      <div class="tier-duration" style="margin-top:10px;">60 Minutes</div>
+      <div class="tier-name">Deep Dive<br>Session</div>
+      <div class="tier-price">₹5,000</div>
+      <div class="tier-price-note">Includes follow-up support</div>
+      <div class="tier-rule" style="opacity:1;"></div>
+      <div class="tier-desc">
+        A full clinical review. We go deep into your metabolic markers, hormonal picture, gut patterns, and lifestyle data — and build a personalised protocol from the ground up.
+      </div>
+      <ul class="tier-features">
+        <li>Complete health history review</li>
+        <li>Metabolic &amp; hormonal assessment</li>
+        <li>Gut health evaluation</li>
+        <li>Personalised nutrition protocol</li>
+        <li>Fasting strategy design</li>
+        <li>Supplement stack recommendation</li>
+        <li>7-day follow-up via WhatsApp</li>
+      </ul>
+    </div>
+
+    <!-- Tier 3: Comprehensive -->
+    <div class="tier-card">
+      <div class="tier-duration">90 Minutes</div>
+      <div class="tier-name">Comprehensive<br>Review</div>
+      <div class="tier-price">₹8,000</div>
+      <div class="tier-price-note">Priority access included</div>
+      <div class="tier-rule"></div>
+      <div class="tier-desc">
+        The complete engagement. For complex cases, chronic conditions, or clients who want a detailed multi-system roadmap with lab interpretation and priority ongoing support.
+      </div>
+      <ul class="tier-features">
+        <li>Everything in Deep Dive</li>
+        <li>Lab report interpretation</li>
+        <li>Multi-system protocol (gut, hormones, sleep, movement)</li>
+        <li>Dosha-based personalisation</li>
+        <li>30-day roadmap document</li>
+        <li>Priority WhatsApp access (14 days)</li>
+        <li>One complimentary check-in call</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- What's included in all sessions -->
+  <div class="included-strip">
+    <div>
+      <div class="included-item-label">Format</div>
+      <div class="included-item-val">Video · Online</div>
+    </div>
+    <div>
+      <div class="included-item-label">Booking</div>
+      <div class="included-item-val">Self-schedule</div>
+    </div>
+    <div>
+      <div class="included-item-label">Protocol</div>
+      <div class="included-item-val">Sent post-session</div>
+    </div>
+    <div>
+      <div class="included-item-label">Payment</div>
+      <div class="included-item-val">100% upfront</div>
+    </div>
+  </div>
+
+  <div style="margin-top:14px; text-align:center; font-size:0.73rem; color:var(--muted);">
+    All sessions conducted virtually. Book directly at <span style="color:var(--gold);">theanirudhcode.com</span> — select your tier, choose a slot, and complete payment to confirm.
+  </div>
+
+  <div class="page-footer">
+    <span>Dr. Anirudh — Consultation Packages</span>
+    <span>theanirudhcode.com</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 4 — COHORT PROGRAMMES
+════════════════════════════════════════ -->
+<div class="page page-cohorts">
+  <div class="corner-ornament"></div>
+
+  <div class="cover-eyebrow" style="margin-bottom:4px;">Group Programmes</div>
+  <h2 style="font-size:2rem; margin-bottom:4px;">Cohort <span class="gold">Enrolment</span></h2>
+  <div class="rule-full"></div>
+
+  <div class="cohorts-grid">
+
+    <!-- Cohort 1 -->
+    <div class="cohort-card">
+      <div class="cohort-tag">4 Weeks · Starts June 2026 · 20 Seats</div>
+      <div class="cohort-name">Metabolic Reset<br>Cohort</div>
+      <div class="cohort-tagline">Group programme · small cohort · daily accountability</div>
+      <div class="cohort-price">₹15,000</div>
+      <div class="cohort-price-note">Per participant · all materials included</div>
+      <div class="cohort-rule"></div>
+      <div class="cohort-desc">
+        A 4-week guided group transformation covering gut healing, intermittent fasting protocols, sleep optimisation, and daily accountability check-ins. Same depth as a 1:1 programme — at group pricing.
+      </div>
+      <ul class="cohort-features">
+        <li>Weekly live sessions with Dr. Anirudh</li>
+        <li>Daily WhatsApp accountability group</li>
+        <li>Week-by-week protocol guide</li>
+        <li>Gut healing nutrition plan</li>
+        <li>Fasting schedule customisation</li>
+        <li>7-Day Gut Reset ebook included</li>
+      </ul>
+      <div class="cohort-spots">
+        <div class="spots-bar-bg">
+          <div class="spots-bar-fill" style="width:30%;"></div>
+        </div>
+        <div class="spots-text">6 of 20 spots filled</div>
+      </div>
+    </div>
+
+    <!-- Cohort 2 -->
+    <div class="cohort-card premium">
+      <div class="cohort-tag">12 Weeks · Starts July 2026 · 12 Seats</div>
+      <div class="cohort-name">Longevity Blueprint<br>Cohort</div>
+      <div class="cohort-tagline">Premium cohort · monthly 1:1 · private community</div>
+      <div class="cohort-price">₹45,000</div>
+      <div class="cohort-price-note">Per participant · full resource library</div>
+      <div class="cohort-rule"></div>
+      <div class="cohort-desc">
+        The complete 12-week transformation: metabolic labs review, fully personalised protocols, weekly group sessions with Dr. Anirudh, monthly 1:1 check-ins, and a private community. Built for lasting, measurable change.
+      </div>
+      <ul class="cohort-features">
+        <li>Monthly private 1:1 with Dr. Anirudh</li>
+        <li>Weekly group live sessions</li>
+        <li>Metabolic lab panel interpretation</li>
+        <li>Fully personalised 12-week protocol</li>
+        <li>Private community (peer + expert)</li>
+        <li>Complete digital product library</li>
+        <li>Priority WhatsApp access throughout</li>
+      </ul>
+      <div class="cohort-spots">
+        <div class="spots-bar-bg">
+          <div class="spots-bar-fill" style="width:42%;"></div>
+        </div>
+        <div class="spots-text">5 of 12 spots filled</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Comparison table -->
+  <div class="cohort-compare" style="margin-top:20px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Metabolic Reset (4W)</th>
+          <th>Longevity Blueprint (12W)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Live sessions with Dr. Anirudh</td>
+          <td>Weekly group (4 sessions)</td>
+          <td>Weekly group + monthly 1:1</td>
+        </tr>
+        <tr>
+          <td>Personalised protocol</td>
+          <td>Group-adapted</td>
+          <td><span class="check">✓</span> Fully personalised</td>
+        </tr>
+        <tr>
+          <td>Lab interpretation</td>
+          <td>—</td>
+          <td><span class="check">✓</span> Included</td>
+        </tr>
+        <tr>
+          <td>WhatsApp accountability</td>
+          <td><span class="check">✓</span> Group chat</td>
+          <td><span class="check">✓</span> Priority access</td>
+        </tr>
+        <tr>
+          <td>Digital products</td>
+          <td>7-Day Gut Reset</td>
+          <td>Full library (all 5)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="page-footer">
+    <span>Dr. Anirudh — Group Programmes</span>
+    <span>theanirudhcode.com</span>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 5 — DIGITAL PRODUCTS + CONTACT
+════════════════════════════════════════ -->
+<div class="page page-products">
+  <div class="corner-ornament"></div>
+
+  <div class="cover-eyebrow" style="margin-bottom:4px;">The Vault</div>
+  <h2 style="font-size:2rem; margin-bottom:4px;">Digital <span class="gold">Products</span></h2>
+  <div class="rule-full"></div>
+
+  <div class="products-grid">
+
+    <div class="product-card">
+      <div class="product-badge">Bestseller</div>
+      <div class="product-cat">E-Book</div>
+      <div class="product-title">7-Day Gut Reset Protocol</div>
+      <div class="product-desc">Step-by-step digital guide to eliminate bloating, reset your gut microbiome, and restore digestive clarity in one week — using food, fasting, and targeted supplements.</div>
+      <div class="product-price">₹499</div>
+    </div>
+
+    <div class="product-card">
+      <div class="product-cat">E-Book</div>
+      <div class="product-title">Fasting for Women: The Complete Guide</div>
+      <div class="product-desc">Why standard fasting protocols fail women — and the cycle-synced approach that actually works. Covers hormones, hair loss, thyroid, and sustainable fat loss.</div>
+      <div class="product-price">₹799</div>
+    </div>
+
+    <div class="product-card">
+      <div class="product-badge">New</div>
+      <div class="product-cat">E-Book</div>
+      <div class="product-title">Dosha Cookbook: 60 Metabolic Recipes</div>
+      <div class="product-desc">Sixty seasonal, dosha-specific recipes built around metabolic biochemistry. Each dish targets gut healing, insulin sensitivity, or hormonal balance — with nutritional notes.</div>
+      <div class="product-price">₹999</div>
+    </div>
+
+    <div class="product-card">
+      <div class="product-badge">Premium</div>
+      <div class="product-cat">Audio</div>
+      <div class="product-title">Breathwork &amp; Healing Audio Bundle</div>
+      <div class="product-desc">Four guided breathwork sessions (15–30 min each) for nervous system reset, cortisol reduction, deep sleep, and morning energy activation.</div>
+      <div class="product-price">₹1,299</div>
+    </div>
+
+    <div class="product-card" style="border-color:#2a2010; grid-column: span 2; background: linear-gradient(135deg, #0d0b06 0%, var(--dark3) 100%);">
+      <div class="product-badge" style="background:var(--gold);">Best Value</div>
+      <div class="product-cat">Bundle</div>
+      <div class="product-title">Metabolic Reset Starter Bundle</div>
+      <div class="product-desc" style="max-width:380px;">Everything to begin: 7-Day Gut Reset + Fasting for Women + Breathwork Audio Bundle. The complete starter stack at a 30% saving over individual purchase.</div>
+      <div style="display:flex; align-items:baseline; gap:12px;">
+        <div class="product-price">₹1,799</div>
+        <div style="font-size:0.72rem; color:var(--muted); text-decoration:line-through;">₹2,597 individually</div>
+        <div style="font-size:0.72rem; color:var(--gold);">Save ₹798</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <div class="cta-left">
+      <div class="cta-heading">Ready to begin your<br><span class="gold">metabolic reset?</span></div>
+      <div class="cta-sub">Book a consultation, join a cohort, or explore the digital product library — all at theanirudhcode.com. Limited slots per month.</div>
+    </div>
+    <div class="cta-contacts">
+      <div style="font-size:0.62rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); margin-bottom:6px;">Get in Touch</div>
+      <div class="cta-contact-item">
+        <span class="contact-label">Web</span>
+        <span class="contact-val">theanirudhcode.com</span>
+      </div>
+      <div class="cta-contact-item">
+        <span class="contact-label">Book</span>
+        <span class="contact-val">theanirudhcode.com/book</span>
+      </div>
+      <div style="margin-top:10px; padding-top:10px; border-top:1px solid #1e1e1e;">
+        <div style="font-size:0.68rem; color:var(--muted); line-height:1.6;">
+          All consultations are virtual.<br>Bookings confirmed within 24 hours.<br>Slots open monthly.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-footer">
+    <span>Dr. Anirudh — theanirudhcode.com</span>
+    <span style="color:var(--gold);">Book via the website</span>
+  </div>
+</div>
+
+</body>
+</html>

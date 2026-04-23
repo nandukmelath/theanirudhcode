@@ -17,8 +17,11 @@ router.post('/register', async (req, res) => {
   const cleanName = sanitize(name.trim());
   const cleanEmail = email.trim().toLowerCase();
   const rawPhone = (phone || '').trim();
-  if (rawPhone && !/^[6-9]\d{9}$/.test(rawPhone.replace(/[\s\-+]/g, '').replace(/^(0|91)/, ''))) {
-    return res.status(400).json({ error: 'Please enter a valid 10-digit Indian mobile number' });
+  if (rawPhone) {
+    const digits = rawPhone.replace(/[\s\-+().]/g, '');
+    if (!/^\d{7,15}$/.test(digits)) {
+      return res.status(400).json({ error: 'Please enter a valid phone number' });
+    }
   }
   const cleanPhone = sanitize(rawPhone);
 

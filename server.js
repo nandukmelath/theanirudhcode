@@ -14,6 +14,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+      scriptSrcAttr: ["'none'"],
       styleSrc: ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:"],
@@ -28,6 +29,16 @@ app.use(cookieParser());
 
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));
+
+// CSRF: reject non-JSON mutation requests (prevents cross-site form submissions)
+function csrfGuard(req, res, next) {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+  const ct = req.headers['content-type'] || '';
+  if (ct.startsWith('application/json')) return next();
+  return res.status(415).json({ error: 'Content-Type must be application/json' });
+}
+app.use('/api', csrfGuard);
+app.use('/portal-management', csrfGuard);
 
 // Stricter rate limits for auth (must be BEFORE general API limiter)
 app.use('/api/auth/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many login attempts. Please try again later.' } }));

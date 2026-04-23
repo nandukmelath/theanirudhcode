@@ -169,6 +169,7 @@ body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;
 
 <script>
 // ── Helpers ──────────────────────────────────────────────────────────────
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function fmt(dateStr) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en', {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
@@ -208,9 +209,9 @@ function renderCard(a, isPast) {
   const showTimeline = !isPast && a.status === 'confirmed' && hoursAway < totalWindow;
 
   let details = '';
-  if (a.health_concerns) details += `<div class="appt-detail-row"><span class="appt-detail-label">Concerns</span><span class="appt-detail-val">${a.health_concerns}</span></div>`;
-  if (a.medical_history) details += `<div class="appt-detail-row"><span class="appt-detail-label">History</span><span class="appt-detail-val">${a.medical_history}</span></div>`;
-  if (a.goals)           details += `<div class="appt-detail-row"><span class="appt-detail-label">Goals</span><span class="appt-detail-val">${a.goals}</span></div>`;
+  if (a.health_concerns) details += `<div class="appt-detail-row"><span class="appt-detail-label">Concerns</span><span class="appt-detail-val">${esc(a.health_concerns)}</span></div>`;
+  if (a.medical_history) details += `<div class="appt-detail-row"><span class="appt-detail-label">History</span><span class="appt-detail-val">${esc(a.medical_history)}</span></div>`;
+  if (a.goals)           details += `<div class="appt-detail-row"><span class="appt-detail-label">Goals</span><span class="appt-detail-val">${esc(a.goals)}</span></div>`;
 
   return `
     <div class="appt-card${isPast ? ' is-past' : ''}" id="card-${a.id}">

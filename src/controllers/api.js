@@ -3,6 +3,13 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const { validateEmail, sanitize } = require('../middleware/validate');
 const wa = require('../lib/whatsapp');
+const sanitizeHtml = require('sanitize-html');
+
+const BLOG_SAFE = {
+  allowedTags: ['p', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 'a', 'blockquote', 'br', 'hr', 'span'],
+  allowedAttributes: { 'a': ['href', 'target', 'rel'] },
+  allowedSchemes: ['https', 'http', 'mailto'],
+};
 
 // POST /api/subscribe
 router.post('/subscribe', async (req, res) => {
@@ -48,7 +55,7 @@ router.post('/consultation', async (req, res) => {
         name: sanitize(name.trim()),
         email: email.trim().toLowerCase(),
         phone: sanitize((phone || '').trim()) || null,
-        preferredDate: preferred_date || null,
+        preferredDate: preferred_date ? sanitize(preferred_date.trim()) : null,
         message: sanitize((message || '').trim()) || null,
       }
     });
@@ -91,7 +98,7 @@ router.get('/posts/:slug', async (req, res) => {
   try {
     const post = await prisma.post.findUnique({ where: { slug: req.params.slug } });
     if (!post || !post.published) return res.status(404).json({ error: 'Post not found' });
-    res.json({ post });
+    res.json({ post: { ...post, content: sanitizeHtml(post.content, BLOG_SAFE) } });
   } catch (err) {
     console.error('Post detail error:', err);
     res.status(500).json({ error: 'Failed to load post' });
