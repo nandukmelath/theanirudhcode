@@ -12,6 +12,8 @@ services:
         value: 3000
       - key: PRACTITIONER_TZ_OFFSET
         value: "+05:30"
+      - key: PRACTITIONER_TZ_NAME
+        value: "Asia/Kolkata"
       - key: RESEND_FROM
         sync: false
       - key: JWT_SECRET

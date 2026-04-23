@@ -209,9 +209,16 @@ async function checkCalendarStatus() {
   try {
     const res  = await fetch('/api/calendar/status', { headers: getHeaders() });
     const data = await res.json();
-    const statusEl  = document.getElementById('cal-status');
-    const actionsEl = document.getElementById('cal-actions');
+    const statusEl   = document.getElementById('cal-status');
+    const actionsEl  = document.getElementById('cal-actions');
     const selectorEl = document.getElementById('cal-selector');
+
+    if (!data.configured) {
+      // Credentials not in env — show setup instructions, no connect button
+      statusEl.innerHTML  = '<div class="cal-dot off"></div><span style="color:var(--muted);font-size:13px">Not Configured</span>';
+      actionsEl.innerHTML = '<p style="font-size:12px;color:var(--muted);line-height:1.6;margin:0;">Add <code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code>, and <code>GOOGLE_REDIRECT_URI</code> to your Render environment variables, then redeploy to enable Google Calendar sync.</p>';
+      return;
+    }
 
     if (data.connected) {
       statusEl.innerHTML  = `<div class="cal-dot on"></div><span style="color:#6fbf73;font-size:13px">Connected</span>${data.calendarId ? `<span style="color:var(--muted);font-size:12px;margin-left:8px">(${data.calendarId})</span>` : ''}`;
