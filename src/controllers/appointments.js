@@ -63,57 +63,67 @@ router.post('/book', authenticate, async (req, res) => {
   const cleanHistory  = sanitize((medical_history || '').trim());
   const cleanGoals    = sanitize((goals || '').trim());
 
+  let appointment;
   try {
-    // Check for slot conflict
-    const existing = await prisma.appointment.findFirst({
-      where: { date, timeStart: time_start, status: 'confirmed' }
-    });
-    if (existing) {
+    // Serializable transaction: conflict check + insert are atomic.
+    // The partial unique index (idx_appt_confirmed_slot) is the last line of defence
+    // at the DB level; P2002 (unique violation) and P2034 (serialization failure)
+    // are both surfaced as a 409 to the client.
+    appointment = await prisma.$transaction(async (tx) => {
+      const existing = await tx.appointment.findFirst({
+        where: { date, timeStart: time_start, status: 'confirmed' }
+      });
+      if (existing) {
+        const e = new Error('SLOT_TAKEN');
+        e.code  = 'SLOT_TAKEN';
+        throw e;
+      }
+      return tx.appointment.create({
+        data: {
+          userId:            req.user.id,
+          date,
+          timeStart:         time_start,
+          timeEnd:           time_end,
+          consultationType:  tierKey,
+          consultationPrice: tier.price,
+          healthConcerns:    cleanConcerns,
+          medicalHistory:    cleanHistory || null,
+          goals:             cleanGoals  || null,
+        }
+      });
+    }, { isolationLevel: 'Serializable' });
+  } catch (err) {
+    if (err.code === 'SLOT_TAKEN' || err.code === 'P2002' || err.code === 'P2034') {
       return res.status(409).json({ error: 'This time slot has already been booked. Please choose another.' });
     }
-
-    const appointment = await prisma.appointment.create({
-      data: {
-        userId:              req.user.id,
-        date,
-        timeStart:           time_start,
-        timeEnd:             time_end,
-        consultationType:    tierKey,
-        consultationPrice:   tier.price,
-        healthConcerns:      cleanConcerns,
-        medicalHistory:      cleanHistory || null,
-        goals:               cleanGoals  || null,
-      }
-    });
-
-    // Google Calendar (non-critical — swallow errors)
-    try {
-      const eventId = await createCalendarEvent(
-        { date, time_start, time_end, health_concerns: cleanConcerns, medical_history: cleanHistory, goals: cleanGoals },
-        req.user
-      );
-      if (eventId) {
-        await prisma.appointment.update({
-          where: { id: appointment.id },
-          data: { googleEventId: eventId }
-        });
-      }
-    } catch {}
-
-    // WhatsApp notifications (fire-and-forget)
-    const apptData = { date, time_start, time_end, health_concerns: cleanConcerns, goals: cleanGoals, medical_history: cleanHistory };
-    wa.sendBookingConfirmation(req.user.phone, req.user.name, apptData).catch(() => {});
-    wa.sendAdminNewBooking(apptData, req.user).catch(() => {});
-
-    res.status(201).json({
-      success: true,
-      message: 'Appointment booked successfully!',
-      appointment: { id: appointment.id, date, time_start, time_end, status: 'confirmed' }
-    });
-  } catch (err) {
     console.error('Booking error:', err);
-    res.status(500).json({ error: 'Failed to book appointment. Please try again.' });
+    return res.status(500).json({ error: 'Failed to book appointment. Please try again.' });
   }
+
+  // Google Calendar (non-critical — swallow errors)
+  try {
+    const eventId = await createCalendarEvent(
+      { date, time_start, time_end, health_concerns: cleanConcerns, medical_history: cleanHistory, goals: cleanGoals },
+      req.user
+    );
+    if (eventId) {
+      await prisma.appointment.update({
+        where: { id: appointment.id },
+        data: { googleEventId: eventId }
+      });
+    }
+  } catch {}
+
+  // WhatsApp notifications (fire-and-forget)
+  const apptData = { date, time_start, time_end, health_concerns: cleanConcerns, goals: cleanGoals, medical_history: cleanHistory };
+  wa.sendBookingConfirmation(req.user.phone, req.user.name, apptData).catch(() => {});
+  wa.sendAdminNewBooking(apptData, req.user).catch(() => {});
+
+  res.status(201).json({
+    success: true,
+    message: 'Appointment booked successfully!',
+    appointment: { id: appointment.id, date, time_start, time_end, status: 'confirmed' }
+  });
 });
 
 // GET /api/appointments/my (authenticated)
@@ -155,7 +165,8 @@ router.post('/:id/cancel', authenticate, async (req, res) => {
     }
 
     if (req.user.role !== 'admin') {
-      const apptTime = new Date(`${appointment.date}T${appointment.timeStart}:00+05:30`);
+      const tzOffset  = process.env.PRACTITIONER_TZ_OFFSET || '+05:30';
+      const apptTime  = new Date(`${appointment.date}T${appointment.timeStart}:00${tzOffset}`);
       const hoursUntil = (apptTime.getTime() - Date.now()) / (1000 * 60 * 60);
       if (hoursUntil < 24) {
         return res.status(400).json({ error: 'Appointments can only be cancelled at least 24 hours in advance' });

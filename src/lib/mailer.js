@@ -1,23 +1,45 @@
 /**
- * Mailer — SMTP via Gmail (Nodemailer)
- * Sends welcome email on registration
+ * Mailer — Resend (primary) → SMTP/Gmail (fallback), 1 retry each
  */
 
 const nodemailer = require('nodemailer');
+const axios = require('axios');
 
-function getTransporter() {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    return null;
-  }
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
+const FROM_ADDRESS = process.env.RESEND_FROM || process.env.SMTP_FROM || 'theanirudhcode <noreply@theanirudhcode.com>';
+
+async function sendViaResend(to, subject, html) {
+  if (!process.env.RESEND_API_KEY) return false;
+  await axios.post('https://api.resend.com/emails', { from: FROM_ADDRESS, to, subject, html }, {
+    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+    timeout: 10000,
   });
+  return true;
+}
+
+async function sendViaSmtp(to, subject, html) {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) return false;
+  const transporter = nodemailer.createTransport({
+    host:   process.env.SMTP_HOST,
+    port:   parseInt(process.env.SMTP_PORT) || 587,
+    secure: false,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+  await transporter.sendMail({ from: FROM_ADDRESS, to, subject, html });
+  return true;
+}
+
+async function trySend(fn, to, subject, html) {
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const sent = await fn(to, subject, html);
+      if (!sent) return false; // provider not configured — skip to next
+      return true;
+    } catch (err) {
+      console.error(`[Mailer] Attempt ${attempt} failed (${fn.name}):`, err.message);
+      if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+  return false;
 }
 
 function welcomeEmailHtml(name) {
@@ -175,25 +197,17 @@ function welcomeEmailHtml(name) {
 }
 
 async function sendWelcomeEmail(email, name) {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.log(`[Mailer] Not configured — skipping welcome email to ${email}`);
-    return false;
+  const subject = `Welcome to theanirudhcode, ${name.split(' ')[0]} — Your healing journey begins`;
+  const html    = welcomeEmailHtml(name);
+
+  // Try Resend first, then SMTP, 1 retry per provider
+  for (const provider of [sendViaResend, sendViaSmtp]) {
+    const sent = await trySend(provider, email, subject, html);
+    if (sent) { console.log(`[Mailer] ✓ Welcome email sent via ${provider.name} to ${email}`); return true; }
   }
 
-  try {
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || `theanirudhcode <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: `Welcome to theanirudhcode, ${name.split(' ')[0]} — Your healing journey begins`,
-      html: welcomeEmailHtml(name),
-    });
-    console.log(`[Mailer] ✓ Welcome email sent to ${email}`);
-    return true;
-  } catch (err) {
-    console.error('[Mailer] Error:', err.message);
-    return false;
-  }
+  console.error(`[Mailer] All delivery attempts failed for ${email}`);
+  return false;
 }
 
 module.exports = { sendWelcomeEmail };

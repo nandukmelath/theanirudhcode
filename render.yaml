@@ -3,13 +3,17 @@ services:
     name: theanirudhcode
     runtime: node
     plan: free
-    buildCommand: npm install && node prisma/migrate-new-features.js
+    buildCommand: npm install && node prisma/migrate-new-features.js && node prisma/migrate-phase3.js
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 3000
+      - key: PRACTITIONER_TZ_OFFSET
+        value: "+05:30"
+      - key: RESEND_FROM
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRY
