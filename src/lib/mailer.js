@@ -5,11 +5,13 @@
 const nodemailer = require('nodemailer');
 const axios = require('axios');
 
-const FROM_ADDRESS = process.env.RESEND_FROM || process.env.SMTP_FROM || 'theanirudhcode <noreply@theanirudhcode.com>';
+const SMTP_FROM    = process.env.SMTP_FROM    || 'Dr. Anirudh | theanirudhcode <nandukannanmelath@gmail.com>';
+const RESEND_FROM  = process.env.RESEND_FROM  || SMTP_FROM;
+const FROM_ADDRESS = SMTP_FROM; // used by SMTP; Resend uses RESEND_FROM
 
 async function sendViaResend(to, subject, html) {
   if (!process.env.RESEND_API_KEY) return false;
-  await axios.post('https://api.resend.com/emails', { from: FROM_ADDRESS, to, subject, html }, {
+  await axios.post('https://api.resend.com/emails', { from: RESEND_FROM, to, subject, html }, {
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
     timeout: 10000,
   });
@@ -19,9 +21,13 @@ async function sendViaResend(to, subject, html) {
 async function sendViaSmtp(to, subject, html) {
   if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) return false;
   const transporter = nodemailer.createTransport({
-    host:   process.env.SMTP_HOST,
-    port:   parseInt(process.env.SMTP_PORT) || 587,
-    secure: false,
+    host:              process.env.SMTP_HOST,
+    port:              parseInt(process.env.SMTP_PORT) || 587,
+    secure:            false,
+    family:            4,     // Force IPv4 — Railway/GCP blocks IPv6 SMTP
+    connectionTimeout: 8000,  // fail fast if GCP blocks the port
+    greetingTimeout:   8000,
+    socketTimeout:     10000,
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
   });
   await transporter.sendMail({ from: FROM_ADDRESS, to, subject, html });
@@ -306,13 +312,10 @@ async function sendConsultationReply(email, name, reply) {
 async function sendWelcomeEmail(email, name) {
   const subject = `Welcome to theanirudhcode, ${name.split(' ')[0]} — Your healing journey begins`;
   const html    = welcomeEmailHtml(name);
-
-  // Try Resend first, then SMTP, 1 retry per provider
   for (const provider of [sendViaResend, sendViaSmtp]) {
     const sent = await trySend(provider, email, subject, html);
     if (sent) { console.log(`[Mailer] ✓ Welcome email sent via ${provider.name} to ${email}`); return true; }
   }
-
   console.error(`[Mailer] All delivery attempts failed for ${email}`);
   return false;
 }

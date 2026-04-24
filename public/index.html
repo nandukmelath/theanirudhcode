@@ -60,10 +60,11 @@
    BASE
 ═══════════════════════════════════════ */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;overflow-x:hidden;line-height:1.6;text-rendering:optimizeLegibility}
+html{scroll-behavior:smooth;overflow-x:hidden;width:100%;overscroll-behavior-x:none}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;overflow-x:hidden;width:100%;max-width:100%;overscroll-behavior-x:none;line-height:1.6;text-rendering:optimizeLegibility}
 img,canvas,svg{display:block;max-width:100%}
-section{position:relative;z-index:10}
+section{position:relative;z-index:10;overflow-x:hidden}
+footer{overflow-x:hidden}
 
 
 /* ═══════════════════════════════════════
@@ -95,11 +96,11 @@ nav.s{background:rgba(7,7,7,.94);backdrop-filter:blur(20px);border-bottom:1px so
 .ncta:hover{background:var(--gold-d);border-color:var(--gold)}
 .hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;padding:4px}
 .hamburger span{display:block;width:22px;height:1px;background:var(--gold2);transition:all .3s}
-.mmenu{display:none;position:fixed;inset:0;z-index:490;background:rgba(7,7,7,.97);backdrop-filter:blur(24px);flex-direction:column;justify-content:center;align-items:center;gap:36px}
+.mmenu{display:none;position:fixed;inset:0;z-index:6000;background:rgba(7,7,7,.97);backdrop-filter:blur(24px);flex-direction:column;justify-content:center;align-items:center;gap:clamp(20px,4vh,36px);overflow-y:auto}
 .mmenu.open{display:flex}
-.mmenu a{font-family:'Cormorant',serif;font-size:clamp(30px,6vw,50px);font-weight:300;font-style:italic;color:var(--white);text-decoration:none;letter-spacing:.06em;transition:color .3s}
+.mmenu a{font-family:'Cormorant',serif;font-size:clamp(26px,6vw,50px);font-weight:300;font-style:italic;color:var(--white);text-decoration:none;letter-spacing:.06em;transition:color .3s}
 .mmenu a:hover{color:var(--gold)}
-.mclose{position:absolute;top:22px;right:var(--px);background:none;border:none;color:var(--gold);font-size:26px}
+.mclose{position:fixed;top:18px;right:20px;background:rgba(7,7,7,.6);border:1px solid rgba(200,169,81,.28);color:var(--gold);font-size:20px;width:42px;height:42px;display:flex;align-items:center;justify-content:center;z-index:6001;cursor:pointer;line-height:1}
 
 /* ═══════════════════════════════════════
    HERO
@@ -119,7 +120,7 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 .btn-g span{position:relative;z-index:1}
 .btn-o{background:transparent;border:1px solid rgba(200,169,81,.28);color:var(--gold3);padding:clamp(12px,1.4vw,17px) clamp(26px,2.8vw,48px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;transition:all .35s}
 .btn-o:hover{border-color:var(--gold);background:var(--gold-d)}
-.hero-r{display:flex;justify-content:center;align-items:center;position:relative;min-height:clamp(340px,48vw,620px);width:100%;opacity:0;animation:fadein 1.6s 1.4s forwards}
+.hero-r{display:flex;justify-content:center;align-items:center;position:relative;min-height:clamp(340px,48vw,620px);width:100%;opacity:0;animation:fadein 1.6s 1.4s forwards;overflow:hidden}
 .orbwrap{position:relative;width:min(100%,clamp(320px,42vw,620px));aspect-ratio:1/1;display:grid;place-items:center;margin-inline:auto}
 #orb{border-radius:50%;width:100%;height:100%;aspect-ratio:1/1}
 .orbring{position:absolute;inset:-24px;border-radius:50%;border:1px solid rgba(200,169,81,.08);animation:spinring 20s linear infinite}
@@ -177,7 +178,7 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 .phi-t h2 em{font-style:italic;color:var(--gold2)}
 .phi-t p{font-size:var(--fb);color:var(--muted);line-height:2.1;font-weight:300;margin-top:clamp(14px,2vw,24px);max-width:470px}
 .phi-t .qpull{margin-top:clamp(24px,3.5vw,44px);padding:clamp(18px,2.5vw,28px);border-left:2px solid var(--gold);background:rgba(200,169,81,.04);font-family:'Cormorant',serif;font-style:italic;font-size:clamp(16px,1.8vw,22px);font-weight:300;color:var(--gold3);line-height:1.65}
-.phi-v{position:relative;display:flex;justify-content:center;align-items:center;height:clamp(340px,48vw,540px)}
+.phi-v{position:relative;display:flex;justify-content:center;align-items:center;height:clamp(340px,48vw,540px);overflow:hidden}
 .phi-glow{position:absolute;inset:-20%;border-radius:50%;background:radial-gradient(ellipse,rgba(200,169,81,.05) 0%,transparent 65%);pointer-events:none}
 
 /* ═══════════════════════════════════════
@@ -501,19 +502,19 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   .toast{min-width:auto}
 }
 @media(max-width:540px){
-  .hero{text-align:left;padding-left:18px;padding-right:18px}
-  .hdesc{max-width:100%}
-  .hcta{flex-direction:column}
-  .hcta .btn-g,.hcta .btn-o{width:100%}
+  .hero{text-align:center;padding-left:18px;padding-right:18px}
+  .hdesc{max-width:100%;margin-left:auto;margin-right:auto}
+  .hcta{flex-direction:column;align-items:center}
+  .hcta .btn-g,.hcta .btn-o{width:100%;max-width:320px}
   .hero-r{min-height:min(92vw,420px)}
   .orbwrap{width:min(100%,400px)}
   .orbring{inset:-14px}
   .orbring2{inset:-24px}
   .stats{grid-template-columns:1fr}
   .booking-slots{grid-template-columns:1fr}
-  footer{grid-template-columns:1fr}
-  .flinks-col{display:none}
-  .flinks-col:last-child{display:block}
+  footer{grid-template-columns:1fr 1fr}
+  .fbrand{grid-column:1/-1}
+  .flinks-col,.flinks-col:last-child{display:block !important}
 }
 @media(max-width:420px){
   .orblabel{max-width:220px;white-space:normal;line-height:1.6}
@@ -528,7 +529,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 .prof-card-top{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);z-index:2}
 .prof-card-bot{position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(208,175,82,.3),transparent);z-index:2}
 .prof-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
-.prof-photo-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(7,7,7,.72) 0%,rgba(7,7,7,.08) 55%,transparent 100%);z-index:1;pointer-events:none}
+.prof-photo-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(7,7,7,.78) 0%,rgba(7,7,7,.04) 40%,transparent 70%);z-index:1;pointer-events:none}
 .prof-name-badge{position:absolute;bottom:20px;left:0;right:0;text-align:center;z-index:2;padding:0 16px}
 .prof-name-badge-inner{display:inline-block;background:rgba(7,7,7,.78);border:1px solid var(--line);padding:10px 20px;backdrop-filter:blur(10px)}
 .prof-name-badge-name{font-family:'Cormorant',serif;font-size:15px;font-weight:300;color:var(--gold2);letter-spacing:.06em}
@@ -644,7 +645,24 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 .product-buy-btn{background:transparent;border:1px solid rgba(200,169,81,.32);color:var(--gold2);padding:10px 22px;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.2em;text-transform:uppercase;transition:all .35s;cursor:pointer;white-space:nowrap}
 .product-buy-btn:hover{background:var(--gold-d);border-color:var(--gold)}
 @media(max-width:900px){.vault-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:580px){.vault-grid{grid-template-columns:1fr}}
+@media(max-width:580px){
+  .vault-grid{grid-template-columns:1fr}
+  /* Reset bundle card span — only 1 col exists on mobile */
+  .vault-grid .product-card{grid-column:span 1 !important}
+  /* Collapse the 2-col inline-styled features list */
+  .vault-grid .product-features{display:flex !important;flex-direction:column !important;grid-template-columns:unset !important}
+  /* Vault section padding on mobile */
+  .vault-section{padding-left:18px;padding-right:18px}
+  /* Product card inner padding tighter */
+  .product-card{padding:20px 16px}
+  /* Bundle buy button full-width on mobile */
+  .vault-grid .product-buy-btn{width:100% !important;text-align:center;padding:13px 16px !important;margin-top:12px}
+  /* Bundle footer stacks on mobile */
+  .vault-grid .product-footer{flex-direction:column;align-items:flex-start;gap:10px}
+  /* Vault heading collapses */
+  .vault-head{flex-direction:column;align-items:flex-start;gap:12px}
+  .vault-head p{max-width:100%}
+}
 
 /* Product Order Modal */
 .product-modal{display:none;position:fixed;inset:0;z-index:1200;background:rgba(7,7,7,.94);backdrop-filter:blur(24px);justify-content:center;align-items:center}
@@ -705,6 +723,166 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 .tier-select-btn{padding:8px 12px;font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.24em;text-transform:uppercase;background:transparent;border:1px solid var(--line);color:var(--muted);cursor:pointer;transition:all .3s;margin-top:auto}
 .tier-select-btn:hover,.tier-select-btn.chosen{background:var(--gold-d);border-color:var(--gold);color:var(--gold2)}
 @media(max-width:680px){.tier-grid{grid-template-columns:1fr}}
+
+/* ═══════════════════════════════════════
+   MOBILE — COMPREHENSIVE FIXES
+═══════════════════════════════════════ */
+
+/* ── Section horizontal padding on mobile ── */
+@media(max-width:768px){
+  .cpillars,
+  .philo,
+  .freebie,
+  .insights,
+  .manifesto,
+  .journey,
+  .testis,
+  .cta,
+  .profile,
+  .faq,
+  .tiers-section,
+  .vault-section,
+  .cohorts-section,
+  .truths-section,
+  .protocols{padding-left:clamp(18px,4.5vw,36px);padding-right:clamp(18px,4.5vw,36px)}
+
+  /* ── Nav: compact user button when logged in (shown alongside hamburger) ── */
+  .nav-user-btn{padding:7px 11px !important;font-size:9px !important;letter-spacing:.12em !important;white-space:nowrap}
+  .nav-auth{gap:8px}
+
+  /* ── Protocol tabs: horizontal scroll instead of wrap ── */
+  .prot-tabs{overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none;gap:6px}
+  .prot-tabs::-webkit-scrollbar{display:none}
+  .ptab{white-space:nowrap;flex-shrink:0;padding:8px 14px}
+
+  /* ── FAQ: show CTA button on mobile (critical for conversions) ── */
+  .faq-left .btn-g{display:inline-block}
+  .faq-left p{max-width:100%}
+
+  /* ── Profile card: cap height on tablet ── */
+  .prof-card{max-height:380px}
+
+  /* ── Product card: buy button full width on mobile ── */
+  .product-footer{flex-wrap:wrap;gap:10px}
+  .product-buy-btn{width:100%;text-align:center;justify-content:center}
+
+  /* ── Vault section heading: wrap gracefully ── */
+  .vault-head{flex-direction:column;align-items:flex-start;gap:14px}
+  .vault-head p{max-width:100%}
+
+  /* ── Cohort enroll button full width ── */
+  .cohort-enroll-btn{width:100%}
+
+  /* ── Mobile menu ── */
+  .mmenu .btn-g{padding:14px 40px;font-size:11px}
+  .mmenu .mm-auth{width:100%;display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:4px;padding-top:20px;border-top:1px solid rgba(200,169,81,.15)}
+  .mmenu .mm-auth a{font-size:clamp(22px,5vw,36px) !important}
+
+  /* ── Confirm value wrapping in booking ── */
+  .confirm-row{gap:8px}
+  .confirm-value{max-width:55%;word-break:break-word}
+
+  /* ── Testimonial quote mark size ── */
+  .tq{font-size:26px}
+
+  /* ── Insights section heading alignment ── */
+  .ins-head{gap:14px;align-items:flex-start}
+  .ins-head h2,.ins-head .ins-link{flex-shrink:0}
+}
+
+/* ── Small mobile (≤540px) comprehensive ── */
+@media(max-width:540px){
+  /* Profile card: portrait on mobile — shows the face */
+  .prof-card{aspect-ratio:3/4;width:min(100%,240px);max-height:none}
+  /* Hide name badge overlay on mobile — name is shown in the text section */
+  .prof-name-badge{display:none}
+  /* Remove bottom gradient since badge is gone */
+  .prof-photo-overlay{background:linear-gradient(to top,rgba(7,7,7,.18) 0%,transparent 50%)}
+
+  /* Calendar cells: minimum tappable target */
+  .cal-cell{min-height:38px;font-size:12px}
+  .cal-day-name{font-size:9px;padding:6px 0}
+
+  /* Time slots: bigger touch targets */
+  .booking-slot{min-height:56px;padding:10px 6px}
+  .slot-time{font-size:14px}
+
+  /* Toast above floating buttons */
+  #toast-container{bottom:88px}
+
+  /* Float CTA & back-to-top: avoid overlap */
+  .float-cta{right:14px;bottom:66px;padding:10px 14px;font-size:10px}
+  .btt{right:14px;bottom:14px;width:40px;height:40px}
+
+  /* Hero heading: prevent weird breaks */
+  h1.ht{word-break:keep-all;hyphens:none}
+
+  /* Blog cards: responsive image height */
+  .ins-img{height:clamp(140px,38vw,190px)}
+
+  /* Auth box compact */
+  .auth-box{width:96%;padding:24px 18px}
+  .auth-tab{font-size:9px;letter-spacing:.12em;padding:12px 8px}
+
+  /* Product: stack price & buy button */
+  .product-footer{flex-direction:column;align-items:flex-start;gap:12px}
+  .product-buy-btn{width:100%}
+
+  /* Cohort meta always 2-col */
+  .cohort-meta{grid-template-columns:1fr 1fr}
+
+  /* Doctor credentials: single column */
+  .prof-creds{grid-template-columns:1fr}
+
+  /* Tier price CTAs full width */
+  .tier-p-cta{padding:14px}
+
+  /* Manifesto & CTA heading: guard overflow */
+  .manifesto h2{word-break:keep-all;hyphens:auto}
+  .cta h2{font-size:clamp(38px,11vw,80px)}
+
+  /* Freebie form: ensure it breathes */
+  .fb-form{padding:24px 18px}
+
+  /* Booking nav: clear stacking */
+  .booking-nav{gap:10px}
+  .booking-nav .btn-g,.booking-nav .btn-o{width:100%;text-align:center;justify-content:center}
+
+  /* Modal padding compact */
+  .modal-content{padding:20px 16px 24px}
+
+  /* Journey step numbers */
+  .jsn{font-size:clamp(36px,9vw,52px)}
+
+  /* Stats row: bigger number clamped for tiny screens */
+  .stn{font-size:clamp(32px,9vw,60px)}
+
+  /* Marquee text size on mobile */
+  .mtrack span{font-size:clamp(14px,3.8vw,20px)}
+}
+
+/* ── Very small phones (≤380px) ── */
+@media(max-width:380px){
+  nav{padding:12px 14px}
+  .hero{padding-left:14px;padding-right:14px}
+  h1.ht{font-size:clamp(42px,12vw,72px);line-height:.92}
+  .hcta .btn-g,.hcta .btn-o{padding:12px 20px;font-size:9px;letter-spacing:.12em}
+  .cal-cell{min-height:32px;font-size:10px}
+  .stn{font-size:clamp(28px,8.5vw,44px)}
+  .ptab{font-size:9px;padding:7px 10px}
+  .booking-step-dot{width:28px;height:28px;font-size:11px}
+  .booking-steps{gap:8px}
+  .auth-box{padding:20px 14px}
+}
+
+/* ── iPhone notch / home-bar safe areas ── */
+@supports(padding:max(0px)){
+  .float-cta{bottom:max(66px,calc(60px + env(safe-area-inset-bottom)))}
+  .btt{bottom:max(14px,calc(10px + env(safe-area-inset-bottom)))}
+  #toast-container{bottom:max(88px,calc(80px + env(safe-area-inset-bottom)))}
+  .mmenu{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+  nav{padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right))}
+}
 
 </style>
 </head>
@@ -1706,6 +1884,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+/* ── Prevent horizontal swipe/wobble on mobile ── */
+(()=>{
+  const mm=document.getElementById('mm');
+  let _sx=0,_sy=0;
+  document.addEventListener('touchstart',e=>{
+    _sx=e.touches[0].clientX;
+    _sy=e.touches[0].clientY;
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    // Never interfere when mobile menu is open — let taps/scrolls work normally
+    if(mm&&mm.classList.contains('open')) return;
+    const dx=Math.abs(e.touches[0].clientX-_sx);
+    const dy=Math.abs(e.touches[0].clientY-_sy);
+    // Block only clear horizontal swipes (dx wins by >12px) on non-scrollable elements
+    if(dx>dy&&dx>12){
+      if(!e.target.closest('[data-hscroll],.prot-tabs,button,a,input,select')) {
+        e.preventDefault();
+      }
+    }
+  },{passive:false});
+})();
 </script>
 </body>
 </html>

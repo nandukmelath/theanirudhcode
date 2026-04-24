@@ -103,8 +103,14 @@ router.post('/forgot-password', async (req, res) => {
   res.json({ success: true, message: 'If an account with that email exists, you will receive a reset link shortly.' });
 
   try {
-    const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
-    if (!user || !user.isActive) return;
+    const cleanEmail = email.trim().toLowerCase();
+    console.log('[ForgotPwd] Looking up:', cleanEmail);
+    const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (!user || !user.isActive) {
+      console.log('[ForgotPwd] No active account for:', cleanEmail);
+      return;
+    }
+    console.log('[ForgotPwd] Found user:', user.id, '— generating token');
 
     const token    = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
@@ -113,10 +119,13 @@ router.post('/forgot-password', async (req, res) => {
     await prisma.passwordReset.updateMany({ where: { userId: user.id, used: false }, data: { used: true } });
     await prisma.passwordReset.create({ data: { userId: user.id, tokenHash, expiresAt } });
 
-    const base = process.env.APP_URL || 'https://theanirudhcode.onrender.com';
-    await sendPasswordResetEmail(user.email, user.name, `${base}/reset-password?token=${token}`);
+    const base = process.env.APP_URL || 'https://www.theanirudhcode.com';
+    const resetUrl = `${base}/reset-password?token=${token}`;
+    console.log('[ForgotPwd] Sending reset email to:', user.email, '— URL base:', base);
+    const sent = await sendPasswordResetEmail(user.email, user.name, resetUrl);
+    console.log('[ForgotPwd] Email sent result:', sent);
   } catch (err) {
-    console.error('Forgot password error:', err);
+    console.error('[ForgotPwd] Error:', err.message, err.stack);
   }
 });
 

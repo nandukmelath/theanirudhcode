@@ -107,8 +107,31 @@ select.status-select{background:var(--black);color:var(--muted);border:1px solid
 .toggle-check{accent-color:var(--gold);transform:scale(1.2);margin-right:6px;cursor:pointer}
 .post-published{color:#6fbf73}.post-draft{color:var(--amber)}
 
-@media(max-width:768px){.settings-grid{grid-template-columns:1fr}.admin-wrap{padding:20px}}
-@media(max-width:540px){.tab-bar{flex-direction:column}}
+@media(max-width:768px){
+  .settings-grid{grid-template-columns:1fr}
+  .admin-wrap{padding:16px}
+  .admin-header{flex-direction:column;align-items:flex-start;gap:12px}
+  .admin-header h1{font-size:22px}
+  .modal-box{padding:20px}
+  .modal-box.wide{max-width:100%;margin:0}
+  .post-fields-grid{grid-template-columns:1fr !important}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:540px){
+  .tab-bar{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+  .tab-btn{padding:9px 8px;font-size:10px;letter-spacing:.1em;text-align:center}
+  .admin-wrap{padding:12px}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .stat-card{padding:16px 12px}
+  .stat-card .num{font-size:32px}
+  .table-wrap{-webkit-overflow-scrolling:touch}
+  td{font-size:12px;padding:10px 10px}
+  th{font-size:9px;padding:10px 10px}
+  .export-btn{width:100%;text-align:center;margin-bottom:14px}
+  .modal-overlay{padding:0}
+  .modal-box{border-radius:0;max-height:100vh;height:100%;overflow-y:auto}
+  .modal-box.wide{border-radius:0}
+}
 </style>
 </head>
 <body>
@@ -275,7 +298,7 @@ select.status-select{background:var(--black);color:var(--muted);border:1px solid
     <button class="modal-close" id="post-modal-close">&times;</button>
     <div class="modal-title" id="post-modal-title">New Post</div>
     <input type="hidden" id="post-edit-id">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="post-fields-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div class="modal-field">
         <label>Title *</label>
         <input class="modal-input" id="post-title" placeholder="Post title">

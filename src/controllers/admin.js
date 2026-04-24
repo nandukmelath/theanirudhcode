@@ -52,7 +52,7 @@ router.get('/api/subscribers', hybridAdminAuth, async (req, res) => {
 
 router.delete('/api/subscribers/:id', hybridAdminAuth, async (req, res) => {
   try {
-    await prisma.subscriber.delete({ where: { id: parseInt(req.params.id) } });
+    await prisma.subscriber.delete({ where: { id: parseInt(req.params.id, 10) } });
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ error: 'Subscriber not found' });
@@ -173,10 +173,15 @@ router.get('/api/posts', hybridAdminAuth, async (req, res) => {
   }
 });
 
+const VALID_CANVAS_TYPES = ['gut', 'mind', 'heart', 'body', 'soul', 'lifestyle', 'nutrition', 'general'];
+
 router.post('/api/posts', hybridAdminAuth, async (req, res) => {
   const { title, slug, category, tags, excerpt, content, canvasType, published } = req.body;
   if (!title?.trim() || !excerpt?.trim() || !content?.trim() || !category?.trim()) {
     return res.status(400).json({ error: 'Title, category, excerpt, and content are required' });
+  }
+  if (canvasType && !VALID_CANVAS_TYPES.includes(canvasType)) {
+    return res.status(400).json({ error: `canvasType must be one of: ${VALID_CANVAS_TYPES.join(', ')}` });
   }
   const rawSlug = slug?.trim() || title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -205,6 +210,10 @@ router.put('/api/posts/:id', hybridAdminAuth, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (!id) return res.status(400).json({ error: 'Invalid post ID' });
   const { title, slug, category, tags, excerpt, content, canvasType, published } = req.body;
+
+  if (canvasType !== undefined && !VALID_CANVAS_TYPES.includes(canvasType)) {
+    return res.status(400).json({ error: `canvasType must be one of: ${VALID_CANVAS_TYPES.join(', ')}` });
+  }
 
   const data = {};
   if (title !== undefined) data.title = sanitize(title.trim());
@@ -249,6 +258,42 @@ router.get('/api/users', hybridAdminAuth, async (req, res) => {
   } catch (err) {
     console.error('Users error:', err);
     res.status(500).json({ error: 'Failed to load users' });
+  }
+});
+
+// Activate/deactivate or promote/demote a user
+router.patch('/api/users/:id', hybridAdminAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id || id < 1) return res.status(400).json({ error: 'Invalid user ID' });
+
+  const { isActive, role } = req.body;
+  const data = {};
+
+  if (isActive !== undefined) data.isActive = Boolean(isActive);
+  if (role !== undefined) {
+    if (!['patient', 'admin'].includes(role)) return res.status(400).json({ error: 'Invalid role. Must be patient or admin.' });
+    data.role = role;
+  }
+
+  if (Object.keys(data).length === 0) return res.status(400).json({ error: 'No valid fields to update' });
+
+  // Prevent admin from deactivating or demoting their own account
+  if (req.user && req.user.id && req.user.id === id) {
+    if (data.isActive === false) return res.status(400).json({ error: 'You cannot deactivate your own account' });
+    if (data.role === 'patient') return res.status(400).json({ error: 'You cannot demote your own admin account' });
+  }
+
+  try {
+    const user = await prisma.user.update({
+      where: { id },
+      data,
+      select: { id: true, name: true, email: true, role: true, isActive: true }
+    });
+    res.json({ success: true, user });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ error: 'User not found' });
+    console.error('Update user error:', err);
+    res.status(500).json({ error: 'Failed to update user' });
   }
 });
 

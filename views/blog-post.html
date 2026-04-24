@@ -52,7 +52,19 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:clamp(14px,2vw,26px)
 
 footer{text-align:center;padding:clamp(20px,3vw,32px) var(--px);font-size:11px;color:rgba(248,244,236,.28);letter-spacing:.1em;border-top:1px solid var(--line)}
 @media(max-width:780px){nav{flex-wrap:wrap;gap:12px;align-items:flex-start}.back-link{width:100%}.article-wrap{padding-top:120px}}
-@media(max-width:540px){.article-wrap,.related{padding-left:18px;padding-right:18px}.article-content{line-height:1.85}}
+@media(max-width:540px){
+  .article-wrap,.related{padding-left:18px;padding-right:18px}
+  .article-content{line-height:1.85}
+  .article-title{font-size:clamp(26px,7vw,40px)}
+  .share-bar{flex-direction:column;align-items:flex-start;gap:12px}
+  .share-btn{width:100%;text-align:center}
+  .article-content blockquote{padding:14px 16px;margin:16px 0}
+  .related-card{padding:16px}
+  .article-meta{gap:12px}
+}
+@supports(padding:max(0px)){
+  nav{padding-left:max(var(--px),env(safe-area-inset-left));padding-right:max(var(--px),env(safe-area-inset-right))}
+}
 </style>
 </head>
 <body>

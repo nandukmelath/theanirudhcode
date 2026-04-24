@@ -75,14 +75,14 @@ const Auth = {
 
     if (this.isLoggedIn()) {
       el.innerHTML =
-        '<a href="/my-appointments" class="mml" style="font-size:clamp(20px,4vw,32px)">My Appointments</a>' +
-        (this.isAdmin() ? '<a href="/portal-management" class="mml" style="font-size:clamp(20px,4vw,32px)">Admin</a>' : '') +
-        '<button type="button" class="btn-o mm-lo" style="margin-top:12px"><span>Sign Out</span></button>';
+        '<a href="/my-appointments" class="mml">My Appointments</a>' +
+        (this.isAdmin() ? '<a href="/portal-management" class="mml">Admin</a>' : '') +
+        '<button type="button" class="btn-o mm-lo" style="margin-top:8px;min-width:200px"><span>Sign Out</span></button>';
       el.querySelector('.mm-lo').onclick = () => this.logout();
     } else {
       el.innerHTML =
-        '<a href="/login"    class="mml" style="font-size:clamp(20px,4vw,32px);color:var(--gold2)">Login</a>' +
-        '<a href="/register" class="mml" style="font-size:clamp(20px,4vw,32px)">Register</a>';
+        '<a href="/login"    class="mml" style="color:var(--gold2)">Login</a>' +
+        '<a href="/register" class="mml">Register</a>';
     }
     mm.appendChild(el);
   },

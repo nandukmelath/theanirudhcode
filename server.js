@@ -8,6 +8,9 @@ const { startReminderScheduler } = require('./src/lib/reminders');
 
 const app = express();
 
+// Trust Railway/Cloudflare proxy so rate-limiter uses real client IP, not proxy IP
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet({
   contentSecurityPolicy: {
@@ -51,6 +54,15 @@ app.use('/api/consultation',         rateLimit({ windowMs: 60 * 60 * 1000, max: 
 app.use('/api', rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again later.' }
+}));
+
+// Rate limiting for admin portal
+app.use('/portal-management', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests. Please try again later.' }

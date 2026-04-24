@@ -4,7 +4,12 @@ window.addEventListener('scroll',()=>nav.classList.toggle('s',scrollY>60));
 const ham=document.getElementById('ham'),mm=document.getElementById('mm'),mc=document.getElementById('mc');
 ham.onclick=()=>mm.classList.add('open');
 mc.onclick=()=>mm.classList.remove('open');
-document.querySelectorAll('.mml').forEach(l=>l.addEventListener('click',()=>mm.classList.remove('open')));
+// Use event delegation so dynamically-added auth links (added by auth.js after page load) also close the menu
+mm.addEventListener('click',e=>{
+  const link=e.target.closest('a[href]');
+  const btn=e.target.closest('.mm-lo');
+  if(link||btn) mm.classList.remove('open');
+});
 
 /* ═══════════ BG CANVAS ═══════════ */
 (()=>{
