@@ -51,6 +51,7 @@ mm.addEventListener('click',e=>{
     return Math.floor(Math.min(isTablet?560:620,widthLimit,heightLimit));
   }
   let s=sz();
+  let lastWidth=window.innerWidth;
   if(orbWrap){orbWrap.style.width=`${s}px`;orbWrap.style.height=`${s}px`;}
   canvas.width=s;canvas.height=s;
   canvas.style.width=`${s}px`;
@@ -150,7 +151,12 @@ mm.addEventListener('click',e=>{
   // ── Mouse tracking (smooth) ──
   let omx=0,omy=0,smx=0,smy=0;
   document.addEventListener('mousemove',e=>{omx=(e.clientX/innerWidth-.5)*2;omy=-(e.clientY/innerHeight-.5)*2},{passive:true});
-  window.addEventListener('resize',()=>{
+  // Debounced resize that ONLY reacts to width changes — prevents orb jitter on
+  // mobile when the address bar shows/hides (which only changes innerHeight).
+  let _rt=null;
+  function onResize(){
+    if(window.innerWidth===lastWidth)return; // height-only change (mobile chrome) → ignore
+    lastWidth=window.innerWidth;
     s=sz();
     if(orbWrap){orbWrap.style.width=`${s}px`;orbWrap.style.height=`${s}px`;}
     canvas.width=s;
@@ -160,7 +166,9 @@ mm.addEventListener('click',e=>{
     renderer.setSize(s,s,false);
     renderer.setPixelRatio(Math.min(devicePixelRatio,2));
     camera.updateProjectionMatrix();
-  });
+  }
+  window.addEventListener('resize',()=>{clearTimeout(_rt);_rt=setTimeout(onResize,120);});
+  window.addEventListener('orientationchange',()=>{lastWidth=0;clearTimeout(_rt);_rt=setTimeout(onResize,200);});
 
   // ── Animation loop ──
   const DISP=.15;

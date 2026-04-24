@@ -479,8 +479,13 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   #truths-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
 }
 @media(max-width:768px){
-  nav{padding:14px 20px;gap:14px}
-  .nlinks,.ncta{display:none}
+  nav{padding:14px 20px;gap:10px}
+  .nlinks{display:none}
+  /* Hide "Begin Healing" desktop CTA on mobile (available in hamburger menu instead) */
+  nav > .ncta,.ncta[data-action="open-consultation"]{display:none}
+  /* Keep auth controls (login link or user dropdown) visible on mobile, compact */
+  .nav-auth{display:flex !important;margin-left:auto}
+  .nav-auth .ncta,.nav-user-btn{display:inline-flex;padding:7px 14px;font-size:10px;letter-spacing:.14em;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .hamburger{display:flex}
   .jsteps{grid-template-columns:1fr;background:none;gap:1px}
   .jstep{border:1px solid var(--line);border-top:none}
