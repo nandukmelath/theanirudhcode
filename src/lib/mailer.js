@@ -6,7 +6,8 @@ const nodemailer = require('nodemailer');
 const axios = require('axios');
 
 const SMTP_FROM    = process.env.SMTP_FROM    || 'Dr. Anirudh | theanirudhcode <nandukannanmelath@gmail.com>';
-const RESEND_FROM  = process.env.RESEND_FROM  || SMTP_FROM;
+// Resend requires a verified domain — always default to theanirudhcode.com address
+const RESEND_FROM  = process.env.RESEND_FROM  || 'Dr. Anirudh | theanirudhcode <dranirudh@theanirudhcode.com>';
 const FROM_ADDRESS = SMTP_FROM; // used by SMTP; Resend uses RESEND_FROM
 
 async function sendViaResend(to, subject, html) {
