@@ -1,8 +1,30 @@
 const express = require('express');
 const router  = express.Router();
 const { google } = require('googleapis');
+const crypto  = require('crypto');
 const prisma  = require('../lib/prisma');
 const { authenticate, requireAdmin, hybridAdminAuth } = require('../middleware/auth');
+
+// In-memory OAuth state store: state → expiry timestamp (10-min window)
+const oauthStates = new Map();
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
+function generateOAuthState() {
+  const state = crypto.randomBytes(32).toString('hex');
+  oauthStates.set(state, Date.now() + OAUTH_STATE_TTL_MS);
+  // Prune expired entries
+  for (const [k, exp] of oauthStates) {
+    if (Date.now() > exp) oauthStates.delete(k);
+  }
+  return state;
+}
+
+function consumeOAuthState(state) {
+  const exp = oauthStates.get(state);
+  if (!exp || Date.now() > exp) return false;
+  oauthStates.delete(state);
+  return true;
+}
 
 // Practitioner timezone — change via env, no code release needed
 const TZ_OFFSET = process.env.PRACTITIONER_TZ_OFFSET || '+05:30';
@@ -76,18 +98,23 @@ router.get('/auth-url', hybridAdminAuth, async (req, res) => {
   }
   const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
   const client = getOAuth2Client(tokens);
+  const state = generateOAuthState();
   const url = client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: ['https://www.googleapis.com/auth/calendar']
+    scope: ['https://www.googleapis.com/auth/calendar'],
+    state,
   });
   res.json({ url });
 });
 
 // GET /api/calendar/oauth/callback — no auth (Google redirects here)
 router.get('/oauth/callback', async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
   if (!code) return res.redirect('/portal-management?calendar_error=No authorization code received');
+  if (!state || !consumeOAuthState(state)) {
+    return res.redirect('/portal-management?calendar_error=Invalid or expired OAuth state. Please try again.');
+  }
 
   try {
     const existingTokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
