@@ -9,6 +9,12 @@ const BLOG_SAFE = {
   allowedTags: ['p', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 'a', 'blockquote', 'br', 'hr', 'span'],
   allowedAttributes: { 'a': ['href', 'target', 'rel'] },
   allowedSchemes: ['https', 'http', 'mailto'],
+  transformTags: {
+    'a': (tagName, attribs) => {
+      if (attribs.target === '_blank') attribs.rel = 'noopener noreferrer';
+      return { tagName, attribs };
+    },
+  },
 };
 
 // POST /api/subscribe

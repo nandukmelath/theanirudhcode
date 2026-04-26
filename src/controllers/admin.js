@@ -12,6 +12,12 @@ const BLOG_SAFE = {
   allowedTags: ['p', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 'a', 'blockquote', 'br', 'hr', 'span'],
   allowedAttributes: { 'a': ['href', 'target', 'rel'] },
   allowedSchemes: ['https', 'http', 'mailto'],
+  transformTags: {
+    'a': (tagName, attribs) => {
+      if (attribs.target === '_blank') attribs.rel = 'noopener noreferrer';
+      return { tagName, attribs };
+    },
+  },
 };
 
 // Serve admin page (protected)
@@ -89,7 +95,7 @@ router.patch('/api/consultations/:id', hybridAdminAuth, async (req, res) => {
   if (!valid.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
   try {
-    await prisma.consultation.update({ where: { id: parseInt(req.params.id) }, data: { status } });
+    await prisma.consultation.update({ where: { id: parseInt(req.params.id, 10) }, data: { status } });
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ error: 'Consultation not found' });
