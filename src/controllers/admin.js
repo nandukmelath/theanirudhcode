@@ -250,8 +250,10 @@ router.put('/api/posts/:id', hybridAdminAuth, async (req, res) => {
 });
 
 router.delete('/api/posts/:id', hybridAdminAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id || id < 1) return res.status(400).json({ error: 'Invalid post ID' });
   try {
-    await prisma.post.delete({ where: { id: parseInt(req.params.id, 10) } });
+    await prisma.post.delete({ where: { id } });
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ error: 'Post not found' });

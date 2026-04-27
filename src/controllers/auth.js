@@ -54,6 +54,9 @@ router.post('/register', async (req, res) => {
   }
 });
 
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -65,9 +68,33 @@ router.post('/login', async (req, res) => {
     const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
     if (!user || !user.isActive) return res.status(401).json({ error: 'Invalid email or password' });
 
+    // Account lockout check
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const minutesLeft = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
+      return res.status(429).json({ error: `Account temporarily locked. Try again in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''}.` });
+    }
+
     if (!bcrypt.compareSync(password, user.passwordHash)) {
+      const attempts = (user.failedLoginAttempts || 0) + 1;
+      const lockout  = attempts >= MAX_FAILED_ATTEMPTS;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          failedLoginAttempts: attempts,
+          lockedUntil: lockout ? new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000) : null,
+        }
+      });
+      if (lockout) {
+        return res.status(429).json({ error: `Too many failed attempts. Account locked for ${LOCKOUT_MINUTES} minutes.` });
+      }
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+
+    // Success — reset lockout counters
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginAttempts: 0, lockedUntil: null }
+    });
 
     const token = generateToken(user);
     res.cookie('token', token, COOKIE_OPTIONS);

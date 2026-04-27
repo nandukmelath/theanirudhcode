@@ -57,6 +57,13 @@ router.post('/consultation', async (req, res) => {
   if (preferred_date && !/^\d{4}-\d{2}-\d{2}$/.test(preferred_date.trim())) {
     return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
   }
+  const rawPhone = (phone || '').trim();
+  if (rawPhone) {
+    const digits = rawPhone.replace(/[\s\-+().]/g, '');
+    if (!/^\d{7,15}$/.test(digits)) {
+      return res.status(400).json({ error: 'Please enter a valid phone number' });
+    }
+  }
 
   try {
     await prisma.consultation.create({
