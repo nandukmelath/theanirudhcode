@@ -50,8 +50,15 @@ router.post('/book', authenticate, async (req, res) => {
   if (!isValidDate(date)) {
     return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
   }
+  const tzOffset = process.env.PRACTITIONER_TZ_OFFSET || '+05:30';
+  if (new Date(`${date}T23:59:59${tzOffset}`) < new Date()) {
+    return res.status(400).json({ error: 'Cannot book appointments in the past.' });
+  }
   if (!isValidTime(time_start) || !isValidTime(time_end)) {
     return res.status(400).json({ error: 'Invalid time format. Use HH:MM.' });
+  }
+  if (time_end <= time_start) {
+    return res.status(400).json({ error: 'End time must be after start time.' });
   }
   if (!health_concerns || !health_concerns.trim()) {
     return res.status(400).json({ error: 'Please describe your health concerns' });
@@ -219,6 +226,7 @@ router.post('/:id/reschedule', authenticate, async (req, res) => {
   if (!date || !time_start || !time_end) return res.status(400).json({ error: 'New date and time slot are required' });
   if (!isValidDate(date)) return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
   if (!isValidTime(time_start) || !isValidTime(time_end)) return res.status(400).json({ error: 'Invalid time format. Use HH:MM.' });
+  if (time_end <= time_start) return res.status(400).json({ error: 'End time must be after start time.' });
 
   try {
     const appointment = await prisma.appointment.findUnique({ where: { id } });
@@ -251,8 +259,13 @@ router.post('/:id/reschedule', authenticate, async (req, res) => {
           { date, time_start, time_end, health_concerns: appointment.healthConcerns, medical_history: appointment.medicalHistory, goals: appointment.goals },
           req.user
         );
-        if (newEventId) await prisma.appointment.update({ where: { id }, data: { googleEventId: newEventId } });
-      } catch (e) { console.error('[Calendar] create event failed:', e.message); }
+        // Always update: set new event ID or clear stale old one
+        await prisma.appointment.update({ where: { id }, data: { googleEventId: newEventId || null } });
+      } catch (e) {
+        console.error('[Calendar] create event failed:', e.message);
+        // Clear stale ID so a deleted event isn't referenced again
+        await prisma.appointment.update({ where: { id }, data: { googleEventId: null } }).catch(() => {});
+      }
     }
 
     res.json({ success: true, message: 'Appointment rescheduled successfully!', appointment: { id, date, time_start, time_end, status: 'confirmed' } });

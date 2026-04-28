@@ -64,8 +64,10 @@ router.get('/api/subscribers', hybridAdminAuth, async (req, res) => {
 });
 
 router.delete('/api/subscribers/:id', hybridAdminAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id || id < 1) return res.status(400).json({ error: 'Invalid subscriber ID' });
   try {
-    await prisma.subscriber.delete({ where: { id: parseInt(req.params.id, 10) } });
+    await prisma.subscriber.delete({ where: { id } });
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ error: 'Subscriber not found' });
@@ -90,12 +92,14 @@ router.get('/api/consultations', hybridAdminAuth, async (req, res) => {
 });
 
 router.patch('/api/consultations/:id', hybridAdminAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id || id < 1) return res.status(400).json({ error: 'Invalid consultation ID' });
   const { status } = req.body;
   const valid = ['new', 'read', 'contacted', 'completed'];
   if (!valid.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
   try {
-    await prisma.consultation.update({ where: { id: parseInt(req.params.id, 10) }, data: { status } });
+    await prisma.consultation.update({ where: { id }, data: { status } });
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ error: 'Consultation not found' });
@@ -157,13 +161,15 @@ router.post('/api/consultations/:id/reply', hybridAdminAuth, async (req, res) =>
   if (!id) return res.status(400).json({ error: 'Invalid ID' });
   const { reply } = req.body;
   if (!reply || !reply.trim()) return res.status(400).json({ error: 'Reply message is required' });
+  const cleanReply = sanitize(reply.trim());
+  if (!cleanReply) return res.status(400).json({ error: 'Reply message is required' });
 
   try {
     const consultation = await prisma.consultation.update({
       where: { id },
-      data: { adminReply: reply.trim(), repliedAt: new Date(), status: 'contacted' }
+      data: { adminReply: cleanReply, repliedAt: new Date(), status: 'contacted' }
     });
-    sendConsultationReply(consultation.email, consultation.name, reply.trim()).catch(e => console.error('[Mailer] consultation reply failed:', e.message));
+    sendConsultationReply(consultation.email, consultation.name, cleanReply).catch(e => console.error('[Mailer] consultation reply failed:', e.message));
     res.json({ success: true });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ error: 'Consultation not found' });
