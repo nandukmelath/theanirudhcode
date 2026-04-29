@@ -1,10 +1,9 @@
 const API = '/portal-management/api';
-let useJWT = false;
 
 const loginScreen = document.getElementById('login-screen');
 const dashboard   = document.getElementById('dashboard');
 const loginBtn    = document.getElementById('login-btn');
-const loginEmail  = document.getElementById('login-email');
+const loginUser   = document.getElementById('login-user');
 const loginPass   = document.getElementById('login-pass');
 const loginError  = document.getElementById('login-error');
 const logoutBtn   = document.getElementById('logout-btn');
@@ -16,14 +15,15 @@ if (params.get('calendar_success') || params.get('calendar_error')) {
   history.replaceState({}, '', '/portal-management');
 }
 
-tryJWTLoad();
+// Try cookie-based admin session (admin_token set by /portal-management/api/login)
+trySessionLoad();
 
 loginBtn.addEventListener('click', login);
 loginPass.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+loginUser.addEventListener('keydown', e => { if (e.key === 'Enter') loginPass.focus(); });
 logoutBtn.addEventListener('click', async () => {
-  try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch {}
-  sessionStorage.removeItem('admin_token');
-  window.location.href = '/';
+  try { await fetch(`${API}/logout`, { method: 'POST', credentials: 'same-origin' }); } catch {}
+  window.location.href = '/portal-management';
 });
 
 // Event delegation — replaces all inline onclick/onchange in generated table HTML
@@ -42,58 +42,45 @@ document.addEventListener('change', e => {
   if (e.target.matches('[data-action="update-status"]')) updateStatus(parseInt(e.target.dataset.id), e.target.value);
 });
 
-async function tryJWTLoad() {
+// Check if admin_token cookie is valid by hitting a protected endpoint
+async function trySessionLoad() {
   try {
-    const res = await fetch('/api/auth/me');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.user.role === 'admin') { useJWT = true; showDashboard(); return; }
-    }
+    const res = await fetch(`${API}/stats`, { credentials: 'same-origin' });
+    if (res.ok) { showDashboard(); return; }
   } catch {}
-  const oldToken = sessionStorage.getItem('admin_token');
-  if (oldToken) {
-    try {
-      const res = await fetch(`${API}/stats`, { headers: { 'x-admin-token': oldToken } });
-      if (res.ok) { showDashboard(); return; }
-    } catch {}
-    sessionStorage.removeItem('admin_token');
-  }
 }
 
 async function login() {
-  const email = loginEmail.value;
+  const username = (loginUser.value || '').trim();
   const password = loginPass.value;
   loginError.style.display = 'none';
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Verifying…';
 
   try {
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(`${API}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      credentials: 'same-origin',
+      body: JSON.stringify({ username, password })
     });
     if (res.ok) {
-      const data = await res.json();
-      if (data.user.role === 'admin') { useJWT = true; showDashboard(); return; }
-      loginError.textContent = 'This account does not have admin access';
-      loginError.style.display = 'block';
+      showDashboard();
       return;
     }
-  } catch {}
+    const data = await res.json().catch(() => ({}));
+    loginError.textContent = data.error || 'Invalid credentials';
+  } catch {
+    loginError.textContent = 'Network error — try again';
+  }
 
-  sessionStorage.setItem('admin_token', password);
-  try {
-    const res = await fetch(`${API}/stats`, { headers: { 'x-admin-token': password } });
-    if (res.ok) { showDashboard(); return; }
-  } catch {}
-  sessionStorage.removeItem('admin_token');
-  loginError.textContent = 'Invalid credentials';
   loginError.style.display = 'block';
+  loginBtn.disabled = false;
+  loginBtn.textContent = 'Access Dashboard';
 }
 
 function getHeaders() {
-  if (useJWT) return { 'Content-Type': 'application/json' };
-  const t = sessionStorage.getItem('admin_token') || '';
-  return { 'Content-Type': 'application/json', 'x-admin-token': t };
+  return { 'Content-Type': 'application/json' };
 }
 
 async function showDashboard() {

@@ -58,8 +58,31 @@ async function optionalAuth(req, res, next) {
   next();
 }
 
+const ADMIN_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: 8 * 60 * 60 * 1000   // 8-hour admin session
+};
+
+function generateAdminToken(username) {
+  return jwt.sign({ sub: username, role: 'admin', kind: 'admin-session' }, JWT_SECRET, { expiresIn: '8h' });
+}
+
 async function hybridAdminAuth(req, res, next) {
-  // Try JWT cookie first
+  // 1. Dedicated admin_token cookie (set by /portal-management/api/login)
+  const adminCookie = req.cookies && req.cookies.admin_token;
+  if (adminCookie) {
+    try {
+      const payload = jwt.verify(adminCookie, JWT_SECRET);
+      if (payload.kind === 'admin-session' && payload.role === 'admin') {
+        req.user = { id: 0, name: payload.sub || 'Admin', email: 'admin@theanirudhcode.com', role: 'admin' };
+        return next();
+      }
+    } catch {}
+  }
+
+  // 2. Patient JWT cookie with role=admin (DB admin user)
   const token = req.cookies && req.cookies.token;
   if (token) {
     try {
@@ -74,7 +97,8 @@ async function hybridAdminAuth(req, res, next) {
       }
     } catch {}
   }
-  // Fall back to x-admin-token header (header only — no query param to avoid token leakage in logs)
+
+  // 3. x-admin-token header fallback (legacy API clients)
   const adminToken = req.headers['x-admin-token'];
   const adminPassword = process.env.ADMIN_PASSWORD;
   if (adminToken && adminPassword) {
@@ -87,7 +111,8 @@ async function hybridAdminAuth(req, res, next) {
       }
     } catch {}
   }
+
   return res.status(401).json({ error: 'Unauthorized' });
 }
 
-module.exports = { generateToken, authenticate, requireAdmin, optionalAuth, hybridAdminAuth, COOKIE_OPTIONS };
+module.exports = { generateToken, generateAdminToken, authenticate, requireAdmin, optionalAuth, hybridAdminAuth, COOKIE_OPTIONS, ADMIN_COOKIE_OPTIONS };
