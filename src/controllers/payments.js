@@ -129,10 +129,18 @@ router.post('/test/complete', authenticate, async (req, res) => {
     // Google Calendar (non-critical)
     try {
       const eventId = await createCalendarEvent(
-        { date, time_start, time_end,
-          health_concerns: sanitize(health_concerns.trim()),
-          medical_history: sanitize((medical_history||'').trim()),
-          goals: sanitize((goals||'').trim()) },
+        {
+          id:                 appointment.id,
+          date,
+          time_start,
+          time_end,
+          consultation_type:  tier.key || tier,
+          consultation_price: tier.price,
+          health_concerns:    sanitize(health_concerns.trim()),
+          medical_history:    sanitize((medical_history||'').trim()),
+          goals:              sanitize((goals||'').trim()),
+          status:             'confirmed',
+        },
         req.user
       );
       if (eventId) await prisma.appointment.update({ where: { id: appointment.id }, data: { googleEventId: eventId } });
@@ -243,12 +251,19 @@ router.post('/razorpay/verify', authenticate, async (req, res) => {
 
     // Google Calendar (non-critical)
     try {
-      const { createCalendarEvent } = require('./calendar');
       const eventId = await createCalendarEvent(
-        { date, time_start, time_end,
-          health_concerns: sanitize(health_concerns.trim()),
-          medical_history: sanitize((medical_history||'').trim()),
-          goals: sanitize((goals||'').trim()) },
+        {
+          id:                 appointment.id,
+          date,
+          time_start,
+          time_end,
+          consultation_type:  tier.key || tier,
+          consultation_price: tier.price,
+          health_concerns:    sanitize(health_concerns.trim()),
+          medical_history:    sanitize((medical_history||'').trim()),
+          goals:              sanitize((goals||'').trim()),
+          status:             'confirmed',
+        },
         req.user
       );
       if (eventId) await prisma.appointment.update({ where: { id: appointment.id }, data: { googleEventId: eventId } });
@@ -419,11 +434,20 @@ router.post('/stripe/webhook', async (req, res) => {
       // Google Calendar (non-critical)
       try {
         const fakeUser = { id: userId, name: m.user_name, email: m.user_email, phone: m.user_phone };
-        const eventId = await createCalendarEvent(
-          { date: m.date, time_start: m.time_start, time_end: m.time_end,
-            health_concerns: sanitize(m.health_concerns),
-            medical_history: sanitize(m.medical_history),
-            goals: sanitize(m.goals) },
+        const tierObj  = m.tier && typeof m.tier === 'object' ? m.tier : {};
+        const eventId  = await createCalendarEvent(
+          {
+            id:                 appointment.id,
+            date:               m.date,
+            time_start:         m.time_start,
+            time_end:           m.time_end,
+            consultation_type:  tierObj.key || m.tier,
+            consultation_price: tierObj.price,
+            health_concerns:    sanitize(m.health_concerns),
+            medical_history:    sanitize(m.medical_history),
+            goals:              sanitize(m.goals),
+            status:             'confirmed',
+          },
           fakeUser
         );
         if (eventId) await prisma.appointment.update({ where: { id: appointment.id }, data: { googleEventId: eventId } });
