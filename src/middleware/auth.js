@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -75,9 +76,16 @@ async function hybridAdminAuth(req, res, next) {
   }
   // Fall back to x-admin-token header (header only — no query param to avoid token leakage in logs)
   const adminToken = req.headers['x-admin-token'];
-  if (adminToken && adminToken === process.env.ADMIN_PASSWORD) {
-    req.user = { id: 0, name: 'Admin', email: 'admin@theanirudhcode.com', role: 'admin' };
-    return next();
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (adminToken && adminPassword) {
+    try {
+      const a = Buffer.from(adminToken);
+      const b = Buffer.from(adminPassword);
+      if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
+        req.user = { id: 0, name: 'Admin', email: 'admin@theanirudhcode.com', role: 'admin' };
+        return next();
+      }
+    } catch {}
   }
   return res.status(401).json({ error: 'Unauthorized' });
 }

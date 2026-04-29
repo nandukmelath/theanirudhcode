@@ -6,6 +6,13 @@ const { hybridAdminAuth } = require('../middleware/auth');
 const { getSettings } = require('./calendar');
 const { sanitize } = require('../middleware/validate');
 const { sendConsultationReply } = require('../lib/mailer');
+const sanitizeHtml = require('sanitize-html');
+
+const BLOG_SAFE = {
+  allowedTags: ['p', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'strong', 'em', 'b', 'i', 'u', 'a', 'blockquote', 'br', 'hr', 'span'],
+  allowedAttributes: { 'a': ['href', 'target', 'rel'] },
+  allowedSchemes: ['https', 'http', 'mailto'],
+};
 
 // Serve admin page (protected)
 router.get('/', hybridAdminAuth, (req, res) => {
@@ -193,7 +200,7 @@ router.post('/api/posts', hybridAdminAuth, async (req, res) => {
         category: sanitize(category.trim()),
         tags: tags ? sanitize(tags.trim()) : null,
         excerpt: sanitize(excerpt.trim()),
-        content: content.trim(),
+        content: sanitizeHtml(content.trim(), BLOG_SAFE),
         canvasType: canvasType || 'gut',
         published: published !== false,
       }
@@ -221,7 +228,7 @@ router.put('/api/posts/:id', hybridAdminAuth, async (req, res) => {
   if (category !== undefined) data.category = sanitize(category.trim());
   if (tags !== undefined) data.tags = tags ? sanitize(tags.trim()) : null;
   if (excerpt !== undefined) data.excerpt = sanitize(excerpt.trim());
-  if (content !== undefined) data.content = content.trim();
+  if (content !== undefined) data.content = sanitizeHtml(content.trim(), BLOG_SAFE);
   if (canvasType !== undefined) data.canvasType = canvasType;
   if (published !== undefined) data.published = published;
 

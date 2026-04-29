@@ -65,8 +65,28 @@ router.post('/login', async (req, res) => {
     const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
     if (!user || !user.isActive) return res.status(401).json({ error: 'Invalid email or password' });
 
+    // Account lockout check
+    if (user.lockedUntil && user.lockedUntil > new Date()) {
+      const mins = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
+      return res.status(401).json({ error: `Account locked due to too many failed attempts. Try again in ${mins} minute(s).` });
+    }
+
     if (!bcrypt.compareSync(password, user.passwordHash)) {
+      const attempts = (user.failedLoginAttempts || 0) + 1;
+      const LOCK_AFTER = 5, LOCK_MINS = 15;
+      const update = attempts >= LOCK_AFTER
+        ? { failedLoginAttempts: attempts, lockedUntil: new Date(Date.now() + LOCK_MINS * 60 * 1000) }
+        : { failedLoginAttempts: attempts };
+      await prisma.user.update({ where: { id: user.id }, data: update });
+      if (attempts >= LOCK_AFTER) {
+        return res.status(401).json({ error: `Too many failed attempts. Account locked for ${LOCK_MINS} minutes.` });
+      }
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Success — reset lockout state
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await prisma.user.update({ where: { id: user.id }, data: { failedLoginAttempts: 0, lockedUntil: null } });
     }
 
     const token = generateToken(user);

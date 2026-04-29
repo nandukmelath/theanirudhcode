@@ -6,6 +6,52 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 const { startReminderScheduler } = require('./src/lib/reminders');
 
+
+// Schema migration — idempotent, runs on every deploy, safe
+async function runPaymentMigration() {
+  const stmts = [
+    // blocked_slots table (slot manager)
+    `CREATE TABLE IF NOT EXISTS blocked_slots (
+      id SERIAL PRIMARY KEY,
+      date TEXT NOT NULL,
+      time_start TEXT NOT NULL,
+      time_end TEXT NOT NULL,
+      reason TEXT,
+      gcal_event_id TEXT,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(date, time_start)
+    )`,
+    `CREATE INDEX IF NOT EXISTS blocked_slots_date_idx ON blocked_slots(date)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INT NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'pending'`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS payment_id TEXT`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS payment_order_id TEXT`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS payment_gateway TEXT`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'INR'`,
+    `CREATE INDEX IF NOT EXISTS appt_payment_order_idx ON appointments(payment_order_id)`,
+    `ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'pending'`,
+    `ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS payment_id TEXT`,
+    `ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS payment_order_id TEXT`,
+    `ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS payment_gateway TEXT`,
+    `ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'INR'`,
+    `ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS amount_paid INT`,
+    `CREATE INDEX IF NOT EXISTS pord_payment_order_idx ON product_orders(payment_order_id)`,
+    `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'pending'`,
+    `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS payment_id TEXT`,
+    `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS payment_order_id TEXT`,
+    `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS payment_gateway TEXT`,
+    `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'INR'`,
+    `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS amount_paid INT`,
+    `CREATE INDEX IF NOT EXISTS cenr_payment_order_idx ON cohort_enrollments(payment_order_id)`,
+  ];
+  for (const sql of stmts) {
+    await prisma.$executeRawUnsafe(sql);
+  }
+  console.log('[migration] Payment columns OK');
+}
+runPaymentMigration().catch(e => console.warn('[migration] Skipped:', e.message));
+
 const app = express();
 
 // Trust Railway/Cloudflare proxy so rate-limiter uses real client IP, not proxy IP

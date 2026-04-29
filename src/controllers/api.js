@@ -48,6 +48,9 @@ router.post('/consultation', async (req, res) => {
 
   if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
   if (!email || !validateEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
+  if (preferred_date && !/^\d{4}-\d{2}-\d{2}$/.test(preferred_date.trim())) {
+    return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
+  }
 
   try {
     await prisma.consultation.create({
