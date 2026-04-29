@@ -318,4 +318,61 @@ router.patch('/api/users/:id', hybridAdminAuth, async (req, res) => {
   }
 });
 
+// Appointments list (admin)
+router.get('/api/appointments', hybridAdminAuth, async (req, res) => {
+  try {
+    const appointments = await prisma.appointment.findMany({
+      include: { user: { select: { name: true, email: true, phone: true } } },
+      orderBy: [{ date: 'desc' }, { timeStart: 'asc' }]
+    });
+    const formatted = appointments.map(a => ({
+      id:             a.id,
+      date:           a.date,
+      time_start:     a.timeStart,
+      time_end:       a.timeEnd,
+      status:         a.status,
+      health_concerns: a.healthConcerns,
+      patient_name:   a.user?.name,
+      patient_email:  a.user?.email,
+      patient_phone:  a.user?.phone,
+    }));
+    res.json({ appointments: formatted });
+  } catch (err) {
+    console.error('Admin appointments error:', err);
+    res.status(500).json({ error: 'Failed to load appointments' });
+  }
+});
+
+// Cancel appointment (admin)
+router.post('/api/appointments/:id/cancel', hybridAdminAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id || id < 1) return res.status(400).json({ error: 'Invalid appointment ID' });
+  try {
+    const appt = await prisma.appointment.findUnique({ where: { id } });
+    if (!appt) return res.status(404).json({ error: 'Appointment not found' });
+    if (appt.status !== 'confirmed') return res.status(400).json({ error: 'Only confirmed appointments can be cancelled' });
+    await prisma.appointment.update({ where: { id }, data: { status: 'cancelled' } });
+    res.json({ success: true, message: 'Appointment cancelled' });
+  } catch (err) {
+    console.error('Admin cancel appt error:', err);
+    res.status(500).json({ error: 'Failed to cancel appointment' });
+  }
+});
+
+// Complete appointment (admin)
+router.post('/api/appointments/:id/complete', hybridAdminAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!id || id < 1) return res.status(400).json({ error: 'Invalid appointment ID' });
+  try {
+    const appt = await prisma.appointment.findUnique({ where: { id } });
+    if (!appt) return res.status(404).json({ error: 'Appointment not found' });
+    if (appt.status !== 'confirmed') return res.status(400).json({ error: 'Only confirmed appointments can be completed' });
+    await prisma.appointment.update({ where: { id }, data: { status: 'completed' } });
+    res.json({ success: true, message: 'Appointment completed' });
+  } catch (err) {
+    console.error('Admin complete appt error:', err);
+    res.status(500).json({ error: 'Failed to complete appointment' });
+  }
+});
+
 module.exports = router;

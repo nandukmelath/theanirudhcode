@@ -162,7 +162,7 @@ async function loadConsultations() {
 
 async function loadAppointments() {
   try {
-    const res = await fetch('/api/appointments/all', { headers: getHeaders() });
+    const res = await fetch(`${API}/appointments`, { headers: getHeaders() });
     const { appointments } = await res.json();
     const body = document.getElementById('appt-body');
     if (!appointments || !appointments.length) { body.innerHTML = '<tr><td colspan="8" class="empty">No appointments yet</td></tr>'; return; }
@@ -202,12 +202,12 @@ async function updateStatus(id, status) {
 
 async function cancelAppt(id) {
   if (!confirm('Cancel this appointment?')) return;
-  await fetch(`/api/appointments/${id}/cancel`, { method: 'POST', headers: getHeaders() });
+  await fetch(`${API}/appointments/${id}/cancel`, { method: 'POST', headers: getHeaders() });
   loadAppointments(); loadStats();
 }
 
 async function completeAppt(id) {
-  await fetch(`/api/appointments/${id}/complete`, { method: 'POST', headers: getHeaders() });
+  await fetch(`${API}/appointments/${id}/complete`, { method: 'POST', headers: getHeaders() });
   loadAppointments(); loadStats();
 }
 
