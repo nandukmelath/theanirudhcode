@@ -43,6 +43,8 @@ model User {
   phone        String?
   role         Role          @default(patient)
   isActive     Boolean       @default(true) @map("is_active")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
   createdAt    DateTime      @default(now()) @map("created_at")
   appointments   Appointment[]
   passwordResets PasswordReset[]
