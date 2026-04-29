@@ -226,6 +226,12 @@ router.get('/available-slots', authenticate, async (req, res) => {
     select: { timeStart: true, timeEnd: true }
   });
 
+  // Admin-manually-blocked slots
+  const blockedSlots = await prisma.blockedSlot.findMany({
+    where:  { date },
+    select: { timeStart: true }
+  });
+
   const slots = allSlots.map(slot => {
     const slotStart = new Date(`${date}T${slot.start}:00${TZ_OFFSET}`);
     const slotEnd   = new Date(`${date}T${slot.end}:00${TZ_OFFSET}`);
@@ -239,6 +245,8 @@ router.get('/available-slots', authenticate, async (req, res) => {
 
     const dbBusy = dbAppointments.some(a => slot.start < a.timeEnd && slot.end > a.timeStart);
     if (dbBusy) return { ...slot, available: false };
+
+    if (blockedSlots.some(b => b.timeStart === slot.start)) return { ...slot, available: false };
 
     return { ...slot, available: true };
   });
@@ -264,6 +272,11 @@ router.get('/available-days', authenticate, async (req, res) => {
   const dbAppointments = await prisma.appointment.findMany({
     where:  { date: { startsWith: month }, status: 'confirmed' },
     select: { date: true, timeStart: true, timeEnd: true }
+  });
+
+  const monthBlockedSlots = await prisma.blockedSlot.findMany({
+    where:  { date: { startsWith: month } },
+    select: { date: true, timeStart: true }
   });
 
   const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
@@ -297,11 +310,13 @@ router.get('/available-days', authenticate, async (req, res) => {
     if (!workingDays.includes(dayOfWeek)) { days.push({ date: dateStr, hasSlots: false }); continue; }
 
     const dayAppts   = dbAppointments.filter(a => a.date === dateStr);
+    const dayBlocked = monthBlockedSlots.filter(b => b.date === dateStr).map(b => b.timeStart);
     const hasAvailable = allSlots.some(slot => {
       const slotStart = new Date(`${dateStr}T${slot.start}:00${TZ_OFFSET}`);
       const slotEnd   = new Date(`${dateStr}T${slot.end}:00${TZ_OFFSET}`);
 
       if (slotStart < minTime) return false;
+      if (dayBlocked.includes(slot.start)) return false;
 
       const gcalBusy = busyPeriods.some(b => slotStart < new Date(b.end) && slotEnd > new Date(b.start));
       if (gcalBusy) return false;
@@ -313,6 +328,139 @@ router.get('/available-days', authenticate, async (req, res) => {
   }
 
   res.json({ month, days });
+});
+
+// ── Admin slot management ─────────────────────────────────────────────────────
+
+// GET /api/calendar/admin/slots?date=YYYY-MM-DD
+router.get('/admin/slots', hybridAdminAuth, async (req, res) => {
+  const { date } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'Valid date (YYYY-MM-DD) required' });
+  }
+
+  const settings = await getSettings();
+  const allSlots  = generateSlots(settings);
+
+  const [bookedAppts, blockedSlots] = await Promise.all([
+    prisma.appointment.findMany({
+      where:  { date, status: 'confirmed' },
+      select: { timeStart: true, user: { select: { name: true } } }
+    }),
+    prisma.blockedSlot.findMany({
+      where:  { date },
+      select: { timeStart: true, timeEnd: true, reason: true }
+    })
+  ]);
+
+  const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
+  let gcalBusyPeriods = [];
+  let gcalConnected   = false;
+
+  if (gcalConfigured() && tokens?.refreshToken && tokens?.calendarId) {
+    try {
+      const client   = getOAuth2Client(tokens);
+      const calendar = google.calendar({ version: 'v3', auth: client });
+      const freeBusy = await calendar.freebusy.query({
+        requestBody: {
+          timeMin:  `${date}T00:00:00${TZ_OFFSET}`,
+          timeMax:  `${date}T23:59:59${TZ_OFFSET}`,
+          timeZone: TZ_NAME,
+          items:    [{ id: tokens.calendarId }]
+        }
+      });
+      gcalBusyPeriods = freeBusy.data.calendars[tokens.calendarId]?.busy || [];
+      gcalConnected   = true;
+    } catch (err) { console.error('Admin slots GCal error:', err.message); }
+  }
+
+  const slots = allSlots.map(slot => {
+    const slotStart = new Date(`${date}T${slot.start}:00${TZ_OFFSET}`);
+    const slotEnd   = new Date(`${date}T${slot.end}:00${TZ_OFFSET}`);
+
+    const booked = bookedAppts.find(a => a.timeStart === slot.start);
+    if (booked) return { ...slot, status: 'booked', patient: booked.user?.name || 'Patient' };
+
+    const blocked = blockedSlots.find(b => b.timeStart === slot.start);
+    if (blocked) return { ...slot, status: 'blocked', reason: blocked.reason || null };
+
+    const gcalBusy = gcalBusyPeriods.some(b => slotStart < new Date(b.end) && slotEnd > new Date(b.start));
+    if (gcalBusy) return { ...slot, status: 'gcal-busy' };
+
+    return { ...slot, status: 'available' };
+  });
+
+  res.json({ date, slots, gcalConnected });
+});
+
+// POST /api/calendar/admin/block
+router.post('/admin/block', hybridAdminAuth, async (req, res) => {
+  const { date, timeStart, timeEnd, reason } = req.body;
+  if (!date || !timeStart || !timeEnd) {
+    return res.status(400).json({ error: 'date, timeStart, timeEnd required' });
+  }
+
+  const existing = await prisma.appointment.findFirst({
+    where: { date, timeStart, status: 'confirmed' }
+  });
+  if (existing) return res.status(409).json({ error: 'Slot already booked by a patient' });
+
+  let gcalEventId = null;
+  if (gcalConfigured()) {
+    const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
+    if (tokens?.refreshToken && tokens?.calendarId) {
+      try {
+        const client   = getOAuth2Client(tokens);
+        const calendar = google.calendar({ version: 'v3', auth: client });
+        const event    = await calendar.events.insert({
+          calendarId:  tokens.calendarId,
+          requestBody: {
+            summary:      '🚫 Unavailable',
+            start:        { dateTime: `${date}T${timeStart}:00`, timeZone: TZ_NAME },
+            end:          { dateTime: `${date}T${timeEnd}:00`,   timeZone: TZ_NAME },
+            transparency: 'opaque'
+          }
+        });
+        gcalEventId = event.data.id;
+      } catch (err) { console.error('GCal block event error:', err.message); }
+    }
+  }
+
+  await prisma.blockedSlot.upsert({
+    where:  { date_timeStart: { date, timeStart } },
+    update: { timeEnd, reason: reason || null, gcalEventId },
+    create: { date, timeStart, timeEnd, reason: reason || null, gcalEventId }
+  });
+
+  res.json({ success: true });
+});
+
+// DELETE /api/calendar/admin/unblock
+router.delete('/admin/unblock', hybridAdminAuth, async (req, res) => {
+  const { date, timeStart } = req.body;
+  if (!date || !timeStart) return res.status(400).json({ error: 'date and timeStart required' });
+
+  const blocked = await prisma.blockedSlot.findUnique({
+    where: { date_timeStart: { date, timeStart } }
+  });
+  if (!blocked) return res.status(404).json({ error: 'Slot is not blocked' });
+
+  if (blocked.gcalEventId && gcalConfigured()) {
+    const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
+    if (tokens?.refreshToken && tokens?.calendarId) {
+      try {
+        const client   = getOAuth2Client(tokens);
+        const calendar = google.calendar({ version: 'v3', auth: client });
+        await calendar.events.delete({ calendarId: tokens.calendarId, eventId: blocked.gcalEventId });
+      } catch (err) { console.error('GCal unblock event error:', err.message); }
+    }
+  }
+
+  await prisma.blockedSlot.delete({
+    where: { date_timeStart: { date, timeStart } }
+  });
+
+  res.json({ success: true });
 });
 
 // ── Helpers exported to appointments controller ────────────────────────────────

@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const { startReminderScheduler } = require('./src/lib/reminders');
-
+const prisma = require('./src/lib/prisma');
 
 // Schema migration — idempotent, runs on every deploy, safe
 async function runPaymentMigration() {
@@ -62,15 +62,26 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+      scriptSrc:  ["'self'", "'unsafe-inline'",
+                   "https://cdnjs.cloudflare.com",
+                   "https://checkout.razorpay.com",
+                   "https://js.stripe.com"],
       scriptSrcAttr: ["'none'"],
-      styleSrc: ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:"],
-      connectSrc: ["'self'", "https://www.googleapis.com", "https://accounts.google.com"]
+      styleSrc:   ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
+      fontSrc:    ["'self'", "https://fonts.gstatic.com"],
+      imgSrc:     ["'self'", "data:", "https://checkout.razorpay.com", "https://*.stripe.com"],
+      connectSrc: ["'self'",
+                   "https://www.googleapis.com", "https://accounts.google.com",
+                   "https://api.razorpay.com",
+                   "https://api.stripe.com"],
+      frameSrc:   ["https://checkout.razorpay.com", "https://js.stripe.com",
+                   "https://hooks.stripe.com"],
     }
   }
 }));
+
+// Raw body for Stripe webhook — MUST be before express.json()
+app.use('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
@@ -118,6 +129,7 @@ app.use('/portal-management', rateLimit({
 app.use('/api', require('./src/controllers/api'));
 app.use('/api/auth', require('./src/controllers/auth'));
 app.use('/api/appointments', require('./src/controllers/appointments'));
+app.use('/api/payments', require('./src/controllers/payments'));
 app.use('/api/calendar', require('./src/controllers/calendar'));
 app.use('/portal-management', require('./src/controllers/admin'));
 
@@ -132,6 +144,9 @@ app.get('/blog/:slug', (req, res) => res.sendFile(path.join(__dirname, 'views', 
 
 app.get('/forgot-password', (req, res) => res.sendFile(path.join(__dirname, 'views', 'forgot-password.html')));
 app.get('/reset-password',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'reset-password.html')));
+
+// Manifesto page
+app.get('/manifesto', (req, res) => res.sendFile(path.join(__dirname, 'public', 'manifesto.html')));
 
 // 404 catch-all (must come after all routes)
 app.use((req, res) => {

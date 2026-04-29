@@ -92,6 +92,12 @@ model Appointment {
   medicalHistory     String?           @map("medical_history")
   goals              String?
   googleEventId      String?           @map("google_event_id")
+  // Payment
+  paymentStatus      String            @default("pending") @map("payment_status")
+  paymentId          String?           @map("payment_id")
+  paymentOrderId     String?           @map("payment_order_id")
+  paymentGateway     String?           @map("payment_gateway")
+  currency           String            @default("INR")
   createdAt          DateTime          @default(now()) @map("created_at")
   updatedAt          DateTime          @updatedAt @map("updated_at")
   user               User              @relation(fields: [userId], references: [id])
@@ -99,6 +105,7 @@ model Appointment {
   @@index([userId])
   @@index([date])
   @@index([status])
+  @@index([paymentOrderId])
   @@map("appointments")
 }
 
@@ -118,15 +125,22 @@ model Product {
 }
 
 model ProductOrder {
-  id        Int      @id @default(autoincrement())
-  productId Int      @map("product_id")
-  name      String
-  email     String
-  phone     String?
-  status    String   @default("pending")
-  createdAt DateTime @default(now()) @map("created_at")
-  product   Product  @relation(fields: [productId], references: [id])
+  id             Int      @id @default(autoincrement())
+  productId      Int      @map("product_id")
+  name           String
+  email          String
+  phone          String?
+  status         String   @default("pending")
+  paymentStatus  String   @default("pending") @map("payment_status")
+  paymentId      String?  @map("payment_id")
+  paymentOrderId String?  @map("payment_order_id")
+  paymentGateway String?  @map("payment_gateway")
+  currency       String   @default("INR")
+  amountPaid     Int?     @map("amount_paid")
+  createdAt      DateTime @default(now()) @map("created_at")
+  product        Product  @relation(fields: [productId], references: [id])
 
+  @@index([paymentOrderId])
   @@map("product_orders")
 }
 
@@ -148,16 +162,23 @@ model Cohort {
 }
 
 model CohortEnrollment {
-  id        Int      @id @default(autoincrement())
-  cohortId  Int      @map("cohort_id")
-  name      String
-  email     String
-  phone     String?
-  message   String?
-  status    String   @default("waitlist")
-  createdAt DateTime @default(now()) @map("created_at")
-  cohort    Cohort   @relation(fields: [cohortId], references: [id])
+  id             Int      @id @default(autoincrement())
+  cohortId       Int      @map("cohort_id")
+  name           String
+  email          String
+  phone          String?
+  message        String?
+  status         String   @default("waitlist")
+  paymentStatus  String   @default("pending") @map("payment_status")
+  paymentId      String?  @map("payment_id")
+  paymentOrderId String?  @map("payment_order_id")
+  paymentGateway String?  @map("payment_gateway")
+  currency       String   @default("INR")
+  amountPaid     Int?     @map("amount_paid")
+  createdAt      DateTime @default(now()) @map("created_at")
+  cohort         Cohort   @relation(fields: [cohortId], references: [id])
 
+  @@index([paymentOrderId])
   @@map("cohort_enrollments")
 }
 
@@ -206,4 +227,18 @@ model GoogleToken {
   calendarId   String? @map("calendar_id")
 
   @@map("google_tokens")
+}
+
+model BlockedSlot {
+  id          Int      @id @default(autoincrement())
+  date        String
+  timeStart   String   @map("time_start")
+  timeEnd     String   @map("time_end")
+  reason      String?
+  gcalEventId String?  @map("gcal_event_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([date, timeStart])
+  @@index([date])
+  @@map("blocked_slots")
 }

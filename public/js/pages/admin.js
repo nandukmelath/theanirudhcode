@@ -35,6 +35,8 @@ document.addEventListener('click', e => {
   if (e.target.matches('[data-action="edit-post"]'))       openEditPost(parseInt(e.target.dataset.id));
   if (e.target.matches('[data-action="delete-post"]'))     deletePost(parseInt(e.target.dataset.id));
   if (e.target.matches('[data-action="toggle-post"]'))     togglePost(parseInt(e.target.dataset.id), e.target.dataset.published === 'true');
+  if (e.target.matches('[data-action="block-slot"]'))      blockSlot(e.target);
+  if (e.target.matches('[data-action="unblock-slot"]'))    unblockSlot(e.target);
 });
 document.addEventListener('change', e => {
   if (e.target.matches('[data-action="update-status"]')) updateStatus(parseInt(e.target.dataset.id), e.target.value);
@@ -128,6 +130,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-view').forEach(v => v.style.display = 'none');
     const view = document.getElementById('view-' + btn.dataset.view);
     if (view) view.style.display = '';
+    if (btn.dataset.view === 'calendar') loadSlots();
   });
 });
 
@@ -465,4 +468,114 @@ async function togglePost(id, currentlyPublished) {
     body: JSON.stringify({ published: !currentlyPublished })
   });
   loadPosts();
+}
+
+// ── Slot Manager ────────────────────────────────────────────────────────────────
+
+// Set default date to today when page loads
+(function() {
+  const inp = document.getElementById('slot-date');
+  if (inp) inp.value = new Date().toISOString().split('T')[0];
+})();
+
+document.getElementById('load-slots-btn').addEventListener('click', loadSlots);
+document.getElementById('slot-date').addEventListener('change', loadSlots);
+
+async function loadSlots() {
+  const date = document.getElementById('slot-date').value;
+  if (!date) return;
+
+  const grid = document.getElementById('slot-grid');
+  grid.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:8px 0">Loading slots…</p>';
+
+  try {
+    const res  = await fetch(`/api/calendar/admin/slots?date=${date}`, { headers: getHeaders() });
+    const data = await res.json();
+
+    if (!data.slots || !data.slots.length) {
+      grid.innerHTML = '<p style="color:var(--faint);font-size:13px;font-style:italic;padding:8px 0">No slots for this day — it may be a non-working day. Check Settings.</p>';
+      return;
+    }
+
+    const statusMap = {
+      available: { color: '#6fbf73', label: 'Open',     border: 'rgba(111,191,115,.25)' },
+      booked:    { color: 'var(--gold)', label: 'Booked',   border: 'rgba(200,169,81,.3)' },
+      blocked:   { color: 'var(--amber)', label: 'Closed',  border: 'rgba(200,115,58,.3)' },
+      'gcal-busy': { color: 'var(--muted)', label: 'External', border: 'var(--line)' }
+    };
+
+    const cards = data.slots.map(slot => {
+      const sm = statusMap[slot.status] || statusMap.available;
+      const extra = slot.status === 'booked'   ? ` — ${esc(slot.patient || 'Patient')}`
+                  : slot.status === 'gcal-busy' ? ' (Google Cal)'
+                  : '';
+
+      let btnHtml = '';
+      if (slot.status === 'available') {
+        btnHtml = `<button class="action-btn"
+          style="margin-top:8px;border-color:rgba(200,115,58,.4);color:var(--amber);font-size:10px;width:100%"
+          data-action="block-slot"
+          data-date="${date}" data-start="${slot.start}" data-end="${slot.end}">Close Slot</button>`;
+      } else if (slot.status === 'blocked') {
+        btnHtml = `<button class="action-btn"
+          style="margin-top:8px;border-color:rgba(111,191,115,.4);color:#6fbf73;font-size:10px;width:100%"
+          data-action="unblock-slot"
+          data-date="${date}" data-start="${slot.start}">Open Slot</button>`;
+      }
+
+      return `<div style="background:var(--black2);border:1px solid ${sm.border};padding:14px 16px;display:flex;flex-direction:column">
+        <div style="font-size:14px;color:var(--white);margin-bottom:3px;font-family:'Tenor Sans',sans-serif;letter-spacing:.04em">${slot.start}–${slot.end}</div>
+        <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:${sm.color}">${sm.label}${extra}</div>
+        ${btnHtml}
+      </div>`;
+    }).join('');
+
+    grid.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">${cards}</div>`;
+
+    if (!data.gcalConnected) {
+      grid.insertAdjacentHTML('afterbegin', '<p style="font-size:11px;color:var(--faint);margin-bottom:12px;letter-spacing:.04em">Google Calendar not connected — slot changes are saved in the database only.</p>');
+    }
+  } catch {
+    grid.innerHTML = '<p style="color:var(--amber);font-size:13px">Failed to load slots. Check connection.</p>';
+  }
+}
+
+async function blockSlot(btn) {
+  const { date, start: timeStart, end: timeEnd } = btn.dataset;
+  btn.disabled = true; btn.textContent = 'Closing…';
+  try {
+    const res = await fetch('/api/calendar/admin/block', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ date, timeStart, timeEnd })
+    });
+    if (res.ok) {
+      loadSlots();
+    } else {
+      const d = await res.json();
+      showAlert(d.error || 'Failed to close slot', 'error');
+      btn.disabled = false; btn.textContent = 'Close Slot';
+    }
+  } catch {
+    btn.disabled = false; btn.textContent = 'Close Slot';
+  }
+}
+
+async function unblockSlot(btn) {
+  const { date, start: timeStart } = btn.dataset;
+  btn.disabled = true; btn.textContent = 'Opening…';
+  try {
+    const res = await fetch('/api/calendar/admin/unblock', {
+      method: 'DELETE', headers: getHeaders(),
+      body: JSON.stringify({ date, timeStart })
+    });
+    if (res.ok) {
+      loadSlots();
+    } else {
+      const d = await res.json();
+      showAlert(d.error || 'Failed to open slot', 'error');
+      btn.disabled = false; btn.textContent = 'Open Slot';
+    }
+  } catch {
+    btn.disabled = false; btn.textContent = 'Open Slot';
+  }
 }

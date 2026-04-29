@@ -506,5 +506,30 @@ document.getElementById('rs-save-btn').addEventListener('click', async () => {
     </div>
   </div>
 </div>
+<script>
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('payment') === 'success') {
+    history.replaceState({}, '', window.location.pathname);
+    const t = setInterval(() => {
+      if (typeof Toast !== 'undefined') {
+        clearInterval(t);
+        Toast.success('Payment confirmed! Your appointment is booked and will appear below.');
+      }
+    }, 200);
+    setTimeout(() => clearInterval(t), 5000);
+  }
+  if (params.get('payment') === 'cancelled') {
+    history.replaceState({}, '', window.location.pathname);
+    const t = setInterval(() => {
+      if (typeof Toast !== 'undefined') {
+        clearInterval(t);
+        Toast.error('Payment cancelled — appointment not booked.');
+      }
+    }, 200);
+    setTimeout(() => clearInterval(t), 5000);
+  }
+})();
+</script>
 </body>
 </html>
