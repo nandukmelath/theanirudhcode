@@ -150,13 +150,13 @@ async function loadConsultations() {
   if (!consultations.length) { body.innerHTML = '<tr><td colspan="7" class="empty">No consultations yet</td></tr>'; return; }
   body.innerHTML = consultations.map(c => `<tr>
     <td>${esc(c.name)}</td><td>${esc(c.email)}</td><td>${esc(c.phone || '—')}</td>
-    <td>${esc(c.preferred_date || '—')}</td>
+    <td>${esc(c.preferredDate || '—')}</td>
     <td style="max-width:200px">${esc(c.message || '—')}</td>
     <td><select class="status-select" data-action="update-status" data-id="${c.id}">
       ${['new','read','contacted','completed'].map(s => `<option value="${s}" ${c.status===s?'selected':''}>${s}</option>`).join('')}
     </select></td>
-    <td>${new Date(c.created_at+'Z').toLocaleDateString()}</td>
-    <td><button class="action-btn" data-action="reply-consult" data-id="${c.id}" data-name="${esc(c.name)}" data-email="${esc(c.email)}">${c.admin_reply ? 'Re-reply' : 'Reply'}</button></td>
+    <td>${new Date(c.createdAt).toLocaleDateString()}</td>
+    <td><button class="action-btn" data-action="reply-consult" data-id="${c.id}" data-name="${esc(c.name)}" data-email="${esc(c.email)}">${c.adminReply ? 'Re-reply' : 'Reply'}</button></td>
   </tr>`).join('');
 }
 
@@ -305,7 +305,7 @@ document.getElementById('export-csv').addEventListener('click', async () => {
   const res = await fetch(`${API}/subscribers`, { headers: getHeaders() });
   const { subscribers } = await res.json();
   const csv = 'Name,Email,Source,Date\n' + subscribers.map(s =>
-    `"${s.name}","${s.email}","${s.source}","${s.subscribed_at}"`
+    `"${s.name}","${s.email}","${s.source}","${new Date(s.subscribedAt).toISOString()}"`
   ).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');

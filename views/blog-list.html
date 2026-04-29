@@ -68,7 +68,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;padding:clamp(14px,2vw,26px)
     const grid = document.getElementById('posts-grid');
     if (!posts.length) { grid.innerHTML = '<div class="loading">No posts yet. Check back soon.</div>'; return; }
     grid.innerHTML = posts.map(p => {
-      const date = new Date(p.created_at);
+      const date = new Date(p.createdAt);
       const dateStr = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
       const tags = p.tags ? p.tags.split(',')[0] : p.category;
       return `<a href="/blog/${p.slug}" class="post-card">

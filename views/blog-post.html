@@ -96,7 +96,7 @@ footer{text-align:center;padding:clamp(20px,3vw,32px) var(--px);font-size:11px;c
 
     document.title = `${post.title} — theanirudhcode`;
 
-    const date = new Date(post.created_at);
+    const date = new Date(post.createdAt);
     const dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     const tags = post.tags ? post.tags.split(',') : [post.category];
     const words = post.content.replace(/<[^>]+>/g, '').split(/\s+/).length;
