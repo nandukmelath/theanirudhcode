@@ -1,10 +1,9 @@
 const API = '/portal-management/api';
-let useJWT = false;
 
 const loginScreen = document.getElementById('login-screen');
 const dashboard   = document.getElementById('dashboard');
 const loginBtn    = document.getElementById('login-btn');
-const loginEmail  = document.getElementById('login-email');
+const loginUser   = document.getElementById('login-user');
 const loginPass   = document.getElementById('login-pass');
 const loginError  = document.getElementById('login-error');
 const logoutBtn   = document.getElementById('logout-btn');
@@ -16,14 +15,15 @@ if (params.get('calendar_success') || params.get('calendar_error')) {
   history.replaceState({}, '', '/portal-management');
 }
 
-tryJWTLoad();
+// Try cookie-based admin session (admin_token set by /portal-management/api/login)
+trySessionLoad();
 
 loginBtn.addEventListener('click', login);
 loginPass.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+loginUser.addEventListener('keydown', e => { if (e.key === 'Enter') loginPass.focus(); });
 logoutBtn.addEventListener('click', async () => {
-  try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch {}
-  sessionStorage.removeItem('admin_token');
-  window.location.href = '/';
+  try { await fetch(`${API}/logout`, { method: 'POST', credentials: 'same-origin' }); } catch {}
+  window.location.href = '/portal-management';
 });
 
 // Event delegation — replaces all inline onclick/onchange in generated table HTML
@@ -35,63 +35,52 @@ document.addEventListener('click', e => {
   if (e.target.matches('[data-action="edit-post"]'))       openEditPost(parseInt(e.target.dataset.id));
   if (e.target.matches('[data-action="delete-post"]'))     deletePost(parseInt(e.target.dataset.id));
   if (e.target.matches('[data-action="toggle-post"]'))     togglePost(parseInt(e.target.dataset.id), e.target.dataset.published === 'true');
+  if (e.target.matches('[data-action="block-slot"]'))      blockSlot(e.target);
+  if (e.target.matches('[data-action="unblock-slot"]'))    unblockSlot(e.target);
 });
 document.addEventListener('change', e => {
   if (e.target.matches('[data-action="update-status"]')) updateStatus(parseInt(e.target.dataset.id), e.target.value);
 });
 
-async function tryJWTLoad() {
+// Check if admin_token cookie is valid by hitting a protected endpoint
+async function trySessionLoad() {
   try {
-    const res = await fetch('/api/auth/me');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.user.role === 'admin') { useJWT = true; showDashboard(); return; }
-    }
+    const res = await fetch(`${API}/stats`, { credentials: 'same-origin' });
+    if (res.ok) { showDashboard(); return; }
   } catch {}
-  const oldToken = sessionStorage.getItem('admin_token');
-  if (oldToken) {
-    try {
-      const res = await fetch(`${API}/stats`, { headers: { 'x-admin-token': oldToken } });
-      if (res.ok) { showDashboard(); return; }
-    } catch {}
-    sessionStorage.removeItem('admin_token');
-  }
 }
 
 async function login() {
-  const email = loginEmail.value;
+  const username = (loginUser.value || '').trim();
   const password = loginPass.value;
   loginError.style.display = 'none';
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Verifying…';
 
   try {
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(`${API}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      credentials: 'same-origin',
+      body: JSON.stringify({ username, password })
     });
     if (res.ok) {
-      const data = await res.json();
-      if (data.user.role === 'admin') { useJWT = true; showDashboard(); return; }
-      loginError.textContent = 'This account does not have admin access';
-      loginError.style.display = 'block';
+      showDashboard();
       return;
     }
-  } catch {}
+    const data = await res.json().catch(() => ({}));
+    loginError.textContent = data.error || 'Invalid credentials';
+  } catch {
+    loginError.textContent = 'Network error — try again';
+  }
 
-  sessionStorage.setItem('admin_token', password);
-  try {
-    const res = await fetch(`${API}/stats`, { headers: { 'x-admin-token': password } });
-    if (res.ok) { showDashboard(); return; }
-  } catch {}
-  sessionStorage.removeItem('admin_token');
-  loginError.textContent = 'Invalid credentials';
   loginError.style.display = 'block';
+  loginBtn.disabled = false;
+  loginBtn.textContent = 'Access Dashboard';
 }
 
 function getHeaders() {
-  if (useJWT) return { 'Content-Type': 'application/json' };
-  const t = sessionStorage.getItem('admin_token') || '';
-  return { 'Content-Type': 'application/json', 'x-admin-token': t };
+  return { 'Content-Type': 'application/json' };
 }
 
 async function showDashboard() {
@@ -128,6 +117,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-view').forEach(v => v.style.display = 'none');
     const view = document.getElementById('view-' + btn.dataset.view);
     if (view) view.style.display = '';
+    if (btn.dataset.view === 'calendar') loadSlots();
   });
 });
 
@@ -465,4 +455,114 @@ async function togglePost(id, currentlyPublished) {
     body: JSON.stringify({ published: !currentlyPublished })
   });
   loadPosts();
+}
+
+// ── Slot Manager ────────────────────────────────────────────────────────────────
+
+// Set default date to today when page loads
+(function() {
+  const inp = document.getElementById('slot-date');
+  if (inp) inp.value = new Date().toISOString().split('T')[0];
+})();
+
+document.getElementById('load-slots-btn').addEventListener('click', loadSlots);
+document.getElementById('slot-date').addEventListener('change', loadSlots);
+
+async function loadSlots() {
+  const date = document.getElementById('slot-date').value;
+  if (!date) return;
+
+  const grid = document.getElementById('slot-grid');
+  grid.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:8px 0">Loading slots…</p>';
+
+  try {
+    const res  = await fetch(`/api/calendar/admin/slots?date=${date}`, { headers: getHeaders() });
+    const data = await res.json();
+
+    if (!data.slots || !data.slots.length) {
+      grid.innerHTML = '<p style="color:var(--faint);font-size:13px;font-style:italic;padding:8px 0">No slots for this day — it may be a non-working day. Check Settings.</p>';
+      return;
+    }
+
+    const statusMap = {
+      available: { color: '#6fbf73', label: 'Open',     border: 'rgba(111,191,115,.25)' },
+      booked:    { color: 'var(--gold)', label: 'Booked',   border: 'rgba(200,169,81,.3)' },
+      blocked:   { color: 'var(--amber)', label: 'Closed',  border: 'rgba(200,115,58,.3)' },
+      'gcal-busy': { color: 'var(--muted)', label: 'External', border: 'var(--line)' }
+    };
+
+    const cards = data.slots.map(slot => {
+      const sm = statusMap[slot.status] || statusMap.available;
+      const extra = slot.status === 'booked'   ? ` — ${esc(slot.patient || 'Patient')}`
+                  : slot.status === 'gcal-busy' ? ' (Google Cal)'
+                  : '';
+
+      let btnHtml = '';
+      if (slot.status === 'available') {
+        btnHtml = `<button class="action-btn"
+          style="margin-top:8px;border-color:rgba(200,115,58,.4);color:var(--amber);font-size:10px;width:100%"
+          data-action="block-slot"
+          data-date="${date}" data-start="${slot.start}" data-end="${slot.end}">Close Slot</button>`;
+      } else if (slot.status === 'blocked') {
+        btnHtml = `<button class="action-btn"
+          style="margin-top:8px;border-color:rgba(111,191,115,.4);color:#6fbf73;font-size:10px;width:100%"
+          data-action="unblock-slot"
+          data-date="${date}" data-start="${slot.start}">Open Slot</button>`;
+      }
+
+      return `<div style="background:var(--black2);border:1px solid ${sm.border};padding:14px 16px;display:flex;flex-direction:column">
+        <div style="font-size:14px;color:var(--white);margin-bottom:3px;font-family:'Tenor Sans',sans-serif;letter-spacing:.04em">${slot.start}–${slot.end}</div>
+        <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:${sm.color}">${sm.label}${extra}</div>
+        ${btnHtml}
+      </div>`;
+    }).join('');
+
+    grid.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">${cards}</div>`;
+
+    if (!data.gcalConnected) {
+      grid.insertAdjacentHTML('afterbegin', '<p style="font-size:11px;color:var(--faint);margin-bottom:12px;letter-spacing:.04em">Google Calendar not connected — slot changes are saved in the database only.</p>');
+    }
+  } catch {
+    grid.innerHTML = '<p style="color:var(--amber);font-size:13px">Failed to load slots. Check connection.</p>';
+  }
+}
+
+async function blockSlot(btn) {
+  const { date, start: timeStart, end: timeEnd } = btn.dataset;
+  btn.disabled = true; btn.textContent = 'Closing…';
+  try {
+    const res = await fetch('/api/calendar/admin/block', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ date, timeStart, timeEnd })
+    });
+    if (res.ok) {
+      loadSlots();
+    } else {
+      const d = await res.json();
+      showAlert(d.error || 'Failed to close slot', 'error');
+      btn.disabled = false; btn.textContent = 'Close Slot';
+    }
+  } catch {
+    btn.disabled = false; btn.textContent = 'Close Slot';
+  }
+}
+
+async function unblockSlot(btn) {
+  const { date, start: timeStart } = btn.dataset;
+  btn.disabled = true; btn.textContent = 'Opening…';
+  try {
+    const res = await fetch('/api/calendar/admin/unblock', {
+      method: 'DELETE', headers: getHeaders(),
+      body: JSON.stringify({ date, timeStart })
+    });
+    if (res.ok) {
+      loadSlots();
+    } else {
+      const d = await res.json();
+      showAlert(d.error || 'Failed to open slot', 'error');
+      btn.disabled = false; btn.textContent = 'Open Slot';
+    }
+  } catch {
+    btn.disabled = false; btn.textContent = 'Open Slot';
+  }
 }

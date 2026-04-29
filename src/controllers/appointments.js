@@ -3,7 +3,7 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { sanitize } = require('../middleware/validate');
-const { createCalendarEvent, deleteCalendarEvent } = require('./calendar');
+const { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } = require('./calendar');
 const wa = require('../lib/whatsapp');
 
 function isValidDate(d) {
@@ -110,13 +110,24 @@ router.post('/book', authenticate, async (req, res) => {
   // Google Calendar (non-critical — swallow errors)
   try {
     const eventId = await createCalendarEvent(
-      { date, time_start, time_end, health_concerns: cleanConcerns, medical_history: cleanHistory, goals: cleanGoals },
+      {
+        id:                  appointment.id,
+        date,
+        time_start,
+        time_end,
+        consultation_type:  tierKey,
+        consultation_price: tier.price,
+        health_concerns:    cleanConcerns,
+        medical_history:    cleanHistory,
+        goals:              cleanGoals,
+        status:             'confirmed',
+      },
       req.user
     );
     if (eventId) {
       await prisma.appointment.update({
         where: { id: appointment.id },
-        data: { googleEventId: eventId }
+        data:  { googleEventId: eventId }
       });
     }
   } catch {}
@@ -182,8 +193,24 @@ router.post('/:id/cancel', authenticate, async (req, res) => {
 
     await prisma.appointment.update({ where: { id }, data: { status: 'cancelled' } });
 
+    // Update GCal event to show CANCELLED (keep record, don't delete)
     if (appointment.googleEventId) {
-      deleteCalendarEvent(appointment.googleEventId).catch(e => console.error('[Calendar] delete event failed:', e.message));
+      updateCalendarEvent(
+        appointment.googleEventId,
+        {
+          id:                 appointment.id,
+          date:               appointment.date,
+          time_start:         appointment.timeStart,
+          time_end:           appointment.timeEnd,
+          consultation_type:  appointment.consultationType,
+          consultation_price: appointment.consultationPrice,
+          health_concerns:    appointment.healthConcerns,
+          medical_history:    appointment.medicalHistory,
+          goals:              appointment.goals,
+        },
+        req.user,
+        'cancelled'
+      ).catch(e => console.error('[Calendar] cancel event update failed:', e.message));
     }
 
     wa.sendCancellationNotice(req.user.phone, req.user.name, normalize(appointment)).catch(e => console.error('[WhatsApp] cancellation notice failed:', e.message));
@@ -256,10 +283,22 @@ router.post('/:id/reschedule', authenticate, async (req, res) => {
     }, { isolationLevel: 'Serializable' });
 
     if (appointment.googleEventId) {
-      deleteCalendarEvent(appointment.googleEventId).catch(e => console.error('[Calendar] delete event failed:', e.message));
+      // Delete old slot event, create fresh one with updated time + full details
+      deleteCalendarEvent(appointment.googleEventId).catch(e => console.error('[Calendar] delete old event failed:', e.message));
       try {
         const newEventId = await createCalendarEvent(
-          { date, time_start, time_end, health_concerns: appointment.healthConcerns, medical_history: appointment.medicalHistory, goals: appointment.goals },
+          {
+            id:                 appointment.id,
+            date,
+            time_start,
+            time_end,
+            consultation_type:  appointment.consultationType,
+            consultation_price: appointment.consultationPrice,
+            health_concerns:    appointment.healthConcerns,
+            medical_history:    appointment.medicalHistory,
+            goals:              appointment.goals,
+            status:             'confirmed',
+          },
           req.user
         );
         // Always update: set new event ID or clear stale old one
@@ -289,7 +328,7 @@ router.post('/:id/complete', authenticate, requireAdmin, async (req, res) => {
   try {
     const appointment = await prisma.appointment.findUnique({
       where:   { id },
-      include: { user: { select: { name: true, phone: true } } }
+      include: { user: { select: { name: true, email: true, phone: true } } }
     });
 
     if (!appointment) return res.status(404).json({ error: 'Appointment not found' });
@@ -298,6 +337,26 @@ router.post('/:id/complete', authenticate, requireAdmin, async (req, res) => {
     }
 
     await prisma.appointment.update({ where: { id }, data: { status: 'completed' } });
+
+    // Update GCal event to show COMPLETED
+    if (appointment.googleEventId && appointment.user) {
+      updateCalendarEvent(
+        appointment.googleEventId,
+        {
+          id:                 appointment.id,
+          date:               appointment.date,
+          time_start:         appointment.timeStart,
+          time_end:           appointment.timeEnd,
+          consultation_type:  appointment.consultationType,
+          consultation_price: appointment.consultationPrice,
+          health_concerns:    appointment.healthConcerns,
+          medical_history:    appointment.medicalHistory,
+          goals:              appointment.goals,
+        },
+        appointment.user,
+        'completed'
+      ).catch(e => console.error('[Calendar] complete event update failed:', e.message));
+    }
 
     if (appointment.user) {
       wa.sendCompletionMessage(appointment.user.phone, appointment.user.name).catch(e => console.error('[WhatsApp] completion message failed:', e.message));

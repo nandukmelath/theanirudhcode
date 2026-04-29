@@ -142,8 +142,8 @@ select.status-select{background:var(--black);color:var(--muted);border:1px solid
     <div style="width:7px;height:7px;background:var(--gold);transform:rotate(45deg);margin:0 auto 20px"></div>
     <h2>Admin Dashboard</h2>
     <p>theanirudhcode</p>
-    <input type="email" id="login-email" class="login-input" placeholder="Admin email" value="admin@theanirudhcode.com">
-    <input type="password" id="login-pass" class="login-input" placeholder="Password" autofocus>
+    <input type="text" id="login-user" class="login-input" placeholder="Username" autocomplete="username" autofocus>
+    <input type="password" id="login-pass" class="login-input" placeholder="Password" autocomplete="current-password">
     <button id="login-btn" class="login-btn">Access Dashboard</button>
     <p id="login-error" class="login-error">Invalid credentials</p>
   </div>
@@ -225,6 +225,20 @@ select.status-select{background:var(--black);color:var(--muted);border:1px solid
         <div class="setting-label">Select Calendar</div>
         <select class="setting-input" id="cal-select" style="margin-bottom:12px"></select>
         <button class="save-btn" id="save-cal">Use This Calendar</button>
+      </div>
+
+      <!-- Slot Manager -->
+      <div style="margin-top:36px;border-top:1px solid var(--line);padding-top:28px">
+        <div class="section-title" style="font-size:18px;margin-bottom:6px">Slot Manager</div>
+        <div class="section-desc" style="margin-bottom:20px">Open and close individual booking slots. Patients can only book open (green) slots. Closing a slot also blocks it in Google Calendar when connected.</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px">
+          <input type="date" id="slot-date" class="setting-input" style="max-width:200px">
+          <button class="save-btn" id="load-slots-btn" style="margin-top:0">Load Slots</button>
+        </div>
+        <p style="font-size:11px;color:var(--faint);margin-bottom:16px;letter-spacing:.04em">
+          🟢 Open &nbsp;|&nbsp; 🔴 Booked (patient) &nbsp;|&nbsp; 🟡 Closed (you blocked) &nbsp;|&nbsp; ⬛ External (GCal event)
+        </p>
+        <div id="slot-grid"></div>
       </div>
     </div>
 

@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
-"axios": "^1.15.2",
+    "axios": "^1.15.2",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.0",
@@ -29,6 +29,11 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.4",
     "prisma": "^6.19.2",
-    "sanitize-html": "^2.13.0"
+    "razorpay": "^2.9.6",
+    "sanitize-html": "^2.13.0",
+    "stripe": "^22.1.0"
+  },
+  "devDependencies": {
+    "pdf-parse": "^2.4.5"
   }
 }

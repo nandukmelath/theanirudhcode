@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const prisma = require('../lib/prisma');
-const { hybridAdminAuth } = require('../middleware/auth');
+const crypto = require('crypto');
+const { hybridAdminAuth, generateAdminToken, ADMIN_COOKIE_OPTIONS } = require('../middleware/auth');
 const { getSettings } = require('./calendar');
 const { sanitize } = require('../middleware/validate');
 const { sendConsultationReply } = require('../lib/mailer');
@@ -20,8 +21,44 @@ const BLOG_SAFE = {
   },
 };
 
-// Serve admin page (protected)
-router.get('/', hybridAdminAuth, (req, res) => {
+// ── Admin auth ─────────────────────────────────────────────────────────────
+
+// POST /portal-management/api/login
+// Body: { username, password }
+// Checks ADMIN_USERNAME + ADMIN_PASSWORD env vars, issues admin_token cookie
+router.post('/api/login', (req, res) => {
+  const { username, password } = req.body || {};
+  const envUser = process.env.ADMIN_USERNAME;
+  const envPass = process.env.ADMIN_PASSWORD;
+
+  if (!envUser || !envPass) {
+    return res.status(503).json({ error: 'Admin credentials not configured. Set ADMIN_USERNAME and ADMIN_PASSWORD env vars.' });
+  }
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+
+  try {
+    const uMatch = crypto.timingSafeEqual(Buffer.from(username), Buffer.from(envUser));
+    const pMatch = crypto.timingSafeEqual(Buffer.from(password), Buffer.from(envPass));
+    if (uMatch && pMatch) {
+      const token = generateAdminToken(username);
+      res.cookie('admin_token', token, ADMIN_COOKIE_OPTIONS);
+      return res.json({ success: true });
+    }
+  } catch {}
+
+  res.status(401).json({ error: 'Invalid credentials' });
+});
+
+// POST /portal-management/api/logout
+router.post('/api/logout', (req, res) => {
+  res.clearCookie('admin_token', { path: '/portal-management' });
+  res.json({ success: true });
+});
+
+// Serve admin page (public — login wall is client-side; API is server-guarded)
+router.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', '..', 'views', 'admin.html'));
 });
 

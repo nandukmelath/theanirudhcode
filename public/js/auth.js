@@ -110,7 +110,16 @@ const Auth = {
   },
 
   async logout() {
-    try { await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }); } catch {}
+    // NB: Content-Type must be application/json to pass the server-side CSRF guard,
+    // otherwise the server returns 415 and the cookie is never cleared.
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}'
+      });
+    } catch {}
     this.user = null;
     this._render();
     location.href = '/';

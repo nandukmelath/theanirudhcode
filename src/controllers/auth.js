@@ -90,11 +90,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // Success — reset lockout counters
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { failedLoginAttempts: 0, lockedUntil: null }
-    });
+    // Success — reset lockout state
+    if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+      await prisma.user.update({ where: { id: user.id }, data: { failedLoginAttempts: 0, lockedUntil: null } });
+    }
 
     const token = generateToken(user);
     res.cookie('token', token, COOKIE_OPTIONS);

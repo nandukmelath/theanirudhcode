@@ -226,6 +226,12 @@ router.get('/available-slots', authenticate, async (req, res) => {
     select: { timeStart: true, timeEnd: true }
   });
 
+  // Admin-manually-blocked slots
+  const blockedSlots = await prisma.blockedSlot.findMany({
+    where:  { date },
+    select: { timeStart: true }
+  });
+
   const slots = allSlots.map(slot => {
     const slotStart = new Date(`${date}T${slot.start}:00${TZ_OFFSET}`);
     const slotEnd   = new Date(`${date}T${slot.end}:00${TZ_OFFSET}`);
@@ -239,6 +245,8 @@ router.get('/available-slots', authenticate, async (req, res) => {
 
     const dbBusy = dbAppointments.some(a => slot.start < a.timeEnd && slot.end > a.timeStart);
     if (dbBusy) return { ...slot, available: false };
+
+    if (blockedSlots.some(b => b.timeStart === slot.start)) return { ...slot, available: false };
 
     return { ...slot, available: true };
   });
@@ -264,6 +272,11 @@ router.get('/available-days', authenticate, async (req, res) => {
   const dbAppointments = await prisma.appointment.findMany({
     where:  { date: { startsWith: month }, status: 'confirmed' },
     select: { date: true, timeStart: true, timeEnd: true }
+  });
+
+  const monthBlockedSlots = await prisma.blockedSlot.findMany({
+    where:  { date: { startsWith: month } },
+    select: { date: true, timeStart: true }
   });
 
   const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
@@ -297,11 +310,13 @@ router.get('/available-days', authenticate, async (req, res) => {
     if (!workingDays.includes(dayOfWeek)) { days.push({ date: dateStr, hasSlots: false }); continue; }
 
     const dayAppts   = dbAppointments.filter(a => a.date === dateStr);
+    const dayBlocked = monthBlockedSlots.filter(b => b.date === dateStr).map(b => b.timeStart);
     const hasAvailable = allSlots.some(slot => {
       const slotStart = new Date(`${dateStr}T${slot.start}:00${TZ_OFFSET}`);
       const slotEnd   = new Date(`${dateStr}T${slot.end}:00${TZ_OFFSET}`);
 
       if (slotStart < minTime) return false;
+      if (dayBlocked.includes(slot.start)) return false;
 
       const gcalBusy = busyPeriods.some(b => slotStart < new Date(b.end) && slotEnd > new Date(b.start));
       if (gcalBusy) return false;
@@ -315,12 +330,184 @@ router.get('/available-days', authenticate, async (req, res) => {
   res.json({ month, days });
 });
 
+// ── Admin slot management ─────────────────────────────────────────────────────
+
+// GET /api/calendar/admin/slots?date=YYYY-MM-DD
+router.get('/admin/slots', hybridAdminAuth, async (req, res) => {
+  const { date } = req.query;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return res.status(400).json({ error: 'Valid date (YYYY-MM-DD) required' });
+  }
+
+  const settings = await getSettings();
+  const allSlots  = generateSlots(settings);
+
+  const [bookedAppts, blockedSlots] = await Promise.all([
+    prisma.appointment.findMany({
+      where:  { date, status: 'confirmed' },
+      select: { timeStart: true, user: { select: { name: true } } }
+    }),
+    prisma.blockedSlot.findMany({
+      where:  { date },
+      select: { timeStart: true, timeEnd: true, reason: true }
+    })
+  ]);
+
+  const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
+  let gcalBusyPeriods = [];
+  let gcalConnected   = false;
+
+  if (gcalConfigured() && tokens?.refreshToken && tokens?.calendarId) {
+    try {
+      const client   = getOAuth2Client(tokens);
+      const calendar = google.calendar({ version: 'v3', auth: client });
+      const freeBusy = await calendar.freebusy.query({
+        requestBody: {
+          timeMin:  `${date}T00:00:00${TZ_OFFSET}`,
+          timeMax:  `${date}T23:59:59${TZ_OFFSET}`,
+          timeZone: TZ_NAME,
+          items:    [{ id: tokens.calendarId }]
+        }
+      });
+      gcalBusyPeriods = freeBusy.data.calendars[tokens.calendarId]?.busy || [];
+      gcalConnected   = true;
+    } catch (err) { console.error('Admin slots GCal error:', err.message); }
+  }
+
+  const slots = allSlots.map(slot => {
+    const slotStart = new Date(`${date}T${slot.start}:00${TZ_OFFSET}`);
+    const slotEnd   = new Date(`${date}T${slot.end}:00${TZ_OFFSET}`);
+
+    const booked = bookedAppts.find(a => a.timeStart === slot.start);
+    if (booked) return { ...slot, status: 'booked', patient: booked.user?.name || 'Patient' };
+
+    const blocked = blockedSlots.find(b => b.timeStart === slot.start);
+    if (blocked) return { ...slot, status: 'blocked', reason: blocked.reason || null };
+
+    const gcalBusy = gcalBusyPeriods.some(b => slotStart < new Date(b.end) && slotEnd > new Date(b.start));
+    if (gcalBusy) return { ...slot, status: 'gcal-busy' };
+
+    return { ...slot, status: 'available' };
+  });
+
+  res.json({ date, slots, gcalConnected });
+});
+
+// POST /api/calendar/admin/block
+router.post('/admin/block', hybridAdminAuth, async (req, res) => {
+  const { date, timeStart, timeEnd, reason } = req.body;
+  if (!date || !timeStart || !timeEnd) {
+    return res.status(400).json({ error: 'date, timeStart, timeEnd required' });
+  }
+
+  const existing = await prisma.appointment.findFirst({
+    where: { date, timeStart, status: 'confirmed' }
+  });
+  if (existing) return res.status(409).json({ error: 'Slot already booked by a patient' });
+
+  let gcalEventId = null;
+  if (gcalConfigured()) {
+    const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
+    if (tokens?.refreshToken && tokens?.calendarId) {
+      try {
+        const client   = getOAuth2Client(tokens);
+        const calendar = google.calendar({ version: 'v3', auth: client });
+        const event    = await calendar.events.insert({
+          calendarId:  tokens.calendarId,
+          requestBody: {
+            summary:      '🚫 Unavailable',
+            start:        { dateTime: `${date}T${timeStart}:00`, timeZone: TZ_NAME },
+            end:          { dateTime: `${date}T${timeEnd}:00`,   timeZone: TZ_NAME },
+            transparency: 'opaque'
+          }
+        });
+        gcalEventId = event.data.id;
+      } catch (err) { console.error('GCal block event error:', err.message); }
+    }
+  }
+
+  await prisma.blockedSlot.upsert({
+    where:  { date_timeStart: { date, timeStart } },
+    update: { timeEnd, reason: reason || null, gcalEventId },
+    create: { date, timeStart, timeEnd, reason: reason || null, gcalEventId }
+  });
+
+  res.json({ success: true });
+});
+
+// DELETE /api/calendar/admin/unblock
+router.delete('/admin/unblock', hybridAdminAuth, async (req, res) => {
+  const { date, timeStart } = req.body;
+  if (!date || !timeStart) return res.status(400).json({ error: 'date and timeStart required' });
+
+  const blocked = await prisma.blockedSlot.findUnique({
+    where: { date_timeStart: { date, timeStart } }
+  });
+  if (!blocked) return res.status(404).json({ error: 'Slot is not blocked' });
+
+  if (blocked.gcalEventId && gcalConfigured()) {
+    const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
+    if (tokens?.refreshToken && tokens?.calendarId) {
+      try {
+        const client   = getOAuth2Client(tokens);
+        const calendar = google.calendar({ version: 'v3', auth: client });
+        await calendar.events.delete({ calendarId: tokens.calendarId, eventId: blocked.gcalEventId });
+      } catch (err) { console.error('GCal unblock event error:', err.message); }
+    }
+  }
+
+  await prisma.blockedSlot.delete({
+    where: { date_timeStart: { date, timeStart } }
+  });
+
+  res.json({ success: true });
+});
+
 // ── Helpers exported to appointments controller ────────────────────────────────
+
+const CONSULTATION_LABELS = {
+  discovery:     '30-min Discovery Call',
+  deepdive:      '60-min Deep Dive',
+  comprehensive: '90-min Comprehensive',
+};
+
+// GCal colorId: 2=sage(green), 4=flamingo(pink/cancelled), 8=graphite(completed), 9=blueberry
+const STATUS_COLOR = { confirmed: '2', cancelled: '4', completed: '8', rescheduled: '9' };
+
+function buildEventDescription(appointment, user) {
+  const typeLabel = CONSULTATION_LABELS[appointment.consultation_type] || appointment.consultation_type || 'Consultation';
+  const price     = appointment.consultation_price
+    ? `₹${Number(appointment.consultation_price).toLocaleString('en-IN')}`
+    : '—';
+  const apptId    = appointment.id ? `#${appointment.id}` : '';
+
+  return [
+    '═══ PATIENT ═══',
+    `Name    : ${user.name}`,
+    `Email   : ${user.email}`,
+    `Phone   : ${user.phone || 'Not provided'}`,
+    '',
+    '═══ APPOINTMENT ═══',
+    `ID      : ${apptId}`,
+    `Type    : ${typeLabel}`,
+    `Fee     : ${price}`,
+    `Status  : ${(appointment.status || 'confirmed').toUpperCase()}`,
+    '',
+    '═══ HEALTH INTAKE ═══',
+    `Concerns:\n${appointment.health_concerns || 'Not provided'}`,
+    '',
+    `Medical History:\n${appointment.medical_history || 'None reported'}`,
+    '',
+    `Goals:\n${appointment.goals || 'Not specified'}`,
+  ].join('\n');
+}
 
 async function createCalendarEvent(appointment, user) {
   if (!gcalConfigured()) return null;
   const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
   if (!tokens?.refreshToken || !tokens?.calendarId) return null;
+
+  const typeLabel = CONSULTATION_LABELS[appointment.consultation_type] || 'Consultation';
 
   try {
     const client   = getOAuth2Client(tokens);
@@ -328,12 +515,13 @@ async function createCalendarEvent(appointment, user) {
     const event    = await calendar.events.insert({
       calendarId: tokens.calendarId,
       requestBody: {
-        summary:     `Consultation — ${user.name}`,
-        description: `Patient: ${user.name}\nEmail: ${user.email}\nPhone: ${user.phone || 'Not provided'}\n\n--- Health Details ---\nConcerns: ${appointment.health_concerns || 'None'}\nHistory: ${appointment.medical_history || 'None'}\nGoals: ${appointment.goals || 'None'}`,
-        start: { dateTime: `${appointment.date}T${appointment.time_start}:00`, timeZone: TZ_NAME },
-        end:   { dateTime: `${appointment.date}T${appointment.time_end}:00`,   timeZone: TZ_NAME },
-        attendees: [{ email: user.email }],
-        reminders: { useDefault: false, overrides: [{ method: 'email', minutes: 60 }, { method: 'popup', minutes: 30 }] }
+        summary:     `📋 ${typeLabel} — ${user.name}`,
+        description: buildEventDescription(appointment, user),
+        colorId:     STATUS_COLOR.confirmed,
+        start:       { dateTime: `${appointment.date}T${appointment.time_start}:00`, timeZone: TZ_NAME },
+        end:         { dateTime: `${appointment.date}T${appointment.time_end}:00`,   timeZone: TZ_NAME },
+        attendees:   [{ email: user.email, displayName: user.name }],
+        reminders:   { useDefault: false, overrides: [{ method: 'email', minutes: 60 }, { method: 'popup', minutes: 30 }] }
       }
     });
     return event.data.id;
@@ -341,6 +529,36 @@ async function createCalendarEvent(appointment, user) {
     console.error('Create calendar event error:', err.message);
     return null;
   }
+}
+
+// Update event when status changes (cancelled / completed / rescheduled)
+async function updateCalendarEvent(eventId, appointment, user, newStatus) {
+  if (!gcalConfigured() || !eventId) return;
+  const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
+  if (!tokens?.refreshToken || !tokens?.calendarId) return;
+
+  const typeLabel = CONSULTATION_LABELS[appointment.consultation_type] || 'Consultation';
+  const statusLabel = newStatus.toUpperCase();
+  const statusEmoji = newStatus === 'cancelled' ? '❌' : newStatus === 'completed' ? '✅' : '🔄';
+  const updatedAppt = { ...appointment, status: newStatus };
+
+  const patch = {
+    summary:     `${statusEmoji} [${statusLabel}] ${typeLabel} — ${user.name}`,
+    description: buildEventDescription(updatedAppt, user),
+    colorId:     STATUS_COLOR[newStatus] || STATUS_COLOR.confirmed,
+  };
+
+  // For reschedule: also update time
+  if (newStatus === 'rescheduled' && appointment.new_date) {
+    patch.start = { dateTime: `${appointment.new_date}T${appointment.new_time_start}:00`, timeZone: TZ_NAME };
+    patch.end   = { dateTime: `${appointment.new_date}T${appointment.new_time_end}:00`,   timeZone: TZ_NAME };
+  }
+
+  try {
+    const client   = getOAuth2Client(tokens);
+    const calendar = google.calendar({ version: 'v3', auth: client });
+    await calendar.events.patch({ calendarId: tokens.calendarId, eventId, requestBody: patch });
+  } catch (err) { console.error(`Update calendar event (${newStatus}) error:`, err.message); }
 }
 
 async function deleteCalendarEvent(eventId) {
@@ -355,7 +573,8 @@ async function deleteCalendarEvent(eventId) {
   } catch (err) { console.error('Delete calendar event error:', err.message); }
 }
 
-router.createCalendarEvent = createCalendarEvent;
-router.deleteCalendarEvent = deleteCalendarEvent;
-router.getSettings = getSettings;
+router.createCalendarEvent  = createCalendarEvent;
+router.updateCalendarEvent  = updateCalendarEvent;
+router.deleteCalendarEvent  = deleteCalendarEvent;
+router.getSettings          = getSettings;
 module.exports = router;

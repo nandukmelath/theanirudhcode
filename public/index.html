@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>theanirudhcode — Heal the Real You</title>
 <meta name="description" content="Dr. Anirudh M. Vaddineni — Specialist in Metabolic Biochemistry. A longevity and wellness platform bridging ancient Ayurvedic wisdom with modern healing science.">
 <meta name="theme-color" content="#070707">
@@ -23,6 +23,8 @@
 <meta name="twitter:image"       content="https://www.theanirudhcode.com/images/dr-anirudh.jpg">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
 <style>
 
@@ -60,9 +62,12 @@
    BASE
 ═══════════════════════════════════════ */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth;overflow-x:hidden;width:100%;overscroll-behavior-x:none}
-body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;overflow-x:hidden;width:100%;max-width:100%;overscroll-behavior-x:none;line-height:1.6;text-rendering:optimizeLegibility}
+html{scroll-behavior:smooth;overflow-x:hidden;width:100%;overscroll-behavior-x:none;-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-top:80px}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;overflow-x:hidden;width:100%;max-width:100%;overscroll-behavior-x:none;line-height:1.6;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 img,canvas,svg{display:block;max-width:100%}
+a,button,input,select,textarea,[role="button"]{touch-action:manipulation}
+/* Grid children: prevent overflow blowout */
+.ins-grid>*,.vault-grid>*,.cp-grid>*,.tiers-grid>*,.cohorts-grid>*{min-width:0}
 section{position:relative;z-index:10;overflow-x:hidden}
 footer{overflow-x:hidden}
 
@@ -207,7 +212,7 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 /* ═══════════════════════════════════════
    FREE RESOURCE / LEAD MAGNET
 ═══════════════════════════════════════ */
-.freebie{padding:var(--py) var(--px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,6vw,96px);align-items:center}
+.freebie{padding:var(--py) var(--px);display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,6vw,96px);align-items:center;content-visibility:auto;contain-intrinsic-size:0 600px}
 .fb-text{}
 .fb-text h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
 .fb-text h2 em{font-style:italic;color:var(--gold2)}
@@ -229,15 +234,42 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 .fprivacy{font-size:10px;color:var(--faint);margin-top:10px;text-align:center;letter-spacing:.06em}
 
 /* ═══════════════════════════════════════
+   PDF DOWNLOAD SECTION
+═══════════════════════════════════════ */
+.pdf-dl-section{padding:var(--py) var(--px);border-top:1px solid var(--line);content-visibility:auto;contain-intrinsic-size:0 600px}
+.pdf-dl-inner{display:grid;grid-template-columns:1fr 1.35fr;gap:clamp(40px,7vw,110px);align-items:center;max-width:1200px;margin:0 auto}
+.pdf-dl-right h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.08}
+.pdf-dl-right h2 em{font-style:italic;color:var(--gold2)}
+.pdf-dl-desc{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:300;margin-top:18px;max-width:480px}
+.pdf-dl-list{margin-top:22px;list-style:none;display:flex;flex-direction:column;gap:10px}
+.pdf-dl-list li{font-size:var(--fb);color:var(--muted);font-weight:300;display:flex;align-items:center;gap:12px}
+.pdf-dl-list li::before{content:'';width:5px;height:5px;background:var(--gold);border-radius:50%;flex-shrink:0}
+.pdf-dl-btn{margin-top:clamp(24px,3.5vw,40px);display:inline-flex;align-items:center;gap:12px;background:var(--gold);color:var(--black);padding:clamp(14px,1.6vw,18px) clamp(28px,3vw,52px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.2em;text-transform:uppercase;text-decoration:none;position:relative;overflow:hidden;transition:all .35s}
+.pdf-dl-btn::after{content:'';position:absolute;inset:0;background:var(--gold2);transform:translateX(-101%);transition:transform .42s cubic-bezier(.77,0,.18,1)}
+.pdf-dl-btn:hover::after{transform:translateX(0)}
+.pdf-dl-btn>*{position:relative;z-index:1}
+.pdf-dl-note{font-size:10px;color:var(--faint);margin-top:12px;letter-spacing:.06em}
+/* Mockup 3-page stack */
+.pdf-dl-mockup{position:relative;width:100%;max-width:320px;aspect-ratio:3/4;margin:0 auto}
+.pdf-mockup-page{position:absolute;background:var(--black2);border:1px solid var(--line);box-shadow:0 24px 72px rgba(0,0,0,.7)}
+.pdf-pg1{inset:0;z-index:3;display:flex;flex-direction:column;justify-content:flex-end;padding:clamp(18px,3vw,30px);background:linear-gradient(145deg,#0e0e0e 0%,#070707 100%);overflow:hidden}
+.pdf-pg2{top:12px;left:12px;right:-12px;bottom:-12px;z-index:2}
+.pdf-pg3{top:24px;left:24px;right:-24px;bottom:-24px;z-index:1}
+.pdf-m-logo{font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.28em;color:var(--gold);text-transform:uppercase;margin-bottom:auto;padding-top:clamp(16px,3vw,28px)}
+.pdf-m-title{font-family:'Cormorant',serif;font-size:clamp(32px,6.5vw,52px);font-weight:600;line-height:.92;color:var(--white);margin-bottom:10px}
+.pdf-m-sub{font-family:'Barlow',sans-serif;font-size:clamp(9px,1.2vw,11px);color:var(--muted);font-weight:300;line-height:1.8;margin-bottom:clamp(14px,2.5vw,24px)}
+.pdf-m-orb{position:absolute;top:clamp(20px,4vw,40px);right:clamp(-20px,-2vw,-10px);width:clamp(100px,22vw,180px);height:clamp(100px,22vw,180px);border-radius:50%;background:radial-gradient(circle at 35% 38%, #f4e070 0%, #c8a951 30%, #5a3200 70%, #1a0e00 100%);box-shadow:0 0 60px rgba(200,169,81,.18)}
+
+/* ═══════════════════════════════════════
    BLOG / INSIGHTS
 ═══════════════════════════════════════ */
-.insights{padding:var(--py) var(--px)}
+.insights{padding:var(--py) var(--px);content-visibility:auto;contain-intrinsic-size:0 700px}
 .ins-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:clamp(36px,5vw,72px);flex-wrap:wrap;gap:20px}
 .ins-head h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
 .ins-head h2 em{font-style:italic;color:var(--gold2)}
 .ins-link{font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.25em;text-transform:uppercase;color:var(--gold);text-decoration:none;display:flex;align-items:center;gap:10px;transition:gap .3s}
 .ins-link:hover{gap:16px}
-.ins-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(14px,1.6vw,20px)}
+.ins-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));gap:clamp(14px,1.6vw,20px)}
 .ins-card{background:var(--black2);border:1px solid var(--line);overflow:hidden;transition:all .5s cubic-bezier(.22,1,.36,1);text-decoration:none;color:inherit;display:flex;flex-direction:column;height:100%}
 .ins-card:hover{transform:translateY(-8px);box-shadow:0 44px 88px rgba(0,0,0,.55),0 0 32px rgba(208,175,82,.07);border-color:rgba(208,175,82,.28)}
 .ins-img{height:clamp(190px,20vw,260px);background:var(--black3);position:relative;overflow:hidden;display:block}
@@ -255,7 +287,7 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 /* ═══════════════════════════════════════
    MANIFESTO
 ═══════════════════════════════════════ */
-.manifesto{padding:var(--py) var(--px);text-align:center;position:relative;overflow:hidden}
+.manifesto{padding:var(--py) var(--px);text-align:center;position:relative;overflow:hidden;content-visibility:auto;contain-intrinsic-size:0 500px}
 .man-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50%,rgba(200,169,81,.07) 0%,transparent 70%);pointer-events:none}
 .man-lbl{font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.55em;text-transform:uppercase;color:var(--gold);margin-bottom:clamp(18px,2.5vh,36px)}
 .manifesto h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.15;font-style:italic;max-width:860px;margin:0 auto;position:relative}
@@ -265,7 +297,7 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 /* ═══════════════════════════════════════
    METABOLIC TRUTHS
 ═══════════════════════════════════════ */
-.truths-section{padding:var(--py) var(--px);background:var(--black2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.truths-section{padding:var(--py) var(--px);background:var(--black2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);content-visibility:auto;contain-intrinsic-size:0 800px}
 .truth-card{background:var(--black);padding:clamp(28px,3.5vw,52px) clamp(22px,2.8vw,42px);border:1px solid var(--line);transition:all .5s cubic-bezier(.22,1,.36,1);position:relative}
 .truth-card:hover{background:rgba(200,169,81,.04);transform:translateY(-6px);box-shadow:0 36px 72px rgba(0,0,0,.55);border-color:rgba(200,169,81,.2)}
 
@@ -332,10 +364,13 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 /* ═══════════════════════════════════════
    MODAL
 ═══════════════════════════════════════ */
-.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(7,7,7,.92);backdrop-filter:blur(20px);justify-content:center;align-items:center}
+.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(7,7,7,.92);backdrop-filter:blur(20px);justify-content:center;align-items:center;padding:16px}
 .modal-overlay.open{display:flex}
-.modal-content{background:var(--black2);border:1px solid var(--line);padding:clamp(32px,5vw,56px);max-width:620px;width:90%;position:relative;animation:rise .5s ease forwards;max-height:90vh;overflow-y:auto}
-.modal-close{position:absolute;top:16px;right:20px;background:none;border:none;color:var(--gold);font-size:24px}
+.modal-content{background:var(--black2);border:1px solid var(--line);padding:clamp(28px,4vw,52px);max-width:640px;width:100%;position:relative;animation:rise .5s ease forwards;max-height:88vh;max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.modal-close{position:absolute;top:16px;right:20px;background:none;border:none;color:var(--gold);font-size:24px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:flex-end;cursor:pointer}
+.auth-close{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:flex-end}
+/* Drag handle — hidden on desktop, shown as sheet indicator on mobile */
+.sheet-handle{display:none;width:40px;height:4px;background:rgba(200,169,81,.3);border-radius:2px;margin:0 auto 16px}
 .modal-content textarea.finput{min-height:80px;resize:vertical}
 
 /* ═══════════════════════════════════════
@@ -436,6 +471,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
    ANIMATIONS
 ═══════════════════════════════════════ */
 @keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes slideUp{from{opacity:0;transform:translateY(48px)}to{opacity:1;transform:none}}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .shake{animation:shake .4s ease}
@@ -460,6 +496,9 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   .phi-t{order:1}.phi-v{order:0;height:clamp(240px,38vw,380px)}
   .phi-t p{max-width:100%}
   .freebie{grid-template-columns:1fr}
+  .pdf-dl-inner{grid-template-columns:1fr}
+  .pdf-dl-left{order:1;max-width:280px;margin:0 auto}
+  .pdf-dl-right{order:0}
   .ppanel.active{grid-template-columns:1fr}
   .pp-visual{display:none}
   .prof-wrap{grid-template-columns:1fr;text-align:center}
@@ -507,6 +546,8 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   .toast{min-width:auto}
 }
 @media(max-width:540px){
+  /* Prevent iOS Safari zoom-on-focus (requires font-size >= 16px on inputs) */
+  input,textarea,select,.finput{font-size:16px !important}
   .hero{text-align:center;padding-left:18px;padding-right:18px}
   .hdesc{max-width:100%;margin-left:auto;margin-right:auto}
   .hcta{flex-direction:column;align-items:center}
@@ -584,9 +625,9 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 /* ═══════════════════════════════════════
    AUTH MODAL
 ═══════════════════════════════════════ */
-.auth-overlay{display:none;position:fixed;inset:0;z-index:1100;background:rgba(7,7,7,.94);backdrop-filter:blur(24px);justify-content:center;align-items:center}
+.auth-overlay{display:none;position:fixed;inset:0;z-index:1100;background:rgba(7,7,7,.94);backdrop-filter:blur(24px);justify-content:center;align-items:center;padding:16px}
 .auth-overlay.open{display:flex}
-.auth-box{background:var(--black2);border:1px solid var(--line);padding:clamp(32px,5vw,52px);max-width:440px;width:92%;position:relative;animation:rise .5s ease forwards}
+.auth-box{background:var(--black2);border:1px solid var(--line);padding:clamp(28px,4vw,48px);max-width:440px;width:100%;position:relative;animation:rise .5s ease forwards;max-height:92vh;max-height:92dvh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .auth-close{position:absolute;top:14px;right:18px;background:none;border:none;color:var(--gold);font-size:24px;}
 .auth-tabs{display:flex;gap:0;margin-bottom:28px}
 .auth-tab{flex:1;padding:14px 0;background:transparent;border:1px solid var(--line);border-bottom:none;color:var(--muted);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.2em;text-transform:uppercase;transition:all .3s;}
@@ -605,7 +646,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 .tiers-head h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
 .tiers-head h2 em{font-style:italic;color:var(--gold2)}
 .tiers-head p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:300;margin-top:16px}
-.tiers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(1px,.15vw,2px)}
+.tiers-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:clamp(1px,.15vw,2px)}
 .tier-pricing-card{background:var(--black);border:1px solid var(--line);padding:clamp(28px,3.5vw,52px) clamp(22px,2.8vw,38px);position:relative;transition:all .5s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column}
 .tier-pricing-card.featured{border-color:rgba(208,175,82,.38);background:rgba(208,175,82,.04)}
 .tier-pricing-card:hover{transform:translateY(-8px);box-shadow:0 40px 80px rgba(0,0,0,.6),0 0 0 1px rgba(208,175,82,.18);border-color:rgba(208,175,82,.28)}
@@ -635,7 +676,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 .vault-head h2{font-family:'Cormorant',serif;font-size:var(--h2);font-weight:300;line-height:1.1}
 .vault-head h2 em{font-style:italic;color:var(--gold2)}
 .vault-head p{font-size:var(--fb);color:var(--muted);line-height:2;font-weight:300;max-width:420px;margin-top:14px}
-.vault-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(12px,1.6vw,20px)}
+.vault-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:clamp(12px,1.6vw,20px)}
 .product-card{background:var(--black2);border:1px solid var(--line);padding:clamp(24px,3vw,38px);display:flex;flex-direction:column;transition:all .5s cubic-bezier(.22,1,.36,1);position:relative}
 .product-card:hover{transform:translateY(-6px);box-shadow:0 36px 72px rgba(0,0,0,.55);border-color:rgba(208,175,82,.24)}
 .product-badge{display:inline-block;font-family:'Tenor Sans',sans-serif;font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(208,175,82,.3);padding:4px 12px;margin-bottom:16px;align-self:flex-start}
@@ -649,7 +690,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 .product-price{font-family:'Cormorant',serif;font-size:clamp(24px,2.8vw,36px);font-weight:300;color:var(--gold2)}
 .product-buy-btn{background:transparent;border:1px solid rgba(200,169,81,.32);color:var(--gold2);padding:10px 22px;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.2em;text-transform:uppercase;transition:all .35s;cursor:pointer;white-space:nowrap}
 .product-buy-btn:hover{background:var(--gold-d);border-color:var(--gold)}
-@media(max-width:900px){.vault-grid{grid-template-columns:1fr 1fr}}
+/* vault-grid uses auto-fill minmax — no media query needed */
 @media(max-width:580px){
   .vault-grid{grid-template-columns:1fr}
   /* Reset bundle card span — only 1 col exists on mobile */
@@ -853,8 +894,33 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   .booking-nav{gap:10px}
   .booking-nav .btn-g,.booking-nav .btn-o{width:100%;text-align:center;justify-content:center}
 
-  /* Modal padding compact */
-  .modal-content{padding:20px 16px 24px}
+  /* Sheet drag handle visible on mobile */
+  .sheet-handle{display:block}
+  /* Modal: full-width sheet on mobile */
+  .modal-overlay{padding:0;align-items:flex-end}
+  .modal-content{
+    width:100%;
+    max-width:100%;
+    max-height:calc(96vh - env(safe-area-inset-top, 0px));
+    max-height:calc(96dvh - env(safe-area-inset-top, 0px));
+    padding:20px 18px calc(24px + env(safe-area-inset-bottom, 0px));
+    border-left:none;border-right:none;border-bottom:none;
+    animation:slideUp .35s cubic-bezier(.22,1,.36,1) forwards
+  }
+  /* Auth modal: same sheet treatment */
+  .auth-overlay{padding:0;align-items:flex-end}
+  .auth-box{
+    width:100%;max-width:100%;
+    max-height:calc(96vh - env(safe-area-inset-top, 0px));
+    max-height:calc(96dvh - env(safe-area-inset-top, 0px));
+    padding:22px 18px calc(24px + env(safe-area-inset-bottom, 0px));
+    border-left:none;border-right:none;border-bottom:none;
+    animation:slideUp .35s cubic-bezier(.22,1,.36,1) forwards
+  }
+  /* Tier cards: compact on small screens */
+  .tier-card{padding:14px 14px}
+  .tier-desc{font-size:11px}
+  .tier-includes li{font-size:10px}
 
   /* Journey step numbers */
   .jsn{font-size:clamp(36px,9vw,52px)}
@@ -887,6 +953,9 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   #toast-container{bottom:max(88px,calc(80px + env(safe-area-inset-bottom)))}
   .mmenu{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
   nav{padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right))}
+  /* Modals account for notch + home bar */
+  .modal-close{top:max(16px,env(safe-area-inset-top))}
+  .auth-close{top:max(14px,env(safe-area-inset-top))}
 }
 
 </style>
@@ -1062,7 +1131,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
       <div class="prof-card">
         <div class="prof-card-top"></div>
         <div class="prof-card-bot"></div>
-        <img src="/images/dr-anirudh.jpg" alt="Dr. Anirudh M. Vaddineni" class="prof-photo" id="prof-img"
+        <img src="/images/dr-anirudh.jpg" alt="Dr. Anirudh M. Vaddineni" class="prof-photo" id="prof-img" loading="lazy" decoding="async"
              onerror="this.style.display='none';document.getElementById('prof-overlay').style.display='none';document.getElementById('prof-fb').style.display='flex'">
         <div class="prof-photo-overlay" id="prof-overlay"></div>
         <div id="prof-fb" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;z-index:1">
@@ -1193,6 +1262,41 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   </form>
 </section>
 
+<!-- ══════════ PDF DOWNLOAD ══════════ -->
+<section class="pdf-dl-section z rv" id="pdf-download">
+  <div class="pdf-dl-inner">
+    <div class="pdf-dl-left">
+      <div class="pdf-dl-mockup" aria-hidden="true">
+        <div class="pdf-mockup-page pdf-pg1">
+          <div class="pdf-m-logo">theanirudhcode</div>
+          <div class="pdf-m-title">THE<br>ANIRUDH<br>CODE</div>
+          <div class="pdf-m-sub">Decode Your Health.<br>Reclaim Your Life.</div>
+          <div class="pdf-m-orb"></div>
+        </div>
+        <div class="pdf-mockup-page pdf-pg2"></div>
+        <div class="pdf-mockup-page pdf-pg3"></div>
+      </div>
+    </div>
+    <div class="pdf-dl-right rv">
+      <div class="gl" style="margin-bottom:clamp(12px,1.8vw,20px)">Free Download</div>
+      <h2>The Complete<br><em>Wellness Guide</em></h2>
+      <p class="pdf-dl-desc">8 beautifully designed pages covering the full theanirudhcode philosophy — from root-cause medicine and metabolic biochemistry to the 5 principles of metabolic mastery and how to begin your transformation.</p>
+      <ul class="pdf-dl-list">
+        <li>Core philosophy &amp; root-cause framework</li>
+        <li>Consultation options explained</li>
+        <li>6 metabolic truths you need to know</li>
+        <li>The Code We Live By — 5 principles</li>
+        <li>Vault resource overview</li>
+      </ul>
+      <a href="/theanirudhcode-guide.pdf" download="theanirudhcode-complete-guide.pdf" class="pdf-dl-btn">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v10M4 8l5 5 5-5M2 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Download Free Guide · PDF</span>
+      </a>
+      <p class="pdf-dl-note">8 pages · 152 KB · No sign-up required</p>
+    </div>
+  </div>
+</section>
+
 <!-- ══════════ INSIGHTS / BLOG ══════════ -->
 <section class="insights z" id="insights">
   <div class="ins-head rv">
@@ -1248,6 +1352,10 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   <div class="man-lbl">The Manifesto</div>
   <h2>"The body is not a problem to be solved —<br>it is <span>a sacred intelligence</span> waiting to be heard."</h2>
   <div class="man-attr">— Dr. Anirudh M. Vaddineni · theanirudhcode</div>
+  <a href="/manifesto" class="btn-o" style="margin-top:clamp(28px,4vw,44px);display:inline-flex;align-items:center;gap:10px">
+    <span>Read the Manifesto</span>
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
 </section>
 
 <!-- ══════════ METABOLIC TRUTHS ══════════ -->
@@ -1313,7 +1421,6 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
     <div class="tier-pricing-card">
       <div class="tier-p-duration">30 Minutes</div>
       <div class="tier-p-name">Discovery Call</div>
-      <div class="tier-p-price">₹<span>per session</span>1,500</div>
       <p class="tier-p-desc">Ideal for first-timers. A focused conversation to map your health story, identify root causes, and understand if Dr. Anirudh's approach is right for you.</p>
       <ul class="tier-p-includes">
         <li>Root cause mapping</li>
@@ -1327,7 +1434,6 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
       <div class="tier-p-badge">Most Popular</div>
       <div class="tier-p-duration">60 Minutes</div>
       <div class="tier-p-name">Deep Dive</div>
-      <div class="tier-p-price">₹<span>per session</span>5,000</div>
       <p class="tier-p-desc">The complete diagnostic consultation. We go deep — metabolic, hormonal, gut, and lifestyle — and build your initial protocol during the session.</p>
       <ul class="tier-p-includes">
         <li>Full root cause mapping</li>
@@ -1340,7 +1446,6 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
     <div class="tier-pricing-card">
       <div class="tier-p-duration">90 Minutes</div>
       <div class="tier-p-name">Comprehensive</div>
-      <div class="tier-p-price">₹<span>per session</span>8,000</div>
       <p class="tier-p-desc">For complex, chronic, or multi-system conditions. The deepest single session available — with a written protocol report delivered within 48 hours.</p>
       <ul class="tier-p-includes">
         <li>Everything in Deep Dive</li>
@@ -1396,10 +1501,6 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
       <p class="cohort-desc">A 4-week guided group programme covering gut healing, fasting protocols, sleep optimisation, and daily accountability check-ins. Same transformation as 1:1 — at group pricing.</p>
       <div class="cohort-meta">
         <div class="cohort-meta-item">
-          <div class="cohort-meta-label">Investment</div>
-          <div class="cohort-meta-val price">₹15,000</div>
-        </div>
-        <div class="cohort-meta-item">
           <div class="cohort-meta-label">Duration</div>
           <div class="cohort-meta-val">4 weeks</div>
         </div>
@@ -1423,10 +1524,6 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
       <div class="cohort-name">Longevity Blueprint</div>
       <p class="cohort-desc">The complete transformation: metabolic labs review, personalised protocols, weekly group sessions, monthly 1:1 check-ins, and a private community. Built for lasting change.</p>
       <div class="cohort-meta">
-        <div class="cohort-meta-item">
-          <div class="cohort-meta-label">Investment</div>
-          <div class="cohort-meta-val price">₹45,000</div>
-        </div>
         <div class="cohort-meta-item">
           <div class="cohort-meta-label">Duration</div>
           <div class="cohort-meta-val">12 weeks</div>
@@ -1512,8 +1609,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
         <li>Lifetime access &amp; updates</li>
       </ul>
       <div class="product-footer">
-        <div class="product-price">₹499</div>
-        <button class="product-buy-btn" data-product-id="1" data-product-title="7-Day Gut Reset Protocol" data-product-price="₹499">Order Now</button>
+        <button class="product-buy-btn" data-product-id="1" data-product-title="7-Day Gut Reset Protocol">Order Now</button>
       </div>
     </div>
     <div class="product-card rv" style="transition-delay:.08s">
@@ -1527,8 +1623,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
         <li>Real case studies</li>
       </ul>
       <div class="product-footer">
-        <div class="product-price">₹799</div>
-        <button class="product-buy-btn" data-product-id="2" data-product-title="Fasting for Women" data-product-price="₹799">Order Now</button>
+        <button class="product-buy-btn" data-product-id="2" data-product-title="Fasting for Women">Order Now</button>
       </div>
     </div>
     <div class="product-card rv" style="transition-delay:.16s">
@@ -1543,8 +1638,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
         <li>Shopping lists included</li>
       </ul>
       <div class="product-footer">
-        <div class="product-price">₹999</div>
-        <button class="product-buy-btn" data-product-id="3" data-product-title="Dosha Cookbook" data-product-price="₹999">Order Now</button>
+        <button class="product-buy-btn" data-product-id="3" data-product-title="Dosha Cookbook">Order Now</button>
       </div>
     </div>
     <div class="product-card rv" style="transition-delay:.04s">
@@ -1559,15 +1653,14 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
         <li>Stress reset session</li>
       </ul>
       <div class="product-footer">
-        <div class="product-price">₹1,299</div>
-        <button class="product-buy-btn" data-product-id="4" data-product-title="Breathwork Audio Bundle" data-product-price="₹1,299">Order Now</button>
+        <button class="product-buy-btn" data-product-id="4" data-product-title="Breathwork Audio Bundle">Order Now</button>
       </div>
     </div>
     <div class="product-card rv" style="transition-delay:.12s;grid-column:span 2;background:rgba(208,175,82,.04);border-color:rgba(208,175,82,.22)">
       <div class="product-badge">Best Value · 30% Off</div>
       <div class="product-category">Bundle</div>
       <div class="product-title">Metabolic Reset Starter Bundle</div>
-      <p class="product-desc">Everything you need to begin: 7-Day Gut Reset + Fasting for Women + Breathwork Bundle. The complete starter stack at a 30% saving — ₹740 off individual price.</p>
+      <p class="product-desc">Everything you need to begin: 7-Day Gut Reset + Fasting for Women + Breathwork Bundle. The complete starter stack — bundled at a 30% saving.</p>
       <ul class="product-features" style="grid-template-columns:1fr 1fr;display:grid;gap:8px">
         <li>7-Day Gut Reset ebook</li>
         <li>Fasting for Women guide</li>
@@ -1575,11 +1668,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
         <li>30% off individual price</li>
       </ul>
       <div class="product-footer" style="margin-top:20px">
-        <div>
-          <div class="product-price">₹1,799</div>
-          <div style="font-size:11px;color:var(--faint);text-decoration:line-through">₹2,597 individually</div>
-        </div>
-        <button class="product-buy-btn" style="background:var(--gold);color:var(--black);border-color:var(--gold);padding:12px 28px" data-product-id="5" data-product-title="Metabolic Reset Starter Bundle" data-product-price="₹1,799">Get the Bundle</button>
+        <button class="product-buy-btn" style="background:var(--gold);color:var(--black);border-color:var(--gold);padding:12px 28px" data-product-id="5" data-product-title="Metabolic Reset Starter Bundle">Get the Bundle</button>
       </div>
     </div>
   </div>
@@ -1624,7 +1713,8 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   <div class="flinks-col">
     <h5>Connect</h5>
     <a href="https://instagram.com/theanirudhcode" target="_blank" rel="noopener">Instagram</a>
-    <a href="#free-guide">Free Guide</a>
+    <a href="#pdf-download">Free Guide</a>
+    <a href="/theanirudhcode-guide.pdf" download="theanirudhcode-complete-guide.pdf">Download PDF</a>
     <a href="#" data-action="open-consultation">Consultation</a>
     <a href="https://t.me/theanirudhcode" target="_blank" rel="noopener">Community</a>
     <a href="#" data-action="open-consultation">Contact</a>
@@ -1635,7 +1725,8 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 <!-- ══════════ AUTH MODAL ══════════ -->
 <div class="auth-overlay" id="auth-modal">
   <div class="auth-box">
-    <button class="auth-close" id="auth-close">&times;</button>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <button class="auth-close" id="auth-close" aria-label="Close">&times;</button>
     <div style="text-align:center;margin-bottom:8px">
       <div style="width:7px;height:7px;background:var(--gold);transform:rotate(45deg);margin:0 auto 16px"></div>
       <h3 style="font-family:'Cormorant',serif;font-size:clamp(24px,3vw,32px);font-weight:300;margin-bottom:4px">
@@ -1668,7 +1759,8 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 <!-- ══════════ BOOKING MODAL ══════════ -->
 <div class="modal-overlay" id="consultation-modal">
   <div class="modal-content">
-    <button class="modal-close" id="modal-close">&times;</button>
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <button class="modal-close" id="modal-close" aria-label="Close">&times;</button>
     <div id="booking-container">
       <!-- Dynamically rendered by BookingModal -->
     </div>
@@ -1684,10 +1776,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
       <h3 style="font-family:'Cormorant',serif;font-size:clamp(20px,2.4vw,28px);font-weight:300;margin-bottom:4px">
         Order <em id="product-modal-title" style="color:var(--gold2)">Product</em>
       </h3>
-      <p style="color:var(--muted);font-size:var(--fb);font-weight:200">
-        <span id="product-modal-price" style="color:var(--gold2);font-family:'Cormorant',serif;font-size:1.3em;font-weight:300"></span>
-        · Payment details sent via WhatsApp/email within 24h
-      </p>
+      <p style="color:var(--muted);font-size:var(--fb);font-weight:200">Payment details sent via WhatsApp/email within 24h</p>
     </div>
     <form id="product-order-form">
       <input type="hidden" id="product-order-id" value="">
@@ -1742,6 +1831,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 <!-- Back to Top -->
 <button id="back-to-top" class="btt" aria-label="Back to top">&uarr;</button>
 
+<script src="/api/payments/config.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/app.js"></script>
 <script src="/js/toast.js"></script>
@@ -1782,7 +1872,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       productIdEl.value        = btn.dataset.productId;
       productTitleEl.textContent = btn.dataset.productTitle;
-      productPriceEl.textContent = btn.dataset.productPrice;
+      productPriceEl.textContent = '';
       productForm.reset();
       productModal.classList.add('open');
       document.body.style.overflow = 'hidden';
