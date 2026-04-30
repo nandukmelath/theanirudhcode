@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>Email Verification — theanirudhcode</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--gold:#c8a951;--gold2:#e2c97e;--white:#f8f4ec;--muted:rgba(248,244,236,.72);--faint:rgba(248,244,236,.34);--amber:#c8733a;--line:rgba(200,169,81,.16)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.auth-logo{font-family:'Cormorant',serif;font-size:20px;font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;margin-bottom:48px;display:flex;align-items:center;gap:9px}
+.auth-gem{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);flex-shrink:0}
+.auth-box{background:var(--black2);border:1px solid var(--line);padding:clamp(32px,5vw,48px);max-width:440px;width:min(100%,440px);text-align:center}
+.icon{font-size:32px;margin-bottom:20px}
+.auth-box h2{font-family:'Cormorant',serif;font-size:clamp(24px,3.5vw,34px);font-weight:300;margin-bottom:10px}
+.auth-box h2 em{color:var(--gold2);font-style:italic}
+.auth-sub{color:var(--muted);font-size:14px;line-height:1.7;font-weight:300;margin-bottom:28px}
+.fsubmit{display:inline-block;padding:14px 32px;background:var(--gold);border:none;color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:all .35s;margin-top:8px}
+.fsubmit:hover{background:var(--gold2)}
+.fsubmit:disabled{opacity:.6;cursor:not-allowed}
+.auth-link{display:block;margin-top:20px;font-size:13px;color:var(--muted);font-weight:300}
+.auth-link a{color:var(--gold2);text-decoration:none;transition:color .3s}
+.auth-link a:hover{color:var(--gold)}
+.auth-error{background:rgba(200,115,58,.1);border:1px solid rgba(200,115,58,.3);padding:12px 16px;font-size:13px;color:var(--amber);margin-bottom:16px;display:none}
+.auth-success{background:rgba(74,154,100,.1);border:1px solid rgba(74,154,100,.3);padding:12px 16px;font-size:13px;color:#6fbf73;margin-bottom:16px;display:none}
+.resend-input{width:100%;padding:14px 16px;background:var(--black3);border:1px solid var(--line);color:var(--white);font-family:'Barlow',sans-serif;font-size:14px;margin-bottom:12px;outline:none;transition:border-color .3s;font-weight:300;text-align:left}
+.resend-input:focus{border-color:rgba(200,169,81,.4)}
+.resend-input::placeholder{color:var(--faint)}
+@media(max-width:540px){body{justify-content:flex-start;padding-top:40px;padding-bottom:40px}.auth-logo{margin-bottom:28px}}
+</style>
+</head>
+<body>
+
+<a href="/" class="auth-logo"><div class="auth-gem"></div>theanirudhcode</a>
+
+<div class="auth-box" id="box">
+  <!-- Content injected by JS based on ?status param -->
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const status = params.get('status');
+const box    = document.getElementById('box');
+
+const states = {
+  success: {
+    icon:  '◆',
+    title: 'Email <em>verified</em>',
+    sub:   'Your account is now active. You can sign in and start your healing journey.',
+    cta:   '<a href="/login" class="fsubmit">Sign In →</a>',
+    extra: ''
+  },
+  already: {
+    icon:  '◆',
+    title: 'Already <em>verified</em>',
+    sub:   'This email address has already been verified. You can sign in to your account.',
+    cta:   '<a href="/login" class="fsubmit">Sign In →</a>',
+    extra: ''
+  },
+  expired: {
+    icon:  '◇',
+    title: 'Link <em>expired</em>',
+    sub:   'This verification link has expired. Enter your email below to receive a new one.',
+    cta:   '',
+    extra: 'resend'
+  },
+  invalid: {
+    icon:  '◇',
+    title: 'Invalid <em>link</em>',
+    sub:   'This verification link is not valid or has already been used. Enter your email below to get a new one.',
+    cta:   '',
+    extra: 'resend'
+  },
+  error: {
+    icon:  '◇',
+    title: 'Something went <em>wrong</em>',
+    sub:   'We could not verify your email right now. Please try again or request a new link.',
+    cta:   '',
+    extra: 'resend'
+  },
+};
+
+const state = states[status] || {
+  icon:  '◆',
+  title: 'Verify your <em>email</em>',
+  sub:   'If you need a new verification link, enter your email address below.',
+  cta:   '',
+  extra: 'resend'
+};
+
+const resendHtml = `
+  <div class="auth-error" id="resend-error"></div>
+  <div class="auth-success" id="resend-success"></div>
+  <input type="email" class="resend-input" id="resend-email" placeholder="Your email address" autocomplete="email">
+  <button class="fsubmit" id="resend-btn" style="width:100%">Resend Verification Email</button>
+`;
+
+box.innerHTML = `
+  <div class="icon" style="color:var(--gold)">${state.icon}</div>
+  <h2>${state.title}</h2>
+  <p class="auth-sub">${state.sub}</p>
+  ${state.cta}
+  ${state.extra === 'resend' ? resendHtml : ''}
+  <p class="auth-link" style="margin-top:24px"><a href="/">← Back to Home</a></p>
+`;
+
+if (state.extra === 'resend') {
+  document.getElementById('resend-btn').addEventListener('click', async () => {
+    const email  = (document.getElementById('resend-email').value || '').trim();
+    const errEl  = document.getElementById('resend-error');
+    const okEl   = document.getElementById('resend-success');
+    const btn    = document.getElementById('resend-btn');
+    errEl.style.display = 'none';
+    okEl.style.display  = 'none';
+    if (!email) { errEl.textContent = 'Please enter your email address'; errEl.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      okEl.textContent = 'If that email is registered and unverified, a new link has been sent. Check your inbox.';
+      okEl.style.display = 'block';
+    } catch {
+      errEl.textContent = 'Connection error. Please try again.';
+      errEl.style.display = 'block';
+    }
+    btn.disabled = false; btn.textContent = 'Resend Verification Email';
+  });
+}
+</script>
+</body>
+</html>

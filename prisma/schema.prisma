@@ -36,16 +36,19 @@ enum AppointmentStatus {
 // ═══════════════════════════════════════
 
 model User {
-  id                   Int           @id @default(autoincrement())
-  name                 String
-  email                String        @unique
-  passwordHash         String        @map("password_hash")
-  phone                String?
-  role                 Role          @default(patient)
-  isActive             Boolean       @default(true) @map("is_active")
-  failedLoginAttempts  Int           @default(0) @map("failed_login_attempts")
-  lockedUntil          DateTime?     @map("locked_until")
-  createdAt            DateTime      @default(now()) @map("created_at")
+  id                           Int           @id @default(autoincrement())
+  name                         String
+  email                        String        @unique
+  passwordHash                 String        @map("password_hash")
+  phone                        String?
+  role                         Role          @default(patient)
+  isActive                     Boolean       @default(true) @map("is_active")
+  emailVerified                Boolean       @default(true) @map("email_verified")
+  emailVerificationTokenHash   String?       @map("email_verification_token_hash")
+  emailVerificationExpiresAt   DateTime?     @map("email_verification_expires_at")
+  failedLoginAttempts          Int           @default(0) @map("failed_login_attempts")
+  lockedUntil                  DateTime?     @map("locked_until")
+  createdAt                    DateTime      @default(now()) @map("created_at")
   appointments   Appointment[]
   passwordResets PasswordReset[]
 

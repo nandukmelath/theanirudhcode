@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { generateToken, authenticate, COOKIE_OPTIONS } = require('../middleware/auth');
 const { validateEmail, sanitize } = require('../middleware/validate');
-const { sendWelcomeEmail, sendPasswordResetEmail } = require('../lib/mailer');
+const { sendWelcomeEmail, sendPasswordResetEmail, sendVerificationEmail } = require('../lib/mailer');
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
@@ -31,23 +31,31 @@ router.post('/register', async (req, res) => {
     if (existing) return res.status(409).json({ error: 'An account with this email already exists' });
 
     const hash = bcrypt.hashSync(password, 10);
-    const user = await prisma.user.create({
+
+    // Generate verification token
+    const verifyToken     = crypto.randomBytes(32).toString('hex');
+    const verifyTokenHash = crypto.createHash('sha256').update(verifyToken).digest('hex');
+    const verifyExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+
+    await prisma.user.create({
       data: {
-        name: cleanName,
-        email: cleanEmail,
-        passwordHash: hash,
-        phone: cleanPhone,
-        role: 'patient',
+        name:                        cleanName,
+        email:                       cleanEmail,
+        passwordHash:                hash,
+        phone:                       cleanPhone,
+        role:                        'patient',
+        emailVerified:               false,
+        emailVerificationTokenHash:  verifyTokenHash,
+        emailVerificationExpiresAt:  verifyExpiresAt,
       }
     });
 
-    const token = generateToken(user);
-    res.cookie('token', token, COOKIE_OPTIONS);
+    // Send verification email (non-blocking)
+    const base     = process.env.APP_URL || 'https://www.theanirudhcode.com';
+    const verifyUrl = `${base}/api/auth/verify-email?token=${verifyToken}`;
+    sendVerificationEmail(cleanEmail, cleanName, verifyUrl).catch(e => console.error('[Mailer] verification email failed:', e.message));
 
-    // Send welcome email (non-blocking)
-    sendWelcomeEmail(cleanEmail, cleanName).catch(e => console.error('[Mailer] welcome email failed:', e.message));
-
-    res.status(201).json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    res.status(201).json({ success: true, requiresVerification: true });
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -67,6 +75,14 @@ router.post('/login', async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
     if (!user || !user.isActive) return res.status(401).json({ error: 'Invalid email or password' });
+
+    // Email verification check
+    if (!user.emailVerified) {
+      return res.status(403).json({
+        error: 'Please verify your email address before signing in. Check your inbox for the verification link.',
+        code:  'EMAIL_NOT_VERIFIED',
+      });
+    }
 
     // Account lockout check
     if (user.lockedUntil && user.lockedUntil > new Date()) {
@@ -152,6 +168,72 @@ router.post('/forgot-password', async (req, res) => {
     console.log('[ForgotPwd] Email sent result:', sent);
   } catch (err) {
     console.error('[ForgotPwd] Error:', err.message, err.stack);
+  }
+});
+
+// GET /api/auth/verify-email?token=xxx  (link from verification email)
+router.get('/verify-email', async (req, res) => {
+  const { token } = req.query;
+  if (!token || typeof token !== 'string') {
+    return res.redirect('/verify-email?status=invalid');
+  }
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  try {
+    const user = await prisma.user.findFirst({
+      where: { emailVerificationTokenHash: tokenHash }
+    });
+    if (!user) return res.redirect('/verify-email?status=invalid');
+    if (user.emailVerified) return res.redirect('/verify-email?status=already');
+    if (user.emailVerificationExpiresAt && user.emailVerificationExpiresAt < new Date()) {
+      return res.redirect('/verify-email?status=expired');
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified:               true,
+        emailVerificationTokenHash:  null,
+        emailVerificationExpiresAt:  null,
+      }
+    });
+
+    // Send welcome email now that account is confirmed (non-blocking)
+    sendWelcomeEmail(user.email, user.name).catch(e => console.error('[Mailer] welcome email failed:', e.message));
+
+    return res.redirect('/verify-email?status=success');
+  } catch (err) {
+    console.error('Verify email error:', err);
+    return res.redirect('/verify-email?status=error');
+  }
+});
+
+// POST /api/auth/resend-verification
+router.post('/resend-verification', async (req, res) => {
+  const { email } = req.body;
+  if (!email || !validateEmail(email)) return res.status(400).json({ error: 'Valid email is required' });
+
+  // Always return 200 (prevents email enumeration)
+  res.json({ success: true, message: 'If that email is registered and unverified, a new link has been sent.' });
+
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (!user || !user.isActive || user.emailVerified) return;
+
+    const verifyToken     = crypto.randomBytes(32).toString('hex');
+    const verifyTokenHash = crypto.createHash('sha256').update(verifyToken).digest('hex');
+    const verifyExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data:  { emailVerificationTokenHash: verifyTokenHash, emailVerificationExpiresAt: verifyExpiresAt }
+    });
+
+    const base      = process.env.APP_URL || 'https://www.theanirudhcode.com';
+    const verifyUrl = `${base}/api/auth/verify-email?token=${verifyToken}`;
+    sendVerificationEmail(cleanEmail, user.name, verifyUrl).catch(e => console.error('[Mailer] resend verification failed:', e.message));
+  } catch (err) {
+    console.error('[ResendVerify] Error:', err.message);
   }
 });
 

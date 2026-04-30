@@ -22,6 +22,9 @@ async function runPaymentMigration() {
       UNIQUE(date, time_start)
     )`,
     `CREATE INDEX IF NOT EXISTS blocked_slots_date_idx ON blocked_slots(date)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT true`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token_hash TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMPTZ`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts INT NOT NULL DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ`,
     `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'pending'`,
@@ -102,7 +105,8 @@ app.use('/portal-management', csrfGuard);
 
 // Stricter rate limits for auth (must be BEFORE general API limiter)
 app.use('/api/auth/login',          rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many login attempts. Please try again later.' } }));
-app.use('/api/auth/forgot-password', rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/auth/forgot-password',        rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/auth/resend-verification',   rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
 app.use('/api/auth/register',        rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many registration attempts. Please try again later.' } }));
 app.use('/api/subscribe',            rateLimit({ windowMs: 60 * 60 * 1000, max: 8,  message: { error: 'Too many requests. Please try again later.' } }));
 app.use('/api/consultation',         rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
@@ -144,6 +148,7 @@ app.get('/blog/:slug', (req, res) => res.sendFile(path.join(__dirname, 'views', 
 
 app.get('/forgot-password', (req, res) => res.sendFile(path.join(__dirname, 'views', 'forgot-password.html')));
 app.get('/reset-password',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'reset-password.html')));
+app.get('/verify-email',    (req, res) => res.sendFile(path.join(__dirname, 'views', 'verify-email.html')));
 
 // Manifesto page
 app.get('/manifesto', (req, res) => res.sendFile(path.join(__dirname, 'public', 'manifesto.html')));

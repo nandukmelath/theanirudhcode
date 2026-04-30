@@ -75,6 +75,9 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
       const redirect = params.get('redirect');
       const safeRedirect = (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) ? redirect : '/';
       window.location.href = safeRedirect;
+    } else if (data.code === 'EMAIL_NOT_VERIFIED') {
+      errEl.innerHTML = data.error + ' &nbsp;<a href="/verify-email" style="color:inherit;text-decoration:underline;font-size:12px">Resend link</a>';
+      errEl.style.display = 'block';
     } else {
       errEl.textContent = data.error;
       errEl.style.display = 'block';
