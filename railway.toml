@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm install && npx prisma generate && node prisma/migrate-new-features.js && node prisma/migrate-phase3.js && node prisma/migrate-phase5.js"
+buildCommand = "npm install"
 
 [deploy]
 startCommand = "node server.js"
