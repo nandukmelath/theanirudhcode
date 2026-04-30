@@ -8,16 +8,19 @@ const axios = require('axios');
 
 const WA_BASE = 'https://graph.facebook.com/v19.0';
 
-function isConfigured() {
-  return !!(
-    (process.env.WHATSAPP_PHONE_ID || process.env.WA_PHONE_NUMBER_ID) &&
-    (process.env.WHATSAPP_TOKEN    || process.env.WA_ACCESS_TOKEN)
-  );
+function phoneId() {
+  return process.env.WHATSAPP_PHONE_ID || process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.WA_PHONE_NUMBER_ID;
+}
+function accessToken() {
+  return process.env.WHATSAPP_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN || process.env.WA_ACCESS_TOKEN;
+}
+function adminPhone() {
+  return process.env.WHATSAPP_ADMIN_NUMBER || process.env.WA_ADMIN_PHONE || process.env.ADMIN_WHATSAPP;
 }
 
-function phoneId()    { return process.env.WHATSAPP_PHONE_ID    || process.env.WA_PHONE_NUMBER_ID; }
-function accessToken(){ return process.env.WHATSAPP_TOKEN        || process.env.WA_ACCESS_TOKEN; }
-function adminPhone() { return process.env.WHATSAPP_ADMIN_NUMBER || process.env.WA_ADMIN_PHONE; }
+function isConfigured() {
+  return !!(phoneId() && accessToken());
+}
 
 // Format Indian phone numbers → international format (91XXXXXXXXXX)
 function formatPhone(raw) {
