@@ -9,8 +9,15 @@ const axios = require('axios');
 const WA_BASE = 'https://graph.facebook.com/v19.0';
 
 function isConfigured() {
-  return !!(process.env.WA_PHONE_NUMBER_ID && process.env.WA_ACCESS_TOKEN);
+  return !!(
+    (process.env.WHATSAPP_PHONE_ID || process.env.WA_PHONE_NUMBER_ID) &&
+    (process.env.WHATSAPP_TOKEN    || process.env.WA_ACCESS_TOKEN)
+  );
 }
+
+function phoneId()    { return process.env.WHATSAPP_PHONE_ID    || process.env.WA_PHONE_NUMBER_ID; }
+function accessToken(){ return process.env.WHATSAPP_TOKEN        || process.env.WA_ACCESS_TOKEN; }
+function adminPhone() { return process.env.WHATSAPP_ADMIN_NUMBER || process.env.WA_ADMIN_PHONE; }
 
 // Format Indian phone numbers → international format (91XXXXXXXXXX)
 function formatPhone(raw) {
@@ -33,9 +40,9 @@ async function sendText(to, body) {
 
   try {
     await axios.post(
-      `${WA_BASE}/${process.env.WA_PHONE_NUMBER_ID}/messages`,
+      `${WA_BASE}/${phoneId()}/messages`,
       { messaging_product: 'whatsapp', recipient_type: 'individual', to: phone, type: 'text', text: { preview_url: false, body } },
-      { headers: { Authorization: `Bearer ${process.env.WA_ACCESS_TOKEN}`, 'Content-Type': 'application/json' } }
+      { headers: { Authorization: `Bearer ${accessToken()}`, 'Content-Type': 'application/json' } }
     );
     console.log(`[WhatsApp] ✓ Sent to ${phone}`);
     return true;
@@ -86,7 +93,7 @@ _theanirudhcode — Heal the Real You_`;
 
 // 3. Admin notification — new booking (full details)
 async function sendAdminNewBooking(appointment, patient) {
-  if (!process.env.WA_ADMIN_PHONE) return false;
+  if (!adminPhone()) return false;
   const msg =
 `◆ *New Booking Alert*
 
@@ -102,7 +109,7 @@ async function sendAdminNewBooking(appointment, patient) {
 📝 Medical History: ${appointment.medical_history || 'Not provided'}
 
 View in dashboard: https://theanirudhcode.com/portal-management`;
-  return sendText(process.env.WA_ADMIN_PHONE, msg);
+  return sendText(adminPhone(), msg);
 }
 
 // 4. Booking cancellation to patient
@@ -156,7 +163,7 @@ _theanirudhcode — Heal the Real You_`;
 
 // 7. Admin notification — new consultation request
 async function sendAdminConsultationAlert(consultation) {
-  if (!process.env.WA_ADMIN_PHONE) return false;
+  if (!adminPhone()) return false;
   const msg =
 `◆ *New Consultation Request*
 
@@ -168,7 +175,7 @@ async function sendAdminConsultationAlert(consultation) {
 💬 Message: ${consultation.message || 'No message'}
 
 View in dashboard: https://theanirudhcode.com/portal-management`;
-  return sendText(process.env.WA_ADMIN_PHONE, msg);
+  return sendText(adminPhone(), msg);
 }
 
 // 8. Appointment reminder — 24h before (patient)
@@ -193,7 +200,7 @@ _theanirudhcode — Heal the Real You_`;
 
 // 9. Appointment reminder — 24h before (admin)
 async function sendAdminAppointmentReminder24h(appointment, patient) {
-  if (!process.env.WA_ADMIN_PHONE) return false;
+  if (!adminPhone()) return false;
   const msg =
 `◆ *Appointment Tomorrow — Reminder*
 
@@ -206,7 +213,7 @@ async function sendAdminAppointmentReminder24h(appointment, patient) {
 
 🩺 Concerns: ${appointment.health_concerns || 'Not specified'}
 🎯 Goals: ${appointment.goals || 'Not specified'}`;
-  return sendText(process.env.WA_ADMIN_PHONE, msg);
+  return sendText(adminPhone(), msg);
 }
 
 // 10. Appointment reminder — 1h before (patient)
@@ -229,7 +236,7 @@ _theanirudhcode — Heal the Real You_`;
 
 // 11. Appointment reminder — 1h before (admin)
 async function sendAdminAppointmentReminder1h(appointment, patient) {
-  if (!process.env.WA_ADMIN_PHONE) return false;
+  if (!adminPhone()) return false;
   const msg =
 `◆ *Appointment in 1 Hour*
 
@@ -239,7 +246,7 @@ async function sendAdminAppointmentReminder1h(appointment, patient) {
 👤 Patient: *${patient.name}*
 📧 Email: ${patient.email}
 📱 Phone: ${patient.phone || 'Not provided'}`;
-  return sendText(process.env.WA_ADMIN_PHONE, msg);
+  return sendText(adminPhone(), msg);
 }
 
 module.exports = {

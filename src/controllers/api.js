@@ -81,9 +81,10 @@ router.post('/consultation', async (req, res) => {
       message: 'Your consultation request has been received. We will reach out within 24 hours.'
     });
 
-    // Notify admin via WhatsApp (non-blocking, after response sent)
+    // Notify admin + patient via WhatsApp (non-blocking, after response sent)
     const consult = { name: sanitize(name.trim()), email: email.trim().toLowerCase(), phone: sanitize((phone || '').trim()) || null, message: sanitize((message || '').trim()) || null };
     wa.sendAdminConsultationAlert(consult).catch(e => console.error('[WhatsApp] consultation alert failed:', e.message));
+    if (consult.phone) wa.sendConsultationAck(consult.phone, consult.name).catch(e => console.error('[WhatsApp] consultation ack failed:', e.message));
   } catch (err) {
     console.error('Consultation error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
