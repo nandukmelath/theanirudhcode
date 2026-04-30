@@ -296,8 +296,12 @@ router.post('/razorpay/verify', authenticate, async (req, res) => {
 // POST /api/payments/stripe/create-session
 // ═══════════════════════════════════════════════════════════════════════════════
 router.post('/stripe/create-session', authenticate, async (req, res) => {
-  // Stripe keys not yet configured — fall back to test mode booking
+  // Stripe keys not yet configured
   if (!STRIPE_READY) {
+    // Only allow fallback booking in explicit test mode
+    if (!TEST_MODE) {
+      return res.status(503).json({ error: 'International payments are not yet available. Please use the INR payment option.' });
+    }
     req.body.currency = 'USD';
     const err2 = validateBookingBody(req.body);
     if (err2) return res.status(400).json({ error: err2 });

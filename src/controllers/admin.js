@@ -195,7 +195,7 @@ router.put('/api/settings', hybridAdminAuth, async (req, res) => {
 // Consultation reply
 router.post('/api/consultations/:id/reply', hybridAdminAuth, async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  if (!id) return res.status(400).json({ error: 'Invalid ID' });
+  if (!id || id < 1) return res.status(400).json({ error: 'Invalid ID' });
   const { reply } = req.body;
   if (!reply || !reply.trim()) return res.status(400).json({ error: 'Reply message is required' });
   const cleanReply = sanitize(reply.trim());
@@ -264,7 +264,7 @@ router.post('/api/posts', hybridAdminAuth, async (req, res) => {
 
 router.put('/api/posts/:id', hybridAdminAuth, async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  if (!id) return res.status(400).json({ error: 'Invalid post ID' });
+  if (!id || id < 1) return res.status(400).json({ error: 'Invalid post ID' });
   const { title, slug, category, tags, excerpt, content, canvasType, published } = req.body;
 
   if (canvasType !== undefined && !VALID_CANVAS_TYPES.includes(canvasType)) {

@@ -217,7 +217,7 @@ async function checkCalendarStatus() {
     }
 
     if (data.connected) {
-      statusEl.innerHTML  = `<div class="cal-dot on"></div><span style="color:#6fbf73;font-size:13px">Connected</span>${data.calendarId ? `<span style="color:var(--muted);font-size:12px;margin-left:8px">(${data.calendarId})</span>` : ''}`;
+      statusEl.innerHTML  = `<div class="cal-dot on"></div><span style="color:#6fbf73;font-size:13px">Connected</span>${data.calendarId ? `<span style="color:var(--muted);font-size:12px;margin-left:8px">(${esc(data.calendarId)})</span>` : ''}`;
       actionsEl.innerHTML = '<button class="connect-btn" id="connect-gcal">Reconnect</button>';
       if (!data.calendarId) { loadCalendarList(); selectorEl.style.display = ''; }
     } else {

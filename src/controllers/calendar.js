@@ -175,7 +175,11 @@ router.get('/calendars', hybridAdminAuth, async (req, res) => {
 // POST /api/calendar/set-calendar
 router.post('/set-calendar', hybridAdminAuth, async (req, res) => {
   const { calendarId } = req.body;
-  if (!calendarId) return res.status(400).json({ error: 'Calendar ID is required' });
+  if (!calendarId || typeof calendarId !== 'string') return res.status(400).json({ error: 'Calendar ID is required' });
+  // Accept only Google Calendar ID formats: primary, or email-like, or alphanumeric@group.calendar.google.com
+  if (!/^[a-zA-Z0-9._%+\-@]+$/.test(calendarId) || calendarId.length > 200) {
+    return res.status(400).json({ error: 'Invalid calendar ID format' });
+  }
   await prisma.googleToken.update({ where: { id: 1 }, data: { calendarId } });
   res.json({ success: true });
 });
@@ -398,6 +402,15 @@ router.post('/admin/block', hybridAdminAuth, async (req, res) => {
   const { date, timeStart, timeEnd, reason } = req.body;
   if (!date || !timeStart || !timeEnd) {
     return res.status(400).json({ error: 'date, timeStart, timeEnd required' });
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || isNaN(new Date(date + 'T00:00:00').getTime())) {
+    return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
+  }
+  if (!/^\d{2}:\d{2}$/.test(timeStart) || !/^\d{2}:\d{2}$/.test(timeEnd)) {
+    return res.status(400).json({ error: 'Invalid time format. Use HH:MM.' });
+  }
+  if (timeEnd <= timeStart) {
+    return res.status(400).json({ error: 'End time must be after start time.' });
   }
 
   const existing = await prisma.appointment.findFirst({
