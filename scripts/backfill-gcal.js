@@ -3,7 +3,7 @@
  * that have no googleEventId. Run with: railway run node scripts/backfill-gcal.js
  */
 
-require('dotenv').config();
+try { require('dotenv').config(); } catch (_) { /* railway run injects env vars directly */ }
 const { google } = require('googleapis');
 const prisma     = require('../src/lib/prisma');
 
