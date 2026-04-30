@@ -355,9 +355,6 @@ router.patch('/api/users/:id', hybridAdminAuth, async (req, res) => {
   }
 });
 
-// Diagnostic ping — remove after deploy confirmed
-router.get('/api/appt-ping', (req, res) => res.json({ ok: true, v: 'dbf04f4' }));
-
 // Appointments list (admin)
 router.get('/api/appointments', hybridAdminAuth, async (req, res) => {
   try {

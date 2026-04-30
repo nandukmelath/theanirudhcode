@@ -3,7 +3,7 @@ services:
     name: theanirudhcode
     runtime: node
     plan: free
-    buildCommand: npm install && node prisma/migrate-new-features.js && node prisma/migrate-phase3.js && node prisma/migrate-phase5.js
+    buildCommand: npm install
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
