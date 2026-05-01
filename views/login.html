@@ -76,7 +76,11 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
       const safeRedirect = (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) ? redirect : '/';
       window.location.href = safeRedirect;
     } else if (data.code === 'EMAIL_NOT_VERIFIED') {
-      errEl.innerHTML = data.error + ' &nbsp;<a href="/verify-email" style="color:inherit;text-decoration:underline;font-size:12px">Resend link</a>';
+      const span = document.createElement('span');
+      span.textContent = data.error;
+      span.innerHTML += ' &nbsp;<a href="/verify-email" style="color:inherit;text-decoration:underline;font-size:12px">Resend link</a>';
+      errEl.innerHTML = '';
+      errEl.appendChild(span);
       errEl.style.display = 'block';
     } else {
       errEl.textContent = data.error;

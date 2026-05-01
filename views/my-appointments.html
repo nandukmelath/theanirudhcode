@@ -364,9 +364,10 @@ async function loadAppointments() {
       btn.addEventListener('click', () => openRescheduleModal(parseInt(btn.dataset.id), btn.dataset.date, btn.dataset.start, btn.dataset.end));
     });
   } catch (err) {
+    const msg = esc(err.message || 'Could not load appointments. Please refresh.');
     el.innerHTML = `
       <div class="auth-state">
-        <p>${err.message || 'Could not load appointments. Please refresh.'}</p>
+        <p>${msg}</p>
         <a href="/my-appointments">Try Again</a>
       </div>`;
   }

@@ -46,7 +46,10 @@ function validateBookingBody(body) {
   const { tier, date, time_start, time_end, health_concerns } = body;
   if (!PRICES[tier])          return 'Invalid consultation tier';
   if (!isValidDate(date))     return 'Invalid date (YYYY-MM-DD)';
+  const tzOffset = process.env.PRACTITIONER_TZ_OFFSET || '+05:30';
+  if (new Date(`${date}T23:59:59${tzOffset}`) < new Date()) return 'Cannot book appointments in the past.';
   if (!isValidTime(time_start) || !isValidTime(time_end)) return 'Invalid time (HH:MM)';
+  if (time_end <= time_start) return 'End time must be after start time.';
   if (!health_concerns?.trim()) return 'Health concerns are required';
   return null;
 }
@@ -223,6 +226,10 @@ router.post('/razorpay/verify', authenticate, async (req, res) => {
   // 1. Verify HMAC signature
   if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
     return res.status(400).json({ error: 'Missing payment verification fields' });
+  }
+  if (!process.env.RAZORPAY_KEY_SECRET) {
+    console.error('[Razorpay] RAZORPAY_KEY_SECRET not configured');
+    return res.status(503).json({ error: 'Payment verification unavailable. Contact support.' });
   }
 
   const expected = crypto
