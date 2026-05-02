@@ -102,13 +102,14 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
 
     if (res.ok) {
       // Show "check your email" instead of redirecting
-      document.querySelector('.auth-box').innerHTML = `
+      const box = document.querySelector('.auth-box');
+      box.innerHTML = `
         <div style="text-align:center;padding:8px 0">
           <div style="width:8px;height:8px;background:#c8a951;transform:rotate(45deg);margin:0 auto 20px;"></div>
           <h2 style="font-family:'Cormorant',serif;font-size:clamp(24px,3.5vw,34px);font-weight:300;color:#f8f4ec;margin-bottom:10px">Check your <em style="color:#e2c97e">inbox</em></h2>
           <p style="color:rgba(248,244,236,.72);font-size:14px;line-height:1.8;font-weight:300;margin-bottom:28px">
             We sent a verification link to<br>
-            <strong style="color:#e2c97e">${sentEmail}</strong><br>
+            <strong id="reg-sent-email" style="color:#e2c97e"></strong><br>
             Click the link to activate your account.
           </p>
           <p style="color:rgba(248,244,236,.4);font-size:12px;line-height:1.7;margin-bottom:24px">
@@ -117,6 +118,7 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
           <a href="/login" style="display:inline-block;padding:14px 32px;background:#c8a951;color:#070707;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none">Go to Sign In →</a>
         </div>
       `;
+      document.getElementById('reg-sent-email').textContent = sentEmail;
     } else {
       errEl.textContent = result.error;
       errEl.style.display = 'block';

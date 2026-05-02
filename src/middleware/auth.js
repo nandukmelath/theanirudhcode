@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -93,20 +92,6 @@ async function hybridAdminAuth(req, res, next) {
       });
       if (user && user.isActive && user.role === 'admin') {
         req.user = { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role };
-        return next();
-      }
-    } catch {}
-  }
-
-  // 3. x-admin-token header fallback (legacy API clients)
-  const adminToken = req.headers['x-admin-token'];
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (adminToken && adminPassword) {
-    try {
-      const a = Buffer.from(adminToken);
-      const b = Buffer.from(adminPassword);
-      if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
-        req.user = { id: 0, name: 'Admin', email: 'admin@theanirudhcode.com', role: 'admin' };
         return next();
       }
     } catch {}

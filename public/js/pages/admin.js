@@ -511,7 +511,7 @@ async function loadSlots() {
       }
 
       return `<div style="background:var(--black2);border:1px solid ${sm.border};padding:14px 16px;display:flex;flex-direction:column">
-        <div style="font-size:14px;color:var(--white);margin-bottom:3px;font-family:'Tenor Sans',sans-serif;letter-spacing:.04em">${slot.start}–${slot.end}</div>
+        <div style="font-size:14px;color:var(--white);margin-bottom:3px;font-family:'Tenor Sans',sans-serif;letter-spacing:.04em">${esc(slot.start)}–${esc(slot.end)}</div>
         <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:${sm.color}">${sm.label}${extra}</div>
         ${btnHtml}
       </div>`;
