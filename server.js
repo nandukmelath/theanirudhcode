@@ -104,12 +104,18 @@ app.use('/api', csrfGuard);
 app.use('/portal-management', csrfGuard);
 
 // Stricter rate limits for auth (must be BEFORE general API limiter)
-app.use('/api/auth/login',          rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many login attempts. Please try again later.' } }));
-app.use('/api/auth/forgot-password',        rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
-app.use('/api/auth/resend-verification',   rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
-app.use('/api/auth/register',        rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many registration attempts. Please try again later.' } }));
-app.use('/api/subscribe',            rateLimit({ windowMs: 60 * 60 * 1000, max: 8,  message: { error: 'Too many requests. Please try again later.' } }));
-app.use('/api/consultation',         rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/auth/login',                rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many login attempts. Please try again later.' } }));
+app.use('/api/auth/forgot-password',      rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/auth/resend-verification',  rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/auth/register',             rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many registration attempts. Please try again later.' } }));
+app.use('/api/subscribe',                 rateLimit({ windowMs: 60 * 60 * 1000, max: 8,  message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/consultation',              rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
+// Payment creation: prevent order-spam (5 per 10 min per IP)
+app.use('/api/payments/razorpay/create-order', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
+app.use('/api/payments/stripe/create-session', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
+app.use('/api/payments/test/complete',         rateLimit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
+// Admin login: separate tight limit before general portal limiter
+app.use('/portal-management/api/login',        rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { error: 'Too many admin login attempts. Please try again later.' } }));
 
 // General rate limiting for API
 app.use('/api', rateLimit({

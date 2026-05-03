@@ -30,7 +30,7 @@ router.post('/register', async (req, res) => {
     const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (existing) return res.status(409).json({ error: 'An account with this email already exists' });
 
-    const hash = bcrypt.hashSync(password, 10);
+    const hash = await bcrypt.hash(password, 10);
 
     // Generate verification token
     const verifyToken     = crypto.randomBytes(32).toString('hex');
@@ -90,7 +90,7 @@ router.post('/login', async (req, res) => {
       return res.status(429).json({ error: `Account temporarily locked. Try again in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''}.` });
     }
 
-    if (!bcrypt.compareSync(password, user.passwordHash)) {
+    if (!await bcrypt.compare(password, user.passwordHash)) {
       const attempts = (user.failedLoginAttempts || 0) + 1;
       const lockout  = attempts >= MAX_FAILED_ATTEMPTS;
       await prisma.user.update({
@@ -251,7 +251,7 @@ router.post('/reset-password', async (req, res) => {
     });
     if (!reset) return res.status(400).json({ error: 'This reset link is invalid or has expired.' });
 
-    const hash = bcrypt.hashSync(password, 10);
+    const hash = await bcrypt.hash(password, 10);
     await prisma.$transaction([
       prisma.user.update({ where: { id: reset.userId }, data: { passwordHash: hash } }),
       prisma.passwordReset.update({ where: { id: reset.id }, data: { used: true } }),
