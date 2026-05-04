@@ -253,7 +253,7 @@ router.post('/reset-password', async (req, res) => {
 
     const hash = await bcrypt.hash(password, 10);
     await prisma.$transaction([
-      prisma.user.update({ where: { id: reset.userId }, data: { passwordHash: hash } }),
+      prisma.user.update({ where: { id: reset.userId }, data: { passwordHash: hash, passwordChangedAt: new Date() } }),
       prisma.passwordReset.update({ where: { id: reset.id }, data: { used: true } }),
     ]);
 

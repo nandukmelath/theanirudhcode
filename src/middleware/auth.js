@@ -23,9 +23,13 @@ async function authenticate(req, res, next) {
     const payload = jwt.verify(token, JWT_SECRET);
     const user = await prisma.user.findUnique({
       where: { id: payload.id },
-      select: { id: true, name: true, email: true, phone: true, role: true, isActive: true }
+      select: { id: true, name: true, email: true, phone: true, role: true, isActive: true, passwordChangedAt: true }
     });
     if (!user || !user.isActive) return res.status(401).json({ error: 'Invalid session' });
+    // Reject tokens issued before the most recent password change
+    if (user.passwordChangedAt && payload.iat * 1000 < user.passwordChangedAt.getTime()) {
+      return res.status(401).json({ error: 'Session expired. Please sign in again.' });
+    }
     req.user = { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role };
     next();
   } catch {
@@ -48,9 +52,11 @@ async function optionalAuth(req, res, next) {
     const payload = jwt.verify(token, JWT_SECRET);
     const user = await prisma.user.findUnique({
       where: { id: payload.id },
-      select: { id: true, name: true, email: true, phone: true, role: true, isActive: true }
+      select: { id: true, name: true, email: true, phone: true, role: true, isActive: true, passwordChangedAt: true }
     });
-    req.user = (user && user.isActive) ? { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role } : null;
+    const valid = user && user.isActive &&
+      (!user.passwordChangedAt || payload.iat * 1000 >= user.passwordChangedAt.getTime());
+    req.user = valid ? { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role } : null;
   } catch {
     req.user = null;
   }

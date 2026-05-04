@@ -47,6 +47,7 @@ async function runPaymentMigration() {
     `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'INR'`,
     `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS amount_paid INT`,
     `CREATE INDEX IF NOT EXISTS cenr_payment_order_idx ON cohort_enrollments(payment_order_id)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ`,
   ];
   for (const sql of stmts) {
     await prisma.$executeRawUnsafe(sql);

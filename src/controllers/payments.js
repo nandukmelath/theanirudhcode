@@ -237,7 +237,9 @@ router.post('/razorpay/verify', authenticate, async (req, res) => {
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
     .digest('hex');
 
-  if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(razorpay_signature))) {
+  const expBuf = Buffer.from(expected);
+  const sigBuf = Buffer.from(String(razorpay_signature));
+  if (expBuf.length !== sigBuf.length || !crypto.timingSafeEqual(expBuf, sigBuf)) {
     return res.status(400).json({ error: 'Payment signature verification failed' });
   }
 
@@ -419,6 +421,19 @@ router.post('/stripe/webhook', async (req, res) => {
 
     const m = session.metadata;
     const userId = parseInt(m.user_id, 10);
+
+    if (!userId || userId < 1) {
+      console.error(`[Stripe webhook] Invalid user_id in metadata for session ${session.id}`);
+      return res.json({ received: true });
+    }
+    if (!PRICES[m.tier]) {
+      console.error(`[Stripe webhook] Invalid tier "${m.tier}" in metadata for session ${session.id}`);
+      return res.json({ received: true });
+    }
+    if (!m.date || !m.time_start || !m.time_end || !m.health_concerns) {
+      console.error(`[Stripe webhook] Missing required booking fields in metadata for session ${session.id}`);
+      return res.json({ received: true });
+    }
 
     // Guard: don't double-book if webhook fires twice
     const existing = await prisma.appointment.findFirst({
