@@ -30,7 +30,7 @@ const Auth = {
     }
 
     if (this.isLoggedIn()) {
-      const first = this.user.name.split(' ')[0];
+      const first = _authEsc(this.user.name.split(' ')[0]);
       navAuth.innerHTML =
         '<div class="nav-user" id="_nuw">' +
           '<button type="button" class="ncta nav-user-btn" id="_ntb">' +
@@ -125,5 +125,7 @@ const Auth = {
     location.href = '/';
   }
 };
+
+function _authEsc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 document.addEventListener('DOMContentLoaded', () => Auth.init());

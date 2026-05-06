@@ -4,6 +4,7 @@ const { google } = require('googleapis');
 const crypto  = require('crypto');
 const prisma  = require('../lib/prisma');
 const { authenticate, requireAdmin, hybridAdminAuth } = require('../middleware/auth');
+const { sanitize } = require('../middleware/validate');
 
 // In-memory OAuth state store: state → expiry timestamp (10-min window)
 const oauthStates = new Map();
@@ -439,10 +440,11 @@ router.post('/admin/block', hybridAdminAuth, async (req, res) => {
     }
   }
 
+  const cleanReason = reason ? sanitize(reason.trim()) || null : null;
   await prisma.blockedSlot.upsert({
     where:  { date_timeStart: { date, timeStart } },
-    update: { timeEnd, reason: reason || null, gcalEventId },
-    create: { date, timeStart, timeEnd, reason: reason || null, gcalEventId }
+    update: { timeEnd, reason: cleanReason, gcalEventId },
+    create: { date, timeStart, timeEnd, reason: cleanReason, gcalEventId }
   });
 
   res.json({ success: true });
