@@ -4,27 +4,25 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { generateToken, authenticate, COOKIE_OPTIONS } = require('../middleware/auth');
-const { validateEmail, sanitize } = require('../middleware/validate');
+const { validateEmail, sanitize, validatePassword, validatePhone, checkLen, LIMITS } = require('../middleware/validate');
 const { sendWelcomeEmail, sendPasswordResetEmail, sendVerificationEmail } = require('../lib/mailer');
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   const { name, email, password, phone } = req.body;
 
-  if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+  if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+  const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
+  if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
   if (!email || !validateEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
-  if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  const pwCheck = validatePassword(password);
+  if (!pwCheck.ok) return res.status(400).json({ error: pwCheck.error });
+  const phoneCheck = validatePhone((phone || '').trim());
+  if (!phoneCheck.ok) return res.status(400).json({ error: phoneCheck.error });
 
   const cleanName = sanitize(name.trim());
   const cleanEmail = email.trim().toLowerCase();
-  const rawPhone = (phone || '').trim();
-  if (rawPhone) {
-    const digits = rawPhone.replace(/[\s\-+().]/g, '');
-    if (!/^\d{7,15}$/.test(digits)) {
-      return res.status(400).json({ error: 'Please enter a valid phone number' });
-    }
-  }
-  const cleanPhone = sanitize(rawPhone);
+  const cleanPhone = sanitize(phoneCheck.value);
 
   try {
     const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
@@ -241,7 +239,8 @@ router.post('/resend-verification', async (req, res) => {
 router.post('/reset-password', async (req, res) => {
   const { token, password } = req.body;
   if (!token || typeof token !== 'string') return res.status(400).json({ error: 'Reset token is required' });
-  if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  const pwCheck = validatePassword(password);
+  if (!pwCheck.ok) return res.status(400).json({ error: pwCheck.error });
 
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
@@ -261,6 +260,89 @@ router.post('/reset-password', async (req, res) => {
     res.json({ success: true, message: 'Password updated. Please sign in with your new password.' });
   } catch (err) {
     console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// POST /api/auth/change-password (authenticated user, in-session password rotation)
+router.post('/change-password', authenticate, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (typeof currentPassword !== 'string' || !currentPassword) {
+    return res.status(400).json({ error: 'Current password is required' });
+  }
+  const pwCheck = validatePassword(newPassword);
+  if (!pwCheck.ok) return res.status(400).json({ error: pwCheck.error });
+  if (currentPassword === newPassword) {
+    return res.status(400).json({ error: 'New password must differ from current password' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user || !user.isActive) return res.status(401).json({ error: 'Invalid session' });
+    if (!await bcrypt.compare(currentPassword, user.passwordHash)) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: hash, passwordChangedAt: new Date() }
+    });
+
+    // Revoke current cookie — passwordChangedAt now invalidates every JWT issued before this moment.
+    res.clearCookie('token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
+    res.json({ success: true, message: 'Password updated. Please sign in again with your new password.' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// POST /api/auth/delete-account (authenticated user, GDPR self-service)
+// Requires current password to confirm intent. Removes user + cascades to password resets;
+// appointments are anonymised rather than deleted so admin keeps the historical schedule.
+router.post('/delete-account', authenticate, async (req, res) => {
+  const { password, confirm } = req.body;
+  if (typeof password !== 'string' || !password) {
+    return res.status(400).json({ error: 'Password is required to delete account' });
+  }
+  if (confirm !== 'DELETE') {
+    return res.status(400).json({ error: 'Type DELETE to confirm account removal' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user || !user.isActive) return res.status(401).json({ error: 'Invalid session' });
+    if (user.role === 'admin') {
+      return res.status(403).json({ error: 'Admin accounts cannot be deleted from this endpoint' });
+    }
+    if (!await bcrypt.compare(password, user.passwordHash)) {
+      return res.status(401).json({ error: 'Password is incorrect' });
+    }
+
+    // Soft-deactivate + anonymise to keep referential integrity on appointments.
+    const anonEmail = `deleted-${user.id}-${Date.now()}@removed.local`;
+    await prisma.$transaction([
+      prisma.passwordReset.deleteMany({ where: { userId: user.id } }),
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          isActive: false,
+          name: 'Deleted user',
+          email: anonEmail,
+          phone: null,
+          passwordHash: crypto.randomBytes(32).toString('hex'),
+          passwordChangedAt: new Date(),
+          emailVerificationTokenHash: null,
+          emailVerificationExpiresAt: null,
+        }
+      }),
+    ]);
+
+    res.clearCookie('token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
+    res.json({ success: true, message: 'Your account has been deleted.' });
+  } catch (err) {
+    console.error('Delete account error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });

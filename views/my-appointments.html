@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#070707">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>My Appointments — theanirudhcode</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
@@ -171,7 +175,10 @@ body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;
 <!-- NAV -->
 <nav class="page-nav">
   <a href="/" class="nav-logo"><div class="nav-gem"></div>theanirudhcode</a>
-  <a href="/" class="nav-back">Back to Home</a>
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+    <button id="open-settings-btn" type="button" style="background:none;border:1px solid var(--line);color:var(--muted);font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.18em;text-transform:uppercase;padding:8px 16px;cursor:pointer;transition:all .3s">Account</button>
+    <a href="/" class="nav-back">Back to Home</a>
+  </div>
 </nav>
 
 <!-- HERO BAND -->
@@ -485,6 +492,55 @@ document.getElementById('rs-save-btn').addEventListener('click', async () => {
 });
 </script>
 
+<!-- ACCOUNT MODAL — change password + delete account -->
+<div class="modal-overlay" id="account-modal">
+  <div class="modal-box" style="max-width:520px">
+    <button class="btn-modal-cancel" id="ac-close-btn" style="float:right;border:none;font-size:18px;padding:0;cursor:pointer;background:none;color:var(--faint)" aria-label="Close">&times;</button>
+    <div class="modal-title">Account</div>
+    <div class="modal-sub">Manage your password or delete your account.</div>
+
+    <div style="margin-top:8px;padding-top:18px;border-top:1px solid var(--line)">
+      <div style="font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:12px">Change Password</div>
+      <div style="color:var(--amber);font-size:12px;margin-bottom:10px;display:none" id="cp-error"></div>
+      <div style="color:#4db89e;font-size:12px;margin-bottom:10px;display:none" id="cp-success"></div>
+      <div class="modal-field">
+        <label class="modal-label">Current Password</label>
+        <input type="password" class="modal-input" id="cp-current" autocomplete="current-password">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">New Password (min 8, letter + number)</label>
+        <input type="password" class="modal-input" id="cp-new" autocomplete="new-password">
+      </div>
+      <div class="modal-field">
+        <label class="modal-label">Confirm New Password</label>
+        <input type="password" class="modal-input" id="cp-confirm" autocomplete="new-password">
+      </div>
+      <button class="btn-modal-save" id="cp-save-btn">Update Password</button>
+    </div>
+
+    <div style="margin-top:32px;padding-top:18px;border-top:1px solid var(--line)">
+      <div style="font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);margin-bottom:12px">Danger Zone</div>
+      <p style="font-size:12px;color:var(--faint);line-height:1.7;margin-bottom:14px">
+        Deleting your account is permanent. Your appointments stay on file for record-keeping but your personal information is removed.
+      </p>
+      <button type="button" id="del-toggle-btn" class="btn-cancel" style="margin-bottom:0">Delete My Account…</button>
+
+      <div id="del-confirm-block" style="display:none;margin-top:14px">
+        <div style="color:var(--amber);font-size:12px;margin-bottom:10px;display:none" id="del-error"></div>
+        <div class="modal-field">
+          <label class="modal-label">Confirm Your Password</label>
+          <input type="password" class="modal-input" id="del-password" autocomplete="current-password">
+        </div>
+        <div class="modal-field">
+          <label class="modal-label">Type DELETE to confirm</label>
+          <input type="text" class="modal-input" id="del-confirm" placeholder="DELETE" autocomplete="off">
+        </div>
+        <button class="btn-cancel" id="del-confirm-btn" style="width:100%">Permanently Delete Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- RESCHEDULE MODAL -->
 <div class="modal-overlay" id="reschedule-modal">
   <div class="modal-box">
@@ -518,6 +574,102 @@ document.getElementById('rs-save-btn').addEventListener('click', async () => {
   if (typeof Toast === 'undefined') return;
   if (status === 'success')   Toast.success('Payment confirmed! Your appointment is booked and will appear below.');
   if (status === 'cancelled') Toast.error('Payment cancelled — appointment not booked.');
+})();
+
+// ── Account modal: change password + delete account ─────────────────────────
+(function() {
+  const modal = document.getElementById('account-modal');
+  const openBtn = document.getElementById('open-settings-btn');
+  const closeBtn = document.getElementById('ac-close-btn');
+  if (!modal || !openBtn) return;
+
+  function open()  { modal.classList.add('open'); }
+  function close() {
+    modal.classList.remove('open');
+    ['cp-error','cp-success','del-error'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    ['cp-current','cp-new','cp-confirm','del-password','del-confirm'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    document.getElementById('del-confirm-block').style.display = 'none';
+  }
+  openBtn.addEventListener('click', open);
+  closeBtn.addEventListener('click', close);
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal.classList.contains('open')) close(); });
+
+  function flash(elId, msg) {
+    const el = document.getElementById(elId);
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function clearFlash(elId) {
+    document.getElementById(elId).style.display = 'none';
+  }
+
+  // Change password
+  document.getElementById('cp-save-btn').addEventListener('click', async () => {
+    clearFlash('cp-error'); clearFlash('cp-success');
+    const current = document.getElementById('cp-current').value;
+    const next    = document.getElementById('cp-new').value;
+    const confirm = document.getElementById('cp-confirm').value;
+    if (!current)          return flash('cp-error', 'Current password is required');
+    if (next.length < 8)   return flash('cp-error', 'New password must be at least 8 characters');
+    if (next === current)  return flash('cp-error', 'New password must differ from current password');
+    if (next !== confirm)  return flash('cp-error', 'Passwords do not match');
+
+    const btn = document.getElementById('cp-save-btn');
+    btn.disabled = true; btn.textContent = 'Updating…';
+    try {
+      const r = await fetch('/api/auth/change-password', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: current, newPassword: next })
+      });
+      const data = await r.json();
+      if (r.ok) {
+        flash('cp-success', data.message || 'Password updated. Redirecting to sign-in…');
+        setTimeout(() => { window.location.href = '/login'; }, 1500);
+      } else {
+        flash('cp-error', data.error || 'Could not update password');
+        btn.disabled = false; btn.textContent = 'Update Password';
+      }
+    } catch {
+      flash('cp-error', 'Connection error. Please try again.');
+      btn.disabled = false; btn.textContent = 'Update Password';
+    }
+  });
+
+  // Delete account — two-step
+  document.getElementById('del-toggle-btn').addEventListener('click', () => {
+    document.getElementById('del-confirm-block').style.display = 'block';
+  });
+  document.getElementById('del-confirm-btn').addEventListener('click', async () => {
+    clearFlash('del-error');
+    const password = document.getElementById('del-password').value;
+    const confirm  = document.getElementById('del-confirm').value;
+    if (!password) return flash('del-error', 'Password is required');
+    if (confirm !== 'DELETE') return flash('del-error', 'Type DELETE (uppercase) to confirm');
+    if (!window.confirm('This will permanently delete your account. Are you sure?')) return;
+
+    const btn = document.getElementById('del-confirm-btn');
+    btn.disabled = true; btn.textContent = 'Deleting…';
+    try {
+      const r = await fetch('/api/auth/delete-account', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, confirm })
+      });
+      const data = await r.json();
+      if (r.ok) {
+        if (typeof Toast !== 'undefined') Toast.success(data.message || 'Account deleted');
+        setTimeout(() => { window.location.href = '/'; }, 1200);
+      } else {
+        flash('del-error', data.error || 'Could not delete account');
+        btn.disabled = false; btn.textContent = 'Permanently Delete Account';
+      }
+    } catch {
+      flash('del-error', 'Connection error. Please try again.');
+      btn.disabled = false; btn.textContent = 'Permanently Delete Account';
+    }
+  });
 })();
 </script>
 </body>

@@ -291,17 +291,28 @@ document.getElementById('save-settings').addEventListener('click', async () => {
   showAlert('Settings saved successfully!', 'success');
 });
 
+// CSV-safe cell: escape embedded quotes (RFC 4180) and defuse formula-injection
+// — Excel/Sheets execute cells starting with =, +, -, @, tab, or CR as formulas.
+function csvCell(v) {
+  let s = v == null ? '' : String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
 document.getElementById('export-csv').addEventListener('click', async () => {
   const res = await fetch(`${API}/subscribers`, { headers: getHeaders() });
   const { subscribers } = await res.json();
-  const csv = 'Name,Email,Source,Date\n' + subscribers.map(s =>
-    `"${s.name}","${s.email}","${s.source}","${new Date(s.subscribedAt).toISOString()}"`
-  ).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
+  const rows = [['Name','Email','Source','Date']].concat(
+    subscribers.map(s => [s.name, s.email, s.source, new Date(s.subscribedAt).toISOString()])
+  );
+  // Prepend BOM so Excel renders UTF-8 names correctly.
+  const csv = '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'theanirudhcode-subscribers.csv';
   a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
 
 function showAlert(msg, type) {

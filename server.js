@@ -93,9 +93,29 @@ app.use(helmet({
                    "https://api.stripe.com"],
       frameSrc:   ["https://checkout.razorpay.com", "https://js.stripe.com",
                    "https://hooks.stripe.com"],
+      frameAncestors: ["'none'"],
+      formAction:     ["'self'"],
+      baseUri:        ["'self'"],
+      objectSrc:      ["'none'"],
+      upgradeInsecureRequests: [],
     }
-  }
+  },
+  // Strict-Transport-Security: force HTTPS for 1 year, include subdomains.
+  // Enabled only in production so dev over HTTP still works.
+  strictTransportSecurity: process.env.NODE_ENV === 'production'
+    ? { maxAge: 365 * 24 * 60 * 60, includeSubDomains: true, preload: true }
+    : false,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  crossOriginEmbedderPolicy: false, // would block Razorpay/Stripe iframes
+  crossOriginResourcePolicy: { policy: 'same-site' },
 }));
+
+// Disable browser features the site doesn't use (defence-in-depth against injected scripts)
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy',
+    'geolocation=(), camera=(), microphone=(), payment=(self "https://checkout.razorpay.com" "https://js.stripe.com"), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()');
+  next();
+});
 
 // Raw body for Stripe webhook — MUST be before express.json()
 app.use('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }));
@@ -171,20 +191,25 @@ app.get('/forgot-password', (req, res) => res.sendFile(path.join(__dirname, 'vie
 app.get('/reset-password',  (req, res) => res.sendFile(path.join(__dirname, 'views', 'reset-password.html')));
 app.get('/verify-email',    (req, res) => res.sendFile(path.join(__dirname, 'views', 'verify-email.html')));
 
-// Manifesto page
-app.get('/manifesto', (req, res) => res.sendFile(path.join(__dirname, 'public', 'manifesto.html')));
-
 // 404 catch-all (must come after all routes)
 app.use((req, res) => {
   if (req.accepts('html')) return res.status(404).sendFile(path.join(__dirname, 'views', '404.html'));
   res.status(404).json({ error: 'Not found' });
 });
 
-// Global error handler
+// Global error handler — preserve body-parser / Express HttpError status codes
+// (e.g. PayloadTooLargeError → 413) instead of masking everything as 500.
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  if (req.accepts('html')) return res.status(500).sendFile(path.join(__dirname, 'views', '404.html'));
-  res.status(500).json({ error: 'Internal server error' });
+  const status = (err && (err.statusCode || err.status)) || 500;
+  if (status >= 500) console.error('Unhandled error:', err);
+  if (status === 413) {
+    return res.status(413).json({ error: 'Request body too large' });
+  }
+  if (req.accepts('json') && req.path.startsWith('/api')) {
+    return res.status(status).json({ error: err.expose ? err.message : (status >= 500 ? 'Internal server error' : 'Request rejected') });
+  }
+  if (req.accepts('html')) return res.status(status).sendFile(path.join(__dirname, 'views', '404.html'));
+  res.status(status).json({ error: status >= 500 ? 'Internal server error' : 'Request rejected' });
 });
 
 const PORT = process.env.PORT || 3000;
