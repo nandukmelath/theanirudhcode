@@ -3,6 +3,13 @@
    5-step flow: Tier → Date → Time → Details → Confirm
 ═══════════════════════════════════════ */
 
+function _bkEsc(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
 const CONSULTATION_TIERS = {
   discovery: {
     key:      'discovery',
@@ -363,26 +370,26 @@ class BookingModal {
       <div class="confirm-card">
         <div class="confirm-row">
           <span class="confirm-label">Patient</span>
-          <span class="confirm-value">${Auth.user.name}</span>
+          <span class="confirm-value">${_bkEsc(Auth.user.name)}</span>
         </div>
         <div class="confirm-row">
           <span class="confirm-label">Session</span>
-          <span class="confirm-value" style="color:var(--gold2)">${tier.label}</span>
+          <span class="confirm-value" style="color:var(--gold2)">${_bkEsc(tier.label)}</span>
         </div>
         <div class="confirm-row">
           <span class="confirm-label">Date</span>
-          <span class="confirm-value">${dateLabel}</span>
+          <span class="confirm-value">${_bkEsc(dateLabel)}</span>
         </div>
         <div class="confirm-row">
           <span class="confirm-label">Time</span>
-          <span class="confirm-value">${timeLabel}</span>
+          <span class="confirm-value">${_bkEsc(timeLabel)}</span>
         </div>
         <div class="confirm-row">
           <span class="confirm-label">Concerns</span>
-          <span class="confirm-value">${this.healthData.health_concerns}</span>
+          <span class="confirm-value">${_bkEsc(this.healthData.health_concerns)}</span>
         </div>
-        ${this.healthData.medical_history ? `<div class="confirm-row"><span class="confirm-label">History</span><span class="confirm-value">${this.healthData.medical_history}</span></div>` : ''}
-        ${this.healthData.goals ? `<div class="confirm-row"><span class="confirm-label">Goals</span><span class="confirm-value">${this.healthData.goals}</span></div>` : ''}
+        ${this.healthData.medical_history ? `<div class="confirm-row"><span class="confirm-label">History</span><span class="confirm-value">${_bkEsc(this.healthData.medical_history)}</span></div>` : ''}
+        ${this.healthData.goals ? `<div class="confirm-row"><span class="confirm-label">Goals</span><span class="confirm-value">${_bkEsc(this.healthData.goals)}</span></div>` : ''}
       </div>
 
       <div style="margin-top:16px;padding:14px 16px;background:rgba(200,169,81,.07);border:1px solid rgba(200,169,81,.2);display:flex;align-items:center;justify-content:space-between;gap:12px">
@@ -414,7 +421,7 @@ class BookingModal {
 
     document.getElementById('currency-switch').addEventListener('click', () => {
       this._currency = otherCurrency;
-      this.renderConfirm();
+      this.render();
     });
 
     document.getElementById('pay-btn').addEventListener('click', () => this.startPayment());

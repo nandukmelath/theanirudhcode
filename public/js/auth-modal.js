@@ -117,9 +117,15 @@
     try {
       const result = await Auth.register(name, email, password, phone);
       if (result.ok) {
-        if (typeof Toast !== 'undefined') Toast.success('Account created! Welcome to your healing journey.');
         signupForm.reset();
-        onAuthSuccess();
+        // Server flow: signup creates account but requires email verification before login.
+        // If `user` is missing in response, account is unverified — show check-email screen instead of opening booking.
+        if (result.data && result.data.requiresVerification) {
+          showCheckEmailScreen(email);
+        } else {
+          if (typeof Toast !== 'undefined') Toast.success('Account created! Welcome to your healing journey.');
+          onAuthSuccess();
+        }
       } else {
         if (typeof Toast !== 'undefined') Toast.error(result.data.error || 'Registration failed');
       }
@@ -129,4 +135,29 @@
       setLoading(btn, false);
     }
   });
+
+  function showCheckEmailScreen(email) {
+    const body = authModal.querySelector('.auth-box') || authModal;
+    const esc = (s) => { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; };
+    const html = `
+      <div style="text-align:center;padding:12px 6px">
+        <div style="width:9px;height:9px;background:#d0af52;transform:rotate(45deg);margin:0 auto 22px"></div>
+        <h2 style="font-family:'Cormorant',serif;font-size:clamp(24px,3.5vw,34px);font-weight:300;color:#f9f5ee;margin-bottom:10px">
+          Check your <em style="color:#eedc88">inbox</em>
+        </h2>
+        <p style="color:rgba(249,245,238,.78);font-size:14px;line-height:1.85;font-weight:300;margin-bottom:24px">
+          We sent a verification link to<br>
+          <strong style="color:#eedc88">${esc(email)}</strong><br>
+          Click the link to activate your account, then sign in.
+        </p>
+        <p style="color:rgba(249,245,238,.42);font-size:12px;line-height:1.65;margin-bottom:24px">
+          Didn't receive it? Check your spam folder, or
+          <a href="/verify-email" style="color:#eedc88;text-decoration:none">request a new link</a>.
+        </p>
+        <button type="button" id="_ck_close" style="display:inline-block;padding:12px 30px;background:#d0af52;color:#070707;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;border:none;cursor:pointer">Got it</button>
+      </div>`;
+    body.innerHTML = html;
+    const btn = document.getElementById('_ck_close');
+    if (btn) btn.addEventListener('click', closeAuthModal);
+  }
 })();

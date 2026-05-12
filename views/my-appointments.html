@@ -159,6 +159,7 @@ body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;
   .appt-detail-row{flex-direction:column;gap:2px}
   .appt-detail-label{min-width:unset}
   .modal-box{padding:20px 16px}
+  .modal-input,.modal-select{font-size:16px}
 }
 @supports(padding:max(0px)){
   .page-nav{padding-left:max(var(--px),env(safe-area-inset-left));padding-right:max(var(--px),env(safe-area-inset-right))}
@@ -205,6 +206,7 @@ body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;
 
 <div class="page-footer">&copy; 2026 theanirudhcode &middot; All rights reserved</div>
 
+<script src="/js/toast.js"></script>
 <script>
 // ── Helpers ──────────────────────────────────────────────────────────────
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
@@ -510,26 +512,12 @@ document.getElementById('rs-save-btn').addEventListener('click', async () => {
 <script>
 (function() {
   const params = new URLSearchParams(window.location.search);
-  if (params.get('payment') === 'success') {
-    history.replaceState({}, '', window.location.pathname);
-    const t = setInterval(() => {
-      if (typeof Toast !== 'undefined') {
-        clearInterval(t);
-        Toast.success('Payment confirmed! Your appointment is booked and will appear below.');
-      }
-    }, 200);
-    setTimeout(() => clearInterval(t), 5000);
-  }
-  if (params.get('payment') === 'cancelled') {
-    history.replaceState({}, '', window.location.pathname);
-    const t = setInterval(() => {
-      if (typeof Toast !== 'undefined') {
-        clearInterval(t);
-        Toast.error('Payment cancelled — appointment not booked.');
-      }
-    }, 200);
-    setTimeout(() => clearInterval(t), 5000);
-  }
+  const status = params.get('payment');
+  if (!status) return;
+  history.replaceState({}, '', window.location.pathname);
+  if (typeof Toast === 'undefined') return;
+  if (status === 'success')   Toast.success('Payment confirmed! Your appointment is booked and will appear below.');
+  if (status === 'cancelled') Toast.error('Payment cancelled — appointment not booked.');
 })();
 </script>
 </body>

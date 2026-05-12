@@ -1,4 +1,17 @@
 require('dotenv').config();
+
+// ── Fail-fast: refuse to boot without critical secrets ────────────────────────
+// Auth depends on JWT_SECRET. If it's missing, every login/register would surface
+// an opaque 500. Crashing here forces the deploy log to point at the real cause.
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 16) {
+  console.error('FATAL: JWT_SECRET env var is missing or too short (need >=16 chars).');
+  process.exit(1);
+}
+if (!process.env.DATABASE_URL) {
+  console.error('FATAL: DATABASE_URL env var is missing.');
+  process.exit(1);
+}
+
 const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
