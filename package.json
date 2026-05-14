@@ -7,17 +7,23 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "smoke": "node scripts/smoke.js",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:live": "cross-env BASE_URL=https://theanirudhcode-984980637840.asia-south1.run.app playwright test",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate dev",
     "db:seed": "npx prisma db seed",
     "db:studio": "npx prisma studio",
+    "agent:engineer": "node agents/engineer/runner.js",
+    "agent:engineer:dry": "cross-env DRY_RUN=true node agents/engineer/runner.js",
     "postinstall": "npx prisma generate"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "@prisma/client": "^6.19.2",
     "axios": "^1.15.2",
     "bcryptjs": "^3.0.3",
@@ -35,6 +41,8 @@
     "stripe": "^22.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "cross-env": "^7.0.3",
     "pdf-parse": "^2.4.5"
   }
 }

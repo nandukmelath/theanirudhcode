@@ -49,6 +49,30 @@ model User {
   failedLoginAttempts          Int           @default(0) @map("failed_login_attempts")
   lockedUntil                  DateTime?     @map("locked_until")
   passwordChangedAt            DateTime?     @map("password_changed_at")
+  // ── Tier 1: Quick profile (collected at signup) ────────────────────────────
+  dateOfBirth                  DateTime?     @map("date_of_birth") @db.Date
+  sex                          String?       // "male" | "female" | "other" | "prefer_not_to_say"
+  country                      String?       // ISO 2-letter code
+  city                         String?
+  referralSource               String?       @map("referral_source") // instagram, friend, google, youtube, podcast, other
+  // ── Tier 2: Health intake (collected before first booking) ─────────────────
+  heightCm                     Int?          @map("height_cm")
+  weightKg                     Float?        @map("weight_kg")
+  primaryGoal                  String?       @map("primary_goal") // weight | hormonal | gut | sleep | energy | longevity | other
+  conditions                   String?       // CSV: "diabetes,pcos,thyroid"
+  medications                  String?       @db.Text
+  dietType                     String?       @map("diet_type") // vegetarian | vegan | jain | omnivore | eggetarian
+  sleepHours                   Int?          @map("sleep_hours")
+  exerciseLevel                String?       @map("exercise_level") // sedentary | light | moderate | active | athlete
+  occupation                   String?
+  // ── Tier 3: Marketing preferences ──────────────────────────────────────────
+  marketingOptIn               Boolean       @default(false) @map("marketing_opt_in")
+  preferredChannel             String?       @map("preferred_channel") // email | whatsapp | sms
+  bestContactTime              String?       @map("best_contact_time") // morning | afternoon | evening
+  language                     String?       @default("en") // en | hi | te | ta
+  // ── Consent ────────────────────────────────────────────────────────────────
+  privacyConsentAt             DateTime?     @map("privacy_consent_at")
+  intakeCompletedAt            DateTime?     @map("intake_completed_at")
   createdAt                    DateTime      @default(now()) @map("created_at")
   appointments   Appointment[]
   passwordResets PasswordReset[]
@@ -209,6 +233,21 @@ model Setting {
   @@map("settings")
 }
 
+model EmailOtp {
+  id        Int      @id @default(autoincrement())
+  email     String
+  codeHash  String   @map("code_hash")
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  attempts  Int      @default(0)
+  purpose   String   @default("login") // "login" | "register" | "verify"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([expiresAt])
+  @@map("email_otps")
+}
+
 model PasswordReset {
   id        Int      @id @default(autoincrement())
   userId    Int      @map("user_id")
@@ -245,4 +284,94 @@ model BlockedSlot {
   @@unique([date, timeStart])
   @@index([date])
   @@map("blocked_slots")
+}
+
+// ═══════════════════════════════════════
+//  AGENT OPS (24/7 autonomous agents)
+// ═══════════════════════════════════════
+
+model AgentRun {
+  id          BigInt           @id @default(autoincrement())
+  agentName   String           @map("agent_name")
+  parentRunId BigInt?          @map("parent_run_id")
+  status      String           @default("running")
+  trigger     String?
+  input       Json?
+  output      Json?
+  error       String?
+  model       String?
+  tokensIn    Int?             @map("tokens_in")
+  tokensOut   Int?             @map("tokens_out")
+  costUsd     Decimal?         @map("cost_usd") @db.Decimal(10, 6)
+  startedAt   DateTime         @default(now()) @map("started_at")
+  finishedAt  DateTime?        @map("finished_at")
+  parent      AgentRun?        @relation("AgentRunChildren", fields: [parentRunId], references: [id], onDelete: SetNull)
+  children    AgentRun[]       @relation("AgentRunChildren")
+  decisions   AgentDecision[]
+  approvals   ApprovalRequest[]
+  digestItems DigestItem[]
+
+  @@index([agentName])
+  @@index([status])
+  @@index([startedAt])
+  @@map("agent_runs")
+}
+
+model AgentDecision {
+  id               BigInt            @id @default(autoincrement())
+  runId            BigInt            @map("run_id")
+  actionType       String            @map("action_type")
+  targetTable      String?           @map("target_table")
+  targetId         String?           @map("target_id")
+  payload          Json?
+  requiresApproval Boolean           @default(false) @map("requires_approval")
+  executed         Boolean           @default(false)
+  executedAt       DateTime?         @map("executed_at")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  run              AgentRun          @relation(fields: [runId], references: [id], onDelete: Cascade)
+  approvals        ApprovalRequest[]
+
+  @@index([runId])
+  @@index([executed])
+  @@map("agent_decisions")
+}
+
+model ApprovalRequest {
+  id              BigInt         @id @default(autoincrement())
+  decisionId      BigInt?        @map("decision_id")
+  agentRunId      BigInt?        @map("agent_run_id")
+  actionType      String         @map("action_type")
+  summary         String
+  draftContent    String?        @map("draft_content")
+  channel         String         @default("whatsapp")
+  status          String         @default("pending")
+  requestedAt     DateTime       @default(now()) @map("requested_at")
+  expiresAt       DateTime?      @map("expires_at")
+  decidedAt       DateTime?      @map("decided_at")
+  decidedBy       String?        @map("decided_by")
+  decisionNote    String?        @map("decision_note")
+  callbackPayload Json?          @map("callback_payload")
+  decision        AgentDecision? @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  run             AgentRun?      @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([expiresAt])
+  @@map("approval_queue")
+}
+
+model DigestItem {
+  id          BigInt    @id @default(autoincrement())
+  digestDate  DateTime  @map("digest_date") @db.Date
+  category    String
+  severity    String    @default("info")
+  title       String
+  detail      String?
+  agentRunId  BigInt?   @map("agent_run_id")
+  delivered   Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  run         AgentRun? @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+
+  @@index([digestDate])
+  @@index([category])
+  @@map("digest_items")
 }
