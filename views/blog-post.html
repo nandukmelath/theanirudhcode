@@ -67,6 +67,30 @@ footer{text-align:center;padding:clamp(20px,3vw,32px) var(--px);font-size:11px;c
 @supports(padding:max(0px)){
   nav{padding-left:max(var(--px),env(safe-area-inset-left));padding-right:max(var(--px),env(safe-area-inset-right))}
 }
+
+/* ═══════ iOS GLASS — universal buttons ═══════ */
+button:not(.hamburger):not(.modal-close):not(.mclose):not(.auth-close):not(.btn-modal-cancel):not(.btn-cancel):not(.mc){
+  border-radius:999px;
+  backdrop-filter:blur(14px) saturate(180%);
+  -webkit-backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:0 4px 14px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.08);
+  transition:all .3s
+}
+button:not(.hamburger):not(.modal-close):not(.mclose):not(.auth-close):not(.btn-modal-cancel):not(.btn-cancel):not(.mc):hover{
+  transform:translateY(-1px);
+  box-shadow:0 8px 22px rgba(200,169,81,.18),inset 0 1px 0 rgba(255,255,255,.12)
+}
+.logout-btn,.tab-btn,.action-btn,.share-btn,.btn-ghost,.btn-reschedule,.btn-modal-cancel,.btn-cancel{
+  background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.01))!important
+}
+.login-btn,.save-btn,.modal-btn,.btn-modal-save,.btn-book-first,.btn-book-new,.btn-home,.btn-gem{
+  background:linear-gradient(135deg,var(--gold,#c8a951),#b89940)!important;
+  border:1px solid rgba(255,255,255,.18)!important
+}
+.connect-btn,.export-btn{
+  background:linear-gradient(135deg,rgba(200,169,81,.10),rgba(200,169,81,.02))!important
+}
+
 </style>
 </head>
 <body>

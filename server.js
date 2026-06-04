@@ -81,15 +81,17 @@ const ALLOWED_ORIGINS = [
   'https://theanirudhcode.com',
   'https://theanirudhcode.pages.dev',
   'https://heal.theanirudhcode.com',
+  // dev
   'http://localhost:4321',
   'http://localhost:3000',
 ];
 app.use(cors({
   origin: (origin, cb) => {
+    // allow server-to-server / curl (no origin) + listed origins
     if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
     cb(new Error(`CORS: origin ${origin} not allowed`));
   },
-  credentials: true,
+  credentials: true,               // send cookies cross-origin
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   maxAge: 600,
@@ -103,17 +105,20 @@ app.use(helmet({
       scriptSrc:  ["'self'", "'unsafe-inline'",
                    "https://cdnjs.cloudflare.com",
                    "https://checkout.razorpay.com",
-                   "https://js.stripe.com"],
+                   "https://js.stripe.com",
+                   "https://accounts.google.com/gsi/client",
+                   "https://accounts.google.com"],
       scriptSrcAttr: ["'none'"],
       styleSrc:   ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
       fontSrc:    ["'self'", "https://fonts.gstatic.com"],
-      imgSrc:     ["'self'", "data:", "https://checkout.razorpay.com", "https://*.stripe.com"],
+      imgSrc:     ["'self'", "data:", "https://checkout.razorpay.com", "https://*.stripe.com", "https://*.googleusercontent.com"],
       connectSrc: ["'self'",
                    "https://www.googleapis.com", "https://accounts.google.com",
                    "https://api.razorpay.com",
                    "https://api.stripe.com"],
       frameSrc:   ["https://checkout.razorpay.com", "https://js.stripe.com",
-                   "https://hooks.stripe.com"],
+                   "https://hooks.stripe.com",
+                   "https://accounts.google.com"],
       frameAncestors: ["'none'"],
       formAction:     ["'self'"],
       baseUri:        ["'self'"],
@@ -129,6 +134,7 @@ app.use(helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   crossOriginEmbedderPolicy: false, // would block Razorpay/Stripe iframes
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }, // allow Google Sign-In popup to postMessage back
 }));
 
 // Disable browser features the site doesn't use (defence-in-depth against injected scripts)
@@ -205,6 +211,8 @@ app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'views', 'r
 app.get('/my-appointments', (req, res) => res.sendFile(path.join(__dirname, 'views', 'my-appointments.html')));
 
 // Blog pages
+app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'views', 'privacy.html')));
+app.get('/complete-profile', (req, res) => res.sendFile(path.join(__dirname, 'views', 'complete-profile.html')));
 app.get('/blog', (req, res) => res.sendFile(path.join(__dirname, 'views', 'blog-list.html')));
 app.get('/blog/:slug', (req, res) => res.sendFile(path.join(__dirname, 'views', 'blog-post.html')));
 

@@ -5,11 +5,23 @@ const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 const { generateToken, authenticate, COOKIE_OPTIONS } = require('../middleware/auth');
 const { validateEmail, sanitize, validatePassword, validatePhone, checkLen, LIMITS } = require('../middleware/validate');
-const { sendWelcomeEmail, sendPasswordResetEmail, sendVerificationEmail } = require('../lib/mailer');
+const { sendWelcomeEmail, sendPasswordResetEmail, sendVerificationEmail, sendOtpEmail } = require('../lib/mailer');
 
 // POST /api/auth/register
+// Allow-listed enum values for profile fields (server-side validation)
+const ALLOWED_SEX = ['male','female','other','prefer_not_to_say'];
+const ALLOWED_COUNTRY = ['IN','US','GB','AE','SG','AU','CA','OTHER'];
+const ALLOWED_REFERRAL = ['instagram','youtube','google','friend','podcast','event','news','other'];
+const ALLOWED_CHANNEL = ['email','whatsapp','sms'];
+const ALLOWED_LANG = ['en','hi','te','ta'];
+
 router.post('/register', async (req, res) => {
-  const { name, email, password, phone } = req.body;
+  const {
+    name, email, password, phone,
+    dateOfBirth, sex, country, city,
+    referralSource, preferredChannel, language,
+    marketingOptIn, privacyConsent,
+  } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name is required' });
   const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
@@ -19,10 +31,33 @@ router.post('/register', async (req, res) => {
   if (!pwCheck.ok) return res.status(400).json({ error: pwCheck.error });
   const phoneCheck = validatePhone((phone || '').trim());
   if (!phoneCheck.ok) return res.status(400).json({ error: phoneCheck.error });
+  if (!privacyConsent) return res.status(400).json({ error: 'Privacy Policy consent is required' });
+
+  // Validate profile fields (all required at registration now)
+  let dob = null;
+  if (dateOfBirth) {
+    dob = new Date(dateOfBirth);
+    if (isNaN(dob.getTime())) return res.status(400).json({ error: 'Invalid date of birth' });
+    const minAge = 13, maxAge = 110;
+    const ageMs = Date.now() - dob.getTime();
+    const years = ageMs / (365.25 * 24 * 60 * 60 * 1000);
+    if (years < minAge || years > maxAge) return res.status(400).json({ error: 'Date of birth out of accepted range' });
+  } else {
+    return res.status(400).json({ error: 'Date of birth is required' });
+  }
+  if (!sex || !ALLOWED_SEX.includes(sex)) return res.status(400).json({ error: 'Please select sex' });
+  if (!country || !ALLOWED_COUNTRY.includes(country)) return res.status(400).json({ error: 'Please select country' });
+  if (!city || typeof city !== 'string' || !city.trim()) return res.status(400).json({ error: 'City is required' });
+  const cityCheck = checkLen(city.trim(), 'City', LIMITS.name);
+  if (!cityCheck.ok) return res.status(400).json({ error: cityCheck.error });
+  if (!referralSource || !ALLOWED_REFERRAL.includes(referralSource)) return res.status(400).json({ error: 'Please tell us how you found us' });
+  const channel = preferredChannel && ALLOWED_CHANNEL.includes(preferredChannel) ? preferredChannel : null;
+  const lang = language && ALLOWED_LANG.includes(language) ? language : 'en';
 
   const cleanName = sanitize(name.trim());
   const cleanEmail = email.trim().toLowerCase();
   const cleanPhone = sanitize(phoneCheck.value);
+  const cleanCity = sanitize(city.trim());
 
   try {
     const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
@@ -45,6 +80,15 @@ router.post('/register', async (req, res) => {
         emailVerified:               false,
         emailVerificationTokenHash:  verifyTokenHash,
         emailVerificationExpiresAt:  verifyExpiresAt,
+        dateOfBirth:                 dob,
+        sex,
+        country,
+        city:                        cleanCity,
+        referralSource,
+        preferredChannel:            channel,
+        language:                    lang,
+        marketingOptIn:              !!marketingOptIn,
+        privacyConsentAt:            new Date(),
       }
     });
 
@@ -111,9 +155,285 @@ router.post('/login', async (req, res) => {
 
     const token = generateToken(user);
     res.cookie('token', token, COOKIE_OPTIONS);
-    res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    const profileIncomplete = !user.country || !user.sex || !user.dateOfBirth;
+    res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role }, profileIncomplete });
   } catch (err) {
     console.error('Login error:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// GET /api/auth/google-config.js — client ID for Google Identity Services button
+router.get('/google-config.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  const id = process.env.GOOGLE_OAUTH_CLIENT_ID || '';
+  res.send(`window.__GOOGLE_OAUTH_CLIENT_ID__ = ${JSON.stringify(id)};`);
+});
+
+// POST /api/auth/google — sign in / sign up via Google Identity Services
+// Frontend sends ID token from GIS. Backend verifies with Google, find-or-creates user.
+router.post('/google', async (req, res) => {
+  const { credential } = req.body;
+  if (!credential || typeof credential !== 'string') return res.status(400).json({ error: 'Missing Google credential' });
+
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  if (!clientId) {
+    console.error('[Google Auth] GOOGLE_OAUTH_CLIENT_ID not configured');
+    return res.status(503).json({ error: 'Google sign-in is not configured' });
+  }
+
+  try {
+    const { OAuth2Client } = require('google-auth-library');
+    const client = new OAuth2Client(clientId);
+    const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email || !payload.email_verified) {
+      return res.status(401).json({ error: 'Google account email is not verified' });
+    }
+
+    const cleanEmail = payload.email.trim().toLowerCase();
+    const cleanName  = sanitize(payload.name || payload.given_name || cleanEmail.split('@')[0]);
+
+    let user = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (!user) {
+      // Auto-create: Google has already verified the email
+      const randomPwHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+      user = await prisma.user.create({
+        data: {
+          name:          cleanName,
+          email:         cleanEmail,
+          passwordHash:  randomPwHash,
+          phone:         null,
+          role:          'patient',
+          emailVerified: true,
+        }
+      });
+      // Welcome email (non-blocking)
+      sendWelcomeEmail(cleanEmail, cleanName).catch(e => console.error('[Mailer] welcome email failed:', e.message));
+    } else {
+      if (!user.isActive) return res.status(401).json({ error: 'Account is disabled' });
+      // Mark email verified on existing accounts that signed up via Google
+      if (!user.emailVerified) {
+        await prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } });
+        user.emailVerified = true;
+      }
+    }
+
+    const token = generateToken(user);
+    res.cookie('token', token, COOKIE_OPTIONS);
+    const profileIncomplete = !user.country || !user.sex || !user.dateOfBirth;
+    res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role }, profileIncomplete });
+  } catch (err) {
+    console.error('Google sign-in error:', err.message);
+    res.status(401).json({ error: 'Google sign-in failed. Please try again.' });
+  }
+});
+
+// ── Email OTP (passwordless / signup) ────────────────────────────────────────
+// Rate-limit guard: simple in-memory token bucket per email (production swap for Redis)
+const otpRequestLimits = new Map(); // email -> { count, resetAt }
+const OTP_MAX_PER_HOUR = 5;
+const OTP_EXPIRY_MIN = 10;
+const OTP_MAX_VERIFY_ATTEMPTS = 5;
+
+function generateOtpCode() {
+  // 6-digit code, leading zeros allowed
+  return String(Math.floor(crypto.randomInt(0, 1_000_000))).padStart(6, '0');
+}
+
+function hashOtp(code) {
+  return crypto.createHash('sha256').update(code).digest('hex');
+}
+
+function checkOtpRateLimit(email) {
+  const now = Date.now();
+  const entry = otpRequestLimits.get(email);
+  if (!entry || entry.resetAt < now) {
+    otpRequestLimits.set(email, { count: 1, resetAt: now + 60 * 60 * 1000 });
+    return true;
+  }
+  if (entry.count >= OTP_MAX_PER_HOUR) return false;
+  entry.count++;
+  return true;
+}
+
+// POST /api/auth/otp/request — body: { email, name? }
+router.post('/otp/request', async (req, res) => {
+  const { email, name } = req.body;
+  if (!email || !validateEmail(email)) {
+    return res.status(400).json({ error: 'Please enter a valid email address' });
+  }
+  const cleanEmail = email.trim().toLowerCase();
+
+  if (!checkOtpRateLimit(cleanEmail)) {
+    return res.status(429).json({ error: 'Too many code requests. Try again in an hour.' });
+  }
+
+  try {
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    const purpose = existing ? 'login' : 'register';
+
+    // If registering, validate name
+    let cleanName = null;
+    if (purpose === 'register') {
+      if (!name || typeof name !== 'string' || !name.trim()) {
+        return res.status(400).json({ error: 'Name is required for new accounts' });
+      }
+      const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
+      if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
+      cleanName = sanitize(name.trim());
+    }
+
+    if (existing && !existing.isActive) {
+      return res.status(401).json({ error: 'Account is disabled' });
+    }
+
+    // Invalidate prior unused OTPs for this email
+    await prisma.emailOtp.updateMany({
+      where: { email: cleanEmail, used: false },
+      data: { used: true }
+    });
+
+    const code = generateOtpCode();
+    const codeHash = hashOtp(code);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MIN * 60 * 1000);
+
+    await prisma.emailOtp.create({
+      data: { email: cleanEmail, codeHash, expiresAt, purpose }
+    });
+
+    // Fire-and-forget email send
+    sendOtpEmail(cleanEmail, code, purpose).catch(e => console.error('[OTP] email failed:', e.message));
+
+    // For new users, stash the name in the OTP row so verify can create the user
+    if (purpose === 'register' && cleanName) {
+      // Store name in a separate way — using extra OTP record metadata via purpose suffix
+      // (simpler: just re-encode on verify; we'll require the user to resend name on /verify too)
+    }
+
+    res.json({ success: true, purpose, message: `Code sent to ${cleanEmail}. Check your email.` });
+  } catch (err) {
+    console.error('OTP request error:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// POST /api/auth/otp/verify — body: { email, code, name? (for new accounts) }
+router.post('/otp/verify', async (req, res) => {
+  const { email, code, name, phone } = req.body;
+  if (!email || !validateEmail(email)) return res.status(400).json({ error: 'Invalid email' });
+  if (!code || typeof code !== 'string' || !/^\d{6}$/.test(code)) {
+    return res.status(400).json({ error: 'Enter the 6-digit code from your email' });
+  }
+  const cleanEmail = email.trim().toLowerCase();
+
+  try {
+    const otp = await prisma.emailOtp.findFirst({
+      where: { email: cleanEmail, used: false, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' }
+    });
+    if (!otp) {
+      return res.status(401).json({ error: 'No active code. Request a new one.' });
+    }
+    if (otp.attempts >= OTP_MAX_VERIFY_ATTEMPTS) {
+      await prisma.emailOtp.update({ where: { id: otp.id }, data: { used: true } });
+      return res.status(429).json({ error: 'Too many attempts. Request a new code.' });
+    }
+
+    if (hashOtp(code) !== otp.codeHash) {
+      await prisma.emailOtp.update({ where: { id: otp.id }, data: { attempts: otp.attempts + 1 } });
+      return res.status(401).json({ error: 'Invalid code. Try again.' });
+    }
+
+    // Code valid — mark used
+    await prisma.emailOtp.update({ where: { id: otp.id }, data: { used: true } });
+
+    let user = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (!user) {
+      // New account — name required
+      if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required for new accounts' });
+      const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
+      if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
+      const phoneCheck = validatePhone((phone || '').trim());
+      if (!phoneCheck.ok) return res.status(400).json({ error: phoneCheck.error });
+
+      const randomPwHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+      user = await prisma.user.create({
+        data: {
+          name: sanitize(name.trim()),
+          email: cleanEmail,
+          passwordHash: randomPwHash,
+          phone: sanitize(phoneCheck.value) || null,
+          role: 'patient',
+          emailVerified: true,
+        }
+      });
+      sendWelcomeEmail(cleanEmail, user.name).catch(e => console.error('[Mailer] welcome failed:', e.message));
+    } else {
+      if (!user.isActive) return res.status(401).json({ error: 'Account is disabled' });
+      if (!user.emailVerified) {
+        await prisma.user.update({ where: { id: user.id }, data: { emailVerified: true } });
+        user.emailVerified = true;
+      }
+    }
+
+    const token = generateToken(user);
+    res.cookie('token', token, COOKIE_OPTIONS);
+    const profileIncomplete = !user.country || !user.sex || !user.dateOfBirth;
+    res.json({ success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role }, profileIncomplete });
+  } catch (err) {
+    console.error('OTP verify error:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// POST /api/auth/complete-profile — for Google / OTP users who skipped Tier-1 fields at signup
+router.post('/complete-profile', authenticate, async (req, res) => {
+  const {
+    dateOfBirth, sex, country, city,
+    referralSource, preferredChannel, language,
+    marketingOptIn, privacyConsent,
+  } = req.body;
+
+  if (!privacyConsent) return res.status(400).json({ error: 'Privacy Policy consent is required' });
+
+  let dob = null;
+  if (dateOfBirth) {
+    dob = new Date(dateOfBirth);
+    if (isNaN(dob.getTime())) return res.status(400).json({ error: 'Invalid date of birth' });
+    const years = (Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+    if (years < 13 || years > 110) return res.status(400).json({ error: 'Date of birth out of accepted range' });
+  } else {
+    return res.status(400).json({ error: 'Date of birth is required' });
+  }
+  if (!sex || !ALLOWED_SEX.includes(sex)) return res.status(400).json({ error: 'Please select sex' });
+  if (!country || !ALLOWED_COUNTRY.includes(country)) return res.status(400).json({ error: 'Please select country' });
+  if (!city || typeof city !== 'string' || !city.trim()) return res.status(400).json({ error: 'City is required' });
+  const cityCheck = checkLen(city.trim(), 'City', LIMITS.name);
+  if (!cityCheck.ok) return res.status(400).json({ error: cityCheck.error });
+  if (!referralSource || !ALLOWED_REFERRAL.includes(referralSource)) return res.status(400).json({ error: 'Please tell us how you found us' });
+
+  const channel = preferredChannel && ALLOWED_CHANNEL.includes(preferredChannel) ? preferredChannel : null;
+  const lang = language && ALLOWED_LANG.includes(language) ? language : 'en';
+
+  try {
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        dateOfBirth: dob,
+        sex,
+        country,
+        city: sanitize(city.trim()),
+        referralSource,
+        preferredChannel: channel,
+        language: lang,
+        marketingOptIn: !!marketingOptIn,
+        privacyConsentAt: new Date(),
+      }
+    });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Complete profile error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });

@@ -13,26 +13,108 @@
 <style>
 :root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--gold:#c8a951;--gold2:#e2c97e;--gold-d:rgba(200,169,81,.15);--gold-g:rgba(200,169,81,.35);--white:#f8f4ec;--muted:rgba(248,244,236,.72);--faint:rgba(248,244,236,.34);--amber:#c8733a;--line:rgba(200,169,81,.16)}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
-.auth-logo{font-family:'Cormorant',serif;font-size:20px;font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;margin-bottom:48px;display:flex;align-items:center;gap:9px}
-.auth-gem{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);flex-shrink:0}
-.auth-box{background:var(--black2);border:1px solid var(--line);padding:clamp(32px,5vw,48px);max-width:440px;width:min(100%,440px)}
-.auth-box h2{font-family:'Cormorant',serif;font-size:clamp(26px,3.5vw,36px);font-weight:300;margin-bottom:6px}
-.auth-box h2 em{color:var(--gold2);font-style:italic}
-.auth-sub{color:var(--muted);font-size:14px;margin-bottom:28px;font-weight:300}
-.finput{width:100%;padding:14px 16px;background:var(--black3);border:1px solid var(--line);color:var(--white);font-family:'Barlow',sans-serif;font-size:14px;margin-bottom:12px;outline:none;transition:border-color .3s;font-weight:300}
-.finput:focus{border-color:rgba(200,169,81,.4)}
-.finput::placeholder{color:var(--faint)}
-.fsubmit{width:100%;padding:16px;background:var(--gold);border:none;color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-top:8px;transition:all .35s;display:flex;align-items:center;justify-content:center}
-.fsubmit:hover{background:var(--gold2)}
-.fsubmit:disabled{opacity:.6}
-.auth-link{display:block;text-align:center;margin-top:20px;font-size:13px;color:var(--muted);font-weight:300}
-.auth-link a{color:var(--gold2);text-decoration:none;transition:color .3s}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(16px,4vw,32px);position:relative;overflow-x:hidden}
+/* ambient backdrop glow */
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(200,169,81,.06),transparent 60%);pointer-events:none;z-index:0}
+.auth-logo{position:relative;z-index:1;font-family:'Cormorant',serif;font-size:clamp(18px,2.2vw,22px);font-weight:300;letter-spacing:.16em;color:var(--white);text-decoration:none;margin-bottom:clamp(28px,5vh,48px);display:flex;align-items:center;gap:10px;opacity:.92}
+.auth-gem{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);flex-shrink:0;box-shadow:0 0 16px rgba(200,169,81,.4)}
+
+.auth-box{position:relative;z-index:1;
+  background:linear-gradient(180deg,rgba(20,20,20,.78),rgba(14,14,14,.62));
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border:1px solid rgba(200,169,81,.18);
+  border-radius:20px;
+  box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.03),inset 0 1px 0 rgba(255,255,255,.06);
+  padding:clamp(28px,5vw,44px);
+  max-width:440px;width:min(100%,440px)}
+.auth-box h2{font-family:'Cormorant',serif;font-size:clamp(28px,4vw,38px);font-weight:300;line-height:1.15;margin-bottom:8px;letter-spacing:-.01em}
+.auth-box h2 em{color:var(--gold2);font-style:italic;font-weight:400}
+.auth-sub{color:var(--muted);font-size:clamp(13px,1.4vw,14px);margin-bottom:clamp(20px,3.5vw,28px);font-weight:300;line-height:1.6}
+
+.finput{
+  width:100%;
+  min-height:48px;
+  padding:14px 16px;
+  background:rgba(7,7,7,.5);
+  border:1px solid rgba(200,169,81,.14);
+  border-radius:12px;
+  color:var(--white);
+  font-family:'Barlow',sans-serif;
+  font-size:15px;
+  margin-bottom:12px;
+  outline:none;
+  transition:border-color .25s,background .25s,box-shadow .25s;
+  font-weight:300;
+  -webkit-appearance:none;appearance:none}
+.finput:hover{border-color:rgba(200,169,81,.24);background:rgba(7,7,7,.65)}
+.finput:focus{border-color:rgba(200,169,81,.55);background:rgba(7,7,7,.78);box-shadow:0 0 0 3px rgba(200,169,81,.10)}
+.finput::placeholder{color:var(--faint);font-weight:300}
+.finput:-webkit-autofill,.finput:-webkit-autofill:hover,.finput:-webkit-autofill:focus{-webkit-text-fill-color:var(--white);-webkit-box-shadow:0 0 0 1000px rgba(7,7,7,.78) inset;caret-color:var(--white)}
+
+.fsubmit{
+  width:100%;
+  min-height:50px;
+  padding:14px 20px;
+  background:linear-gradient(135deg,var(--gold),#b89940);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:999px;
+  color:var(--black);
+  font-family:'Tenor Sans',sans-serif;
+  font-size:12px;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+  margin-top:10px;
+  transition:transform .2s,box-shadow .25s,opacity .2s;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  box-shadow:0 8px 24px rgba(200,169,81,.22),inset 0 1px 0 rgba(255,255,255,.35)}
+.fsubmit:hover{transform:translateY(-1px);box-shadow:0 14px 36px rgba(200,169,81,.36),inset 0 1px 0 rgba(255,255,255,.45)}
+.fsubmit:active{transform:translateY(0)}
+.fsubmit:disabled{opacity:.55;transform:none;cursor:not-allowed}
+
+.auth-link{display:block;text-align:center;margin-top:18px;font-size:13px;color:var(--muted);font-weight:300}
+.auth-link a{color:var(--gold2);text-decoration:none;transition:color .25s;font-weight:400}
 .auth-link a:hover{color:var(--gold)}
-.auth-error{background:rgba(200,115,58,.1);border:1px solid rgba(200,115,58,.3);padding:12px 16px;font-size:13px;color:var(--amber);margin-bottom:16px;display:none}
-.auth-divider{display:flex;align-items:center;gap:16px;margin:20px 0;color:var(--faint);font-size:11px;letter-spacing:.15em;text-transform:uppercase;font-family:'Tenor Sans',sans-serif}
-.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--line)}
-@media(max-width:540px){body{justify-content:flex-start;padding-top:48px;padding-bottom:48px}.auth-logo{margin-bottom:28px}.finput{font-size:16px}}
+
+.auth-error{background:rgba(200,115,58,.10);border:1px solid rgba(200,115,58,.32);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--amber);margin-bottom:14px;display:none;line-height:1.5}
+
+.auth-divider{display:flex;align-items:center;gap:14px;margin:18px 0;color:var(--faint);font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-family:'Tenor Sans',sans-serif}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(200,169,81,.18),transparent)}
+
+@media(max-width:540px){
+  body{justify-content:flex-start;padding-top:max(40px,env(safe-area-inset-top));padding-bottom:max(40px,env(safe-area-inset-bottom))}
+  .auth-logo{margin-bottom:24px}
+  .auth-box{border-radius:18px}
+  .finput{font-size:16px;min-height:52px}
+  .fsubmit{min-height:54px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ═══════ iOS GLASS — universal buttons ═══════ */
+button:not(.hamburger):not(.modal-close):not(.mclose):not(.auth-close):not(.btn-modal-cancel):not(.btn-cancel):not(.mc){
+  border-radius:999px;
+  backdrop-filter:blur(14px) saturate(180%);
+  -webkit-backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:0 4px 14px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.08);
+  transition:all .3s
+}
+button:not(.hamburger):not(.modal-close):not(.mclose):not(.auth-close):not(.btn-modal-cancel):not(.btn-cancel):not(.mc):hover{
+  transform:translateY(-1px);
+  box-shadow:0 8px 22px rgba(200,169,81,.18),inset 0 1px 0 rgba(255,255,255,.12)
+}
+.logout-btn,.tab-btn,.action-btn,.share-btn,.btn-ghost,.btn-reschedule,.btn-modal-cancel,.btn-cancel{
+  background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.01))!important
+}
+.login-btn,.save-btn,.modal-btn,.btn-modal-save,.btn-book-first,.btn-book-new,.btn-home,.btn-gem{
+  background:linear-gradient(135deg,var(--gold,#c8a951),#b89940)!important;
+  border:1px solid rgba(255,255,255,.18)!important
+}
+.connect-btn,.export-btn{
+  background:linear-gradient(135deg,rgba(200,169,81,.10),rgba(200,169,81,.02))!important
+}
+
 </style>
 </head>
 <body>
@@ -48,11 +130,168 @@ body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;
     <input class="finput" type="password" name="password" placeholder="Password" required autocomplete="current-password">
     <button type="submit" class="fsubmit" id="login-btn"><span>Sign In</span></button>
   </form>
+  <div class="auth-divider">or</div>
+  <div id="g-signin-btn" style="display:flex;justify-content:center;min-height:44px;margin-bottom:14px"></div>
+  <button type="button" id="otp-toggle" class="fsubmit" style="background:transparent;border:1px solid rgba(200,169,81,.32);color:var(--gold2);margin-top:8px"><span>Email me a code instead</span></button>
+
+  <!-- OTP step (hidden by default) -->
+  <form id="otp-form" style="display:none;margin-top:16px">
+    <input class="finput" type="email" name="otp-email" id="otp-email" placeholder="Email address" required autocomplete="email">
+    <input class="finput" type="text" name="otp-code" id="otp-code" placeholder="6-digit code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" style="display:none;letter-spacing:.4em;text-align:center;font-family:monospace;font-size:18px">
+    <button type="submit" class="fsubmit" id="otp-submit"><span>Send Code</span></button>
+    <p class="auth-link" style="margin-top:8px;font-size:11px"><a href="#" id="otp-back">&larr; Back to password</a></p>
+  </form>
+
   <p class="auth-link">Don't have an account? <a href="/register">Create one</a></p>
   <p class="auth-link" style="margin-top:10px"><a href="/forgot-password">Forgot your password?</a></p>
   <div class="auth-divider">or</div>
   <p class="auth-link"><a href="/">Back to Home</a></p>
 </div>
+
+<script src="/api/auth/google-config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+window.handleGoogleSignIn = async (response) => {
+  const errEl = document.getElementById('auth-error');
+  try {
+    const r = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential })
+    });
+    const data = await r.json();
+    if (r.ok) {
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get('redirect');
+      const safe = (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) ? redirect : '/';
+      // If profile incomplete (Google / OTP signup), force completion before destination
+      if (data.profileIncomplete) {
+        window.location.href = `/complete-profile?redirect=${encodeURIComponent(safe)}`;
+      } else {
+        window.location.href = safe;
+      }
+    } else {
+      errEl.textContent = data.error || 'Google sign-in failed';
+      errEl.style.display = 'block';
+    }
+  } catch {
+    errEl.textContent = 'Connection error. Please try again.';
+    errEl.style.display = 'block';
+  }
+};
+
+const initGoogleBtn = () => {
+  if (!window.google || !window.google.accounts || !window.__GOOGLE_OAUTH_CLIENT_ID__) {
+    return setTimeout(initGoogleBtn, 300);
+  }
+  google.accounts.id.initialize({
+    client_id: window.__GOOGLE_OAUTH_CLIENT_ID__,
+    callback: window.handleGoogleSignIn,
+    ux_mode: 'popup'
+  });
+  google.accounts.id.renderButton(document.getElementById('g-signin-btn'), {
+    theme: 'filled_black', size: 'large', text: 'continue_with', shape: 'pill', logo_alignment: 'center', width: 280
+  });
+};
+initGoogleBtn();
+</script>
+
+<script>
+// ── OTP login flow ───────────────────────────────────────────────────────────
+(function () {
+  const otpToggle = document.getElementById('otp-toggle');
+  const loginForm = document.getElementById('login-form');
+  const otpForm = document.getElementById('otp-form');
+  const otpEmail = document.getElementById('otp-email');
+  const otpCode = document.getElementById('otp-code');
+  const otpSubmit = document.getElementById('otp-submit');
+  const otpBack = document.getElementById('otp-back');
+  const errEl = document.getElementById('auth-error');
+  let codeRequested = false;
+
+  otpToggle.addEventListener('click', () => {
+    loginForm.style.display = 'none';
+    otpForm.style.display = 'block';
+    otpToggle.style.display = 'none';
+    errEl.style.display = 'none';
+    codeRequested = false;
+    otpCode.style.display = 'none';
+    otpSubmit.querySelector('span').textContent = 'Send Code';
+    otpEmail.focus();
+  });
+
+  otpBack.addEventListener('click', (e) => {
+    e.preventDefault();
+    otpForm.style.display = 'none';
+    loginForm.style.display = 'block';
+    otpToggle.style.display = '';
+    errEl.style.display = 'none';
+  });
+
+  otpForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errEl.style.display = 'none';
+    otpSubmit.disabled = true;
+    const email = otpEmail.value.trim();
+
+    try {
+      if (!codeRequested) {
+        otpSubmit.querySelector('span').textContent = 'Sending...';
+        const r = await fetch('/api/auth/otp/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await r.json();
+        if (!r.ok) {
+          // Likely new user — guide them to register
+          if (/new account|name is required/i.test(data.error || '')) {
+            errEl.textContent = "No account with that email. Create one on the register page.";
+          } else {
+            errEl.textContent = data.error || 'Could not send code';
+          }
+          errEl.style.display = 'block';
+          otpSubmit.querySelector('span').textContent = 'Send Code';
+          return;
+        }
+        codeRequested = true;
+        otpCode.style.display = 'block';
+        otpCode.focus();
+        otpSubmit.querySelector('span').textContent = 'Verify & Sign In';
+      } else {
+        otpSubmit.querySelector('span').textContent = 'Verifying...';
+        const code = otpCode.value.trim();
+        const r = await fetch('/api/auth/otp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code })
+        });
+        const data = await r.json();
+        if (!r.ok) {
+          errEl.textContent = data.error || 'Invalid code';
+          errEl.style.display = 'block';
+          otpSubmit.querySelector('span').textContent = 'Verify & Sign In';
+          return;
+        }
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect');
+        const safe = (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) ? redirect : '/';
+        if (data.profileIncomplete) {
+          window.location.href = `/complete-profile?redirect=${encodeURIComponent(safe)}`;
+        } else {
+          window.location.href = safe;
+        }
+      }
+    } catch {
+      errEl.textContent = 'Connection error. Please try again.';
+      errEl.style.display = 'block';
+      otpSubmit.querySelector('span').textContent = codeRequested ? 'Verify & Sign In' : 'Send Code';
+    } finally {
+      otpSubmit.disabled = false;
+    }
+  });
+})();
+</script>
 
 <script>
 document.getElementById('login-form').addEventListener('submit', async (e) => {

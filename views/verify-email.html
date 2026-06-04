@@ -13,26 +13,61 @@
 <style>
 :root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--gold:#c8a951;--gold2:#e2c97e;--white:#f8f4ec;--muted:rgba(248,244,236,.72);--faint:rgba(248,244,236,.34);--amber:#c8733a;--line:rgba(200,169,81,.16)}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
-.auth-logo{font-family:'Cormorant',serif;font-size:20px;font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;margin-bottom:48px;display:flex;align-items:center;gap:9px}
-.auth-gem{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);flex-shrink:0}
-.auth-box{background:var(--black2);border:1px solid var(--line);padding:clamp(32px,5vw,48px);max-width:440px;width:min(100%,440px);text-align:center}
-.icon{font-size:32px;margin-bottom:20px}
-.auth-box h2{font-family:'Cormorant',serif;font-size:clamp(24px,3.5vw,34px);font-weight:300;margin-bottom:10px}
-.auth-box h2 em{color:var(--gold2);font-style:italic}
-.auth-sub{color:var(--muted);font-size:14px;line-height:1.7;font-weight:300;margin-bottom:28px}
-.fsubmit{display:inline-block;padding:14px 32px;background:var(--gold);border:none;color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:all .35s;margin-top:8px}
-.fsubmit:hover{background:var(--gold2)}
-.fsubmit:disabled{opacity:.6;cursor:not-allowed}
-.auth-link{display:block;margin-top:20px;font-size:13px;color:var(--muted);font-weight:300}
-.auth-link a{color:var(--gold2);text-decoration:none;transition:color .3s}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(16px,4vw,32px);position:relative;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(200,169,81,.06),transparent 60%);pointer-events:none;z-index:0}
+.auth-logo{position:relative;z-index:1;font-family:'Cormorant',serif;font-size:clamp(18px,2.2vw,22px);font-weight:300;letter-spacing:.16em;color:var(--white);text-decoration:none;margin-bottom:clamp(28px,5vh,48px);display:flex;align-items:center;gap:10px;opacity:.92}
+.auth-gem{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);flex-shrink:0;box-shadow:0 0 16px rgba(200,169,81,.4)}
+.auth-box{position:relative;z-index:1;background:linear-gradient(180deg,rgba(20,20,20,.78),rgba(14,14,14,.62));backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(200,169,81,.18);border-radius:20px;box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.03),inset 0 1px 0 rgba(255,255,255,.06);padding:clamp(28px,5vw,44px);max-width:440px;width:min(100%,440px);text-align:center}
+.icon{font-size:36px;margin-bottom:18px;color:var(--gold2)}
+.auth-box h2{font-family:'Cormorant',serif;font-size:clamp(26px,3.5vw,34px);font-weight:300;line-height:1.15;margin-bottom:10px;letter-spacing:-.01em}
+.auth-box h2 em{color:var(--gold2);font-style:italic;font-weight:400}
+.auth-sub{color:var(--muted);font-size:clamp(13px,1.4vw,14px);line-height:1.7;font-weight:300;margin-bottom:clamp(20px,3.5vw,28px)}
+.fsubmit{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:14px 28px;background:linear-gradient(135deg,var(--gold),#b89940);border:1px solid rgba(255,255,255,.18);border-radius:999px;color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:12px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:transform .2s,box-shadow .25s;margin-top:8px;box-shadow:0 8px 24px rgba(200,169,81,.22),inset 0 1px 0 rgba(255,255,255,.35)}
+.fsubmit:hover{transform:translateY(-1px);box-shadow:0 14px 36px rgba(200,169,81,.36),inset 0 1px 0 rgba(255,255,255,.45)}
+.fsubmit:active{transform:translateY(0)}
+.fsubmit:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.auth-link{display:block;margin-top:18px;font-size:13px;color:var(--muted);font-weight:300}
+.auth-link a{color:var(--gold2);text-decoration:none;transition:color .25s;font-weight:400}
 .auth-link a:hover{color:var(--gold)}
-.auth-error{background:rgba(200,115,58,.1);border:1px solid rgba(200,115,58,.3);padding:12px 16px;font-size:13px;color:var(--amber);margin-bottom:16px;display:none}
-.auth-success{background:rgba(74,154,100,.1);border:1px solid rgba(74,154,100,.3);padding:12px 16px;font-size:13px;color:#6fbf73;margin-bottom:16px;display:none}
-.resend-input{width:100%;padding:14px 16px;background:var(--black3);border:1px solid var(--line);color:var(--white);font-family:'Barlow',sans-serif;font-size:14px;margin-bottom:12px;outline:none;transition:border-color .3s;font-weight:300;text-align:left}
-.resend-input:focus{border-color:rgba(200,169,81,.4)}
+.auth-error{background:rgba(200,115,58,.10);border:1px solid rgba(200,115,58,.32);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--amber);margin-bottom:14px;display:none;line-height:1.5}
+.auth-success{background:rgba(74,154,100,.10);border:1px solid rgba(74,154,100,.32);border-radius:10px;padding:12px 14px;font-size:13px;color:#6fbf73;margin-bottom:14px;display:none;line-height:1.5}
+.resend-input{width:100%;min-height:48px;padding:14px 16px;background:rgba(7,7,7,.5);border:1px solid rgba(200,169,81,.14);border-radius:12px;color:var(--white);font-family:'Barlow',sans-serif;font-size:15px;margin-bottom:12px;outline:none;transition:border-color .25s,background .25s,box-shadow .25s;font-weight:300;text-align:left;-webkit-appearance:none;appearance:none}
+.resend-input:hover{border-color:rgba(200,169,81,.24);background:rgba(7,7,7,.65)}
+.resend-input:focus{border-color:rgba(200,169,81,.55);background:rgba(7,7,7,.78);box-shadow:0 0 0 3px rgba(200,169,81,.10)}
 .resend-input::placeholder{color:var(--faint)}
-@media(max-width:540px){body{justify-content:flex-start;padding-top:40px;padding-bottom:40px}.auth-logo{margin-bottom:28px}.resend-input{font-size:16px}}
+@media(max-width:540px){
+  body{justify-content:flex-start;padding-top:max(40px,env(safe-area-inset-top));padding-bottom:max(40px,env(safe-area-inset-bottom))}
+  .auth-logo{margin-bottom:24px}
+  .auth-box{border-radius:18px}
+  .resend-input{font-size:16px;min-height:52px}
+  .fsubmit{min-height:54px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ═══════ iOS GLASS — universal buttons ═══════ */
+button:not(.hamburger):not(.modal-close):not(.mclose):not(.auth-close):not(.btn-modal-cancel):not(.btn-cancel):not(.mc){
+  border-radius:999px;
+  backdrop-filter:blur(14px) saturate(180%);
+  -webkit-backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:0 4px 14px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.08);
+  transition:all .3s
+}
+button:not(.hamburger):not(.modal-close):not(.mclose):not(.auth-close):not(.btn-modal-cancel):not(.btn-cancel):not(.mc):hover{
+  transform:translateY(-1px);
+  box-shadow:0 8px 22px rgba(200,169,81,.18),inset 0 1px 0 rgba(255,255,255,.12)
+}
+.logout-btn,.tab-btn,.action-btn,.share-btn,.btn-ghost,.btn-reschedule,.btn-modal-cancel,.btn-cancel{
+  background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.01))!important
+}
+.login-btn,.save-btn,.modal-btn,.btn-modal-save,.btn-book-first,.btn-book-new,.btn-home,.btn-gem{
+  background:linear-gradient(135deg,var(--gold,#c8a951),#b89940)!important;
+  border:1px solid rgba(255,255,255,.18)!important
+}
+.connect-btn,.export-btn{
+  background:linear-gradient(135deg,rgba(200,169,81,.10),rgba(200,169,81,.02))!important
+}
+
 </style>
 </head>
 <body>

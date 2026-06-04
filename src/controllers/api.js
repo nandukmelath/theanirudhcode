@@ -127,59 +127,7 @@ router.get('/posts/:slug', async (req, res) => {
   }
 });
 
-// GET /api/products
-router.get('/products', async (req, res) => {
-  try {
-    const products = await prisma.product.findMany({
-      where: { available: true },
-      orderBy: { price: 'asc' },
-    });
-    res.json({ products });
-  } catch (err) {
-    console.error('Products error:', err);
-    res.status(500).json({ error: 'Failed to load products' });
-  }
-});
-
-// POST /api/products/:id/order
-router.post('/products/:id/order', async (req, res) => {
-  const productId = parseInt(req.params.id, 10);
-  if (!productId || productId < 1) return res.status(400).json({ error: 'Invalid product' });
-
-  const { name, email, phone } = req.body;
-  if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name is required' });
-  const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
-  if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
-  if (!email || !validateEmail(email)) return res.status(400).json({ error: 'Valid email is required' });
-  const phoneCheck = validatePhone((phone || '').trim());
-  if (!phoneCheck.ok) return res.status(400).json({ error: phoneCheck.error });
-
-  try {
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product || !product.available) return res.status(404).json({ error: 'Product not found' });
-
-    await prisma.productOrder.create({
-      data: {
-        productId,
-        name:  sanitize(name.trim()),
-        email: email.trim().toLowerCase(),
-        phone: sanitize((phone || '').trim()) || null,
-      }
-    });
-
-    wa.sendAdminConsultationAlert({
-      name: sanitize(name.trim()),
-      email: email.trim().toLowerCase(),
-      phone: sanitize((phone || '').trim()) || null,
-      message: `Product order: "${product.title}" — ₹${product.price}`,
-    }).catch(e => console.error('[WhatsApp] admin alert failed:', e.message));
-
-    res.status(201).json({ success: true, message: `Order received! We will reach out within 24 hours with payment details for "${product.title}".` });
-  } catch (err) {
-    console.error('Product order error:', err);
-    res.status(500).json({ error: 'Something went wrong. Please try again.' });
-  }
-});
+// /api/products endpoints removed — store cut
 
 // GET /api/cohorts
 router.get('/cohorts', async (req, res) => {

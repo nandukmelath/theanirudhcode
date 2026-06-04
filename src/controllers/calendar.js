@@ -103,7 +103,10 @@ router.get('/auth-url', hybridAdminAuth, async (req, res) => {
   const url = client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: ['https://www.googleapis.com/auth/calendar'],
+    scope: [
+      'https://www.googleapis.com/auth/calendar',
+      'https://www.googleapis.com/auth/gmail.send',
+    ],
     state,
   });
   res.json({ url });
