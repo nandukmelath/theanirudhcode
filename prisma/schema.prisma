@@ -49,6 +49,16 @@ model User {
   failedLoginAttempts        Int             @default(0) @map("failed_login_attempts")
   lockedUntil                DateTime?       @map("locked_until")
   passwordChangedAt          DateTime?       @map("password_changed_at")
+  // Profile (Tier-1) — collected at registration / complete-profile
+  dateOfBirth                DateTime?       @map("date_of_birth")
+  sex                        String?
+  country                    String?
+  city                       String?
+  referralSource             String?         @map("referral_source")
+  preferredChannel           String?         @map("preferred_channel")
+  language                   String          @default("en")
+  marketingOptIn             Boolean         @default(false) @map("marketing_opt_in")
+  privacyConsentAt           DateTime?       @map("privacy_consent_at")
   createdAt                  DateTime        @default(now()) @map("created_at")
   appointments               Appointment[]
   passwordResets             PasswordReset[]

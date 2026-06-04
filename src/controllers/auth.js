@@ -33,31 +33,32 @@ router.post('/register', async (req, res) => {
   if (!phoneCheck.ok) return res.status(400).json({ error: phoneCheck.error });
   if (!privacyConsent) return res.status(400).json({ error: 'Privacy Policy consent is required' });
 
-  // Validate profile fields (all required at registration now)
+  // Profile fields are OPTIONAL at registration (collected here OR later via
+  // /complete-profile / the booking form). Validate format only when provided.
+  // This keeps the lightweight booking-modal signup working while the full
+  // register page can still send everything. Privacy consent stays mandatory (DPDP).
   let dob = null;
   if (dateOfBirth) {
     dob = new Date(dateOfBirth);
     if (isNaN(dob.getTime())) return res.status(400).json({ error: 'Invalid date of birth' });
     const minAge = 13, maxAge = 110;
-    const ageMs = Date.now() - dob.getTime();
-    const years = ageMs / (365.25 * 24 * 60 * 60 * 1000);
+    const years = (Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
     if (years < minAge || years > maxAge) return res.status(400).json({ error: 'Date of birth out of accepted range' });
-  } else {
-    return res.status(400).json({ error: 'Date of birth is required' });
   }
-  if (!sex || !ALLOWED_SEX.includes(sex)) return res.status(400).json({ error: 'Please select sex' });
-  if (!country || !ALLOWED_COUNTRY.includes(country)) return res.status(400).json({ error: 'Please select country' });
-  if (!city || typeof city !== 'string' || !city.trim()) return res.status(400).json({ error: 'City is required' });
-  const cityCheck = checkLen(city.trim(), 'City', LIMITS.name);
-  if (!cityCheck.ok) return res.status(400).json({ error: cityCheck.error });
-  if (!referralSource || !ALLOWED_REFERRAL.includes(referralSource)) return res.status(400).json({ error: 'Please tell us how you found us' });
+  if (sex && !ALLOWED_SEX.includes(sex)) return res.status(400).json({ error: 'Invalid sex value' });
+  if (country && !ALLOWED_COUNTRY.includes(country)) return res.status(400).json({ error: 'Invalid country' });
+  if (city && typeof city === 'string' && city.trim()) {
+    const cityCheck = checkLen(city.trim(), 'City', LIMITS.name);
+    if (!cityCheck.ok) return res.status(400).json({ error: cityCheck.error });
+  }
+  if (referralSource && !ALLOWED_REFERRAL.includes(referralSource)) return res.status(400).json({ error: 'Invalid referral source' });
   const channel = preferredChannel && ALLOWED_CHANNEL.includes(preferredChannel) ? preferredChannel : null;
   const lang = language && ALLOWED_LANG.includes(language) ? language : 'en';
 
   const cleanName = sanitize(name.trim());
   const cleanEmail = email.trim().toLowerCase();
   const cleanPhone = sanitize(phoneCheck.value);
-  const cleanCity = sanitize(city.trim());
+  const cleanCity = city && city.trim() ? sanitize(city.trim()) : null;
 
   try {
     const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
