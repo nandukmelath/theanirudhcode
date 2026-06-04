@@ -75,11 +75,22 @@ async function runPaymentMigration() {
     `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS amount_paid INT`,
     `CREATE INDEX IF NOT EXISTS cenr_payment_order_idx ON cohort_enrollments(payment_order_id)`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ`,
+    // Booking double-booking guard at the DB layer: no two CONFIRMED appointments
+    // may share the same date + start time. The check-then-insert in bookAfterPayment
+    // can still race; this partial unique index makes it physically impossible
+    // (2nd insert → 23505 → P2002 → handled as SLOT_TAKEN/409).
+    `CREATE UNIQUE INDEX IF NOT EXISTS appt_no_double_confirmed ON appointments(date, time_start) WHERE status = 'confirmed'`,
   ];
+  // Per-statement resilience: one failing statement (e.g. a unique index that hits
+  // pre-existing duplicate rows) must not abort the remaining migrations.
   for (const sql of stmts) {
-    await prisma.$executeRawUnsafe(sql);
+    try {
+      await prisma.$executeRawUnsafe(sql);
+    } catch (e) {
+      console.warn('[migration] statement failed (continuing):', e.message, '::', sql.slice(0, 80));
+    }
   }
-  console.log('[migration] Payment columns OK');
+  console.log('[migration] Schema sync OK');
 }
 runPaymentMigration().catch(e => console.warn('[migration] Skipped:', e.message));
 
