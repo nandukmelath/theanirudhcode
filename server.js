@@ -13,6 +13,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 const express = require('express');
+const cors    = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
@@ -74,6 +75,26 @@ const app = express();
 // Trust Railway/Cloudflare proxy so rate-limiter uses real client IP, not proxy IP
 app.set('trust proxy', 1);
 
+// ── CORS — allow Astro/Pages frontend to call the API with cookies ─────────────
+const ALLOWED_ORIGINS = [
+  'https://www.theanirudhcode.com',
+  'https://theanirudhcode.com',
+  'https://theanirudhcode.pages.dev',
+  'https://heal.theanirudhcode.com',
+  'http://localhost:4321',
+  'http://localhost:3000',
+];
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 600,
+}));
+
 // Security headers
 app.use(helmet({
   contentSecurityPolicy: {
@@ -107,7 +128,7 @@ app.use(helmet({
     : false,
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   crossOriginEmbedderPolicy: false, // would block Razorpay/Stripe iframes
-  crossOriginResourcePolicy: { policy: 'same-site' },
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
 // Disable browser features the site doesn't use (defence-in-depth against injected scripts)

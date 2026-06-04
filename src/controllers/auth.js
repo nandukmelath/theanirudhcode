@@ -120,12 +120,7 @@ router.post('/login', async (req, res) => {
 
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
-  res.clearCookie('token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/'
-  });
+  res.clearCookie('token', { ...COOKIE_OPTIONS, path: '/' });
   res.json({ success: true });
 });
 
@@ -256,7 +251,7 @@ router.post('/reset-password', async (req, res) => {
       prisma.passwordReset.update({ where: { id: reset.id }, data: { used: true } }),
     ]);
 
-    res.clearCookie('token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
+    res.clearCookie('token', { ...COOKIE_OPTIONS, path: '/' });
     res.json({ success: true, message: 'Password updated. Please sign in with your new password.' });
   } catch (err) {
     console.error('Reset password error:', err);
@@ -290,7 +285,7 @@ router.post('/change-password', authenticate, async (req, res) => {
     });
 
     // Revoke current cookie — passwordChangedAt now invalidates every JWT issued before this moment.
-    res.clearCookie('token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
+    res.clearCookie('token', { ...COOKIE_OPTIONS, path: '/' });
     res.json({ success: true, message: 'Password updated. Please sign in again with your new password.' });
   } catch (err) {
     console.error('Change password error:', err);
@@ -339,7 +334,7 @@ router.post('/delete-account', authenticate, async (req, res) => {
       }),
     ]);
 
-    res.clearCookie('token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
+    res.clearCookie('token', { ...COOKIE_OPTIONS, path: '/' });
     res.json({ success: true, message: 'Your account has been deleted.' });
   } catch (err) {
     console.error('Delete account error:', err);

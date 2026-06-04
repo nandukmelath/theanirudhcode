@@ -4,10 +4,13 @@ const prisma = require('../lib/prisma');
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
 
+// SameSite=None (+ Secure) required so the Astro/Pages frontend can send cookies
+// cross-site to the API. On localhost dev, keep 'lax' (None requires HTTPS).
+const IS_PROD = process.env.NODE_ENV === 'production';
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
+  secure: IS_PROD,
+  sameSite: IS_PROD ? 'none' : 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000
 };
 
