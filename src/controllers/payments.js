@@ -56,13 +56,22 @@ function validateBookingBody(body) {
 
 // ── Internal: book appointment after payment confirmed ─────────────────────────
 async function bookAfterPayment({ userId, tier, date, time_start, time_end,
-  health_concerns, medical_history, goals,
+  health_concerns, medical_history, goals, patientAge, consent,
   paymentId, paymentOrderId, paymentGateway, currency }) {
 
   const t = PRICES[tier];
   const cleanConcerns = sanitize(health_concerns.trim());
   const cleanHistory  = sanitize((medical_history || '').trim());
   const cleanGoals    = sanitize((goals || '').trim());
+
+  // TPG-2020: explicit telemedicine consent is mandatory; age required before prescribing
+  if (consent !== true) {
+    const e = new Error('CONSENT_REQUIRED');
+    e.code = 'CONSENT_REQUIRED';
+    throw e;
+  }
+  const age = parseInt(patientAge, 10);
+  const cleanAge = Number.isInteger(age) && age >= 1 && age <= 120 ? age : null;
 
   const appointment = await prisma.$transaction(async (tx) => {
     const conflict = await tx.appointment.findFirst({
@@ -84,6 +93,8 @@ async function bookAfterPayment({ userId, tier, date, time_start, time_end,
         healthConcerns:    cleanConcerns,
         medicalHistory:    cleanHistory || null,
         goals:             cleanGoals  || null,
+        patientAge:        cleanAge,
+        consentAt:         new Date(),   // explicit consent recorded (TPG-2020)
         paymentStatus:     'paid',
         paymentId,
         paymentOrderId,
@@ -113,7 +124,7 @@ router.post('/test/complete', authenticate, async (req, res) => {
   const err = validateBookingBody(req.body);
   if (err) return res.status(400).json({ error: err });
 
-  const { tier, date, time_start, time_end, health_concerns, medical_history, goals } = req.body;
+  const { tier, date, time_start, time_end, health_concerns, medical_history, goals, age, consent } = req.body;
   const currency = req.body.currency || 'INR';
 
   try {
@@ -123,6 +134,7 @@ router.post('/test/complete', authenticate, async (req, res) => {
     const appointment = await bookAfterPayment({
       userId: req.user.id,
       tier, date, time_start, time_end, health_concerns, medical_history, goals,
+      patientAge: age, consent: consent === true,
       paymentId:      fakePayId,
       paymentOrderId: fakeOrderId,
       paymentGateway: 'test',
@@ -167,6 +179,9 @@ router.post('/test/complete', authenticate, async (req, res) => {
     if (e.code === 'SLOT_TAKEN' || e.code === 'P2002' || e.code === 'P2034') {
       return res.status(409).json({ error: 'Time slot already taken. Choose another.' });
     }
+    if (e.code === 'CONSENT_REQUIRED') {
+      return res.status(400).json({ error: 'Telemedicine consent is required to book a consultation.' });
+    }
     console.error('[Test payment] error:', e);
     res.status(500).json({ error: 'Test booking failed.' });
   }
@@ -177,9 +192,12 @@ router.post('/test/complete', authenticate, async (req, res) => {
 // POST /api/payments/razorpay/create-order
 // ═══════════════════════════════════════════════════════════════════════════════
 router.post('/razorpay/create-order', authenticate, async (req, res) => {
-  const { tier } = req.body;
+  const { tier, consent } = req.body;
   const err = validateBookingBody(req.body);
   if (err) return res.status(400).json({ error: err });
+
+  // TPG-2020: fail fast — don't start payment without explicit telemedicine consent
+  if (consent !== true) return res.status(400).json({ error: 'Please accept the telemedicine consent to continue.' });
 
   const price = getPrice(tier, 'INR');
   if (!price) return res.status(400).json({ error: 'Invalid tier' });
@@ -221,6 +239,7 @@ router.post('/razorpay/verify', authenticate, async (req, res) => {
   const {
     razorpay_payment_id, razorpay_order_id, razorpay_signature,
     tier, date, time_start, time_end, health_concerns, medical_history, goals,
+    age, consent,
   } = req.body;
 
   // 1. Verify HMAC signature
@@ -252,6 +271,7 @@ router.post('/razorpay/verify', authenticate, async (req, res) => {
     const appointment = await bookAfterPayment({
       userId:        req.user.id,
       tier, date, time_start, time_end, health_concerns, medical_history, goals,
+      patientAge:    age, consent: consent === true,
       paymentId:     razorpay_payment_id,
       paymentOrderId: razorpay_order_id,
       paymentGateway: 'razorpay',
@@ -294,6 +314,9 @@ router.post('/razorpay/verify', authenticate, async (req, res) => {
   } catch (e) {
     if (e.code === 'SLOT_TAKEN' || e.code === 'P2002' || e.code === 'P2034') {
       return res.status(409).json({ error: 'This time slot was just booked by someone else. Please choose another.' });
+    }
+    if (e.code === 'CONSENT_REQUIRED') {
+      return res.status(400).json({ error: 'Telemedicine consent is required to book a consultation.' });
     }
     console.error('[Razorpay] verify/book error:', e);
     res.status(500).json({ error: 'Payment verified but booking failed. Contact support with your payment ID: ' + razorpay_payment_id });

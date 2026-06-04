@@ -46,6 +46,9 @@ async function runPaymentMigration() {
     `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS payment_order_id TEXT`,
     `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS payment_gateway TEXT`,
     `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'INR'`,
+    // TPG-2020 compliance: patient age + explicit-consent timestamp
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS patient_age INT`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS consent_at TIMESTAMPTZ`,
     `CREATE INDEX IF NOT EXISTS appt_payment_order_idx ON appointments(payment_order_id)`,
     `ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'pending'`,
     `ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS payment_id TEXT`,

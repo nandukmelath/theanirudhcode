@@ -36,22 +36,22 @@ enum AppointmentStatus {
 // ═══════════════════════════════════════
 
 model User {
-  id                           Int           @id @default(autoincrement())
-  name                         String
-  email                        String        @unique
-  passwordHash                 String        @map("password_hash")
-  phone                        String?
-  role                         Role          @default(patient)
-  isActive                     Boolean       @default(true) @map("is_active")
-  emailVerified                Boolean       @default(true) @map("email_verified")
-  emailVerificationTokenHash   String?       @map("email_verification_token_hash")
-  emailVerificationExpiresAt   DateTime?     @map("email_verification_expires_at")
-  failedLoginAttempts          Int           @default(0) @map("failed_login_attempts")
-  lockedUntil                  DateTime?     @map("locked_until")
-  passwordChangedAt            DateTime?     @map("password_changed_at")
-  createdAt                    DateTime      @default(now()) @map("created_at")
-  appointments   Appointment[]
-  passwordResets PasswordReset[]
+  id                         Int             @id @default(autoincrement())
+  name                       String
+  email                      String          @unique
+  passwordHash               String          @map("password_hash")
+  phone                      String?
+  role                       Role            @default(patient)
+  isActive                   Boolean         @default(true) @map("is_active")
+  emailVerified              Boolean         @default(true) @map("email_verified")
+  emailVerificationTokenHash String?         @map("email_verification_token_hash")
+  emailVerificationExpiresAt DateTime?       @map("email_verification_expires_at")
+  failedLoginAttempts        Int             @default(0) @map("failed_login_attempts")
+  lockedUntil                DateTime?       @map("locked_until")
+  passwordChangedAt          DateTime?       @map("password_changed_at")
+  createdAt                  DateTime        @default(now()) @map("created_at")
+  appointments               Appointment[]
+  passwordResets             PasswordReset[]
 
   @@map("users")
 }
@@ -84,27 +84,30 @@ model Consultation {
 }
 
 model Appointment {
-  id                 Int               @id @default(autoincrement())
-  userId             Int               @map("user_id")
-  date               String
-  timeStart          String            @map("time_start")
-  timeEnd            String            @map("time_end")
-  status             AppointmentStatus @default(confirmed)
-  consultationType   String            @default("deepdive") @map("consultation_type")
-  consultationPrice  Int               @default(5000) @map("consultation_price")
-  healthConcerns     String?           @map("health_concerns")
-  medicalHistory     String?           @map("medical_history")
-  goals              String?
-  googleEventId      String?           @map("google_event_id")
+  id                Int               @id @default(autoincrement())
+  userId            Int               @map("user_id")
+  date              String
+  timeStart         String            @map("time_start")
+  timeEnd           String            @map("time_end")
+  status            AppointmentStatus @default(confirmed)
+  consultationType  String            @default("deepdive") @map("consultation_type")
+  consultationPrice Int               @default(5000) @map("consultation_price")
+  healthConcerns    String?           @map("health_concerns")
+  medicalHistory    String?           @map("medical_history")
+  goals             String?
+  // TPG-2020 compliance: age required before prescribing; explicit consent logged
+  patientAge        Int?              @map("patient_age")
+  consentAt         DateTime?         @map("consent_at")
+  googleEventId     String?           @map("google_event_id")
   // Payment
-  paymentStatus      String            @default("pending") @map("payment_status")
-  paymentId          String?           @map("payment_id")
-  paymentOrderId     String?           @map("payment_order_id")
-  paymentGateway     String?           @map("payment_gateway")
-  currency           String            @default("INR")
-  createdAt          DateTime          @default(now()) @map("created_at")
-  updatedAt          DateTime          @updatedAt @map("updated_at")
-  user               User              @relation(fields: [userId], references: [id])
+  paymentStatus     String            @default("pending") @map("payment_status")
+  paymentId         String?           @map("payment_id")
+  paymentOrderId    String?           @map("payment_order_id")
+  paymentGateway    String?           @map("payment_gateway")
+  currency          String            @default("INR")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  user              User              @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([date])
