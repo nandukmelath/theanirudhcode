@@ -70,8 +70,15 @@ router.post('/api/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// Serve admin page (public — login wall is client-side; API is server-guarded)
+// Serve admin page. The HTML shell itself is intentionally public because it
+// CONTAINS the login form — every data endpoint below is guarded by hybridAdminAuth,
+// so no sensitive data is exposed by serving the shell. Hard-401'ing here would make
+// it impossible to render the login screen. We do mark it noindex/no-store so the
+// panel never lands in a search index or a shared cache (defence-in-depth).
 router.get('/', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Referrer-Policy', 'no-referrer');
   res.sendFile(path.join(__dirname, '..', '..', 'views', 'admin.html'));
 });
 

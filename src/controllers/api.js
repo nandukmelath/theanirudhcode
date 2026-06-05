@@ -54,7 +54,7 @@ router.post('/subscribe', async (req, res) => {
 
 // POST /api/consultation
 router.post('/consultation', async (req, res) => {
-  const { name, email, phone, preferred_date, message } = req.body;
+  const { name, email, phone, preferred_date, message, health_concerns, age } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name is required' });
   const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
@@ -67,8 +67,32 @@ router.post('/consultation', async (req, res) => {
     const msgCheck = checkLen(message, 'Message', LIMITS.message);
     if (!msgCheck.ok) return res.status(400).json({ error: msgCheck.error });
   }
+  // health_concerns is an optional discrete field (some clients send it separately
+  // instead of folding it into `message`). Bound its length; it gets HTML-stripped
+  // by sanitize() below before storage, same as every other free-text field.
+  if (health_concerns != null && health_concerns !== '') {
+    const hcCheck = checkLen(String(health_concerns), 'Health concerns', LIMITS.healthConcerns);
+    if (!hcCheck.ok) return res.status(400).json({ error: hcCheck.error });
+  }
+  // Age: optional, but if supplied it must be a plausible human age. Rejects the
+  // negative / >120 values a scanner probes with (VALIDATION_001).
+  let ageNum = null;
+  if (age != null && age !== '') {
+    ageNum = Number(age);
+    if (!Number.isInteger(ageNum) || ageNum < 1 || ageNum > 120) {
+      return res.status(400).json({ error: 'Please enter a valid age between 1 and 120.' });
+    }
+  }
   const phoneCheck = validatePhone((phone || '').trim());
   if (!phoneCheck.ok) return res.status(400).json({ error: phoneCheck.error });
+
+  // Build the stored message: fold age + health_concerns (when sent discretely) into
+  // the free-text note so admin sees them, and so they pass through HTML sanitisation.
+  const baseMsg = (message || '').trim();
+  const extras = [];
+  if (ageNum != null) extras.push(`Age: ${ageNum}`);
+  if (health_concerns != null && String(health_concerns).trim()) extras.push(`Concerns: ${String(health_concerns).trim()}`);
+  const composedMsg = [baseMsg, ...extras].filter(Boolean).join('\n');
 
   try {
     await prisma.consultation.create({
@@ -77,7 +101,7 @@ router.post('/consultation', async (req, res) => {
         email: email.trim().toLowerCase(),
         phone: sanitize((phone || '').trim()) || null,
         preferredDate: preferred_date ? sanitize(preferred_date.trim()) : null,
-        message: sanitize((message || '').trim()) || null,
+        message: sanitize(composedMsg) || null,
       }
     });
 
@@ -87,7 +111,7 @@ router.post('/consultation', async (req, res) => {
     });
 
     // Notify admin + patient via WhatsApp (non-blocking, after response sent)
-    const consult = { name: sanitize(name.trim()), email: email.trim().toLowerCase(), phone: sanitize((phone || '').trim()) || null, message: sanitize((message || '').trim()) || null };
+    const consult = { name: sanitize(name.trim()), email: email.trim().toLowerCase(), phone: sanitize((phone || '').trim()) || null, message: sanitize(composedMsg) || null };
     wa.sendAdminConsultationAlert(consult).catch(e => console.error('[WhatsApp] consultation alert failed:', e.message));
     if (consult.phone) wa.sendConsultationAck(consult.phone, consult.name).catch(e => console.error('[WhatsApp] consultation ack failed:', e.message));
   } catch (err) {

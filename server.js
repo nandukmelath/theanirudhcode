@@ -80,6 +80,21 @@ async function runPaymentMigration() {
     // can still race; this partial unique index makes it physically impossible
     // (2nd insert → 23505 → P2002 → handled as SLOT_TAKEN/409).
     `CREATE UNIQUE INDEX IF NOT EXISTS appt_no_double_confirmed ON appointments(date, time_start) WHERE status = 'confirmed'`,
+    // Email OTP (passwordless / signup). The /api/auth/otp/{request,verify} handlers
+    // query prisma.emailOtp; without this table those endpoints threw at runtime and
+    // surfaced as opaque 500s. Column names mirror the EmailOtp model's @map() values.
+    `CREATE TABLE IF NOT EXISTS email_otps (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      purpose TEXT NOT NULL DEFAULT 'login',
+      expires_at TIMESTAMPTZ NOT NULL,
+      used BOOLEAN NOT NULL DEFAULT false,
+      attempts INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`,
+    `CREATE INDEX IF NOT EXISTS email_otps_email_idx ON email_otps(email)`,
+    `CREATE INDEX IF NOT EXISTS email_otps_expires_idx ON email_otps(expires_at)`,
   ];
   // Per-statement resilience: one failing statement (e.g. a unique index that hits
   // pre-existing duplicate rows) must not abort the remaining migrations.
@@ -99,6 +114,35 @@ const app = express();
 // Trust Railway/Cloudflare proxy so rate-limiter uses real client IP, not proxy IP
 app.set('trust proxy', 1);
 
+// ── Rate-limit client key ─────────────────────────────────────────────────────
+// Requests reach Cloud Run through: client → Cloudflare edge → apex Worker (fetch)
+// → Cloud Run. By the time Express sees the request, `req.ip` (even with
+// trust proxy=1) often resolves to a Google/Cloudflare infrastructure IP that is
+// SHARED across many visitors — so every limiter keyed on it bucketed all traffic
+// together and effectively never tripped (the RATE_LIMIT_00x failures).
+// Cloudflare stamps the true end-user IP in `CF-Connecting-IP`, and the apex Worker
+// forwards it. Prefer that; fall back to XFF's left-most hop, then req.ip.
+function clientKey(req) {
+  const cf = req.headers['cf-connecting-ip'];
+  if (cf) return Array.isArray(cf) ? cf[0] : String(cf).trim();
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) return String(xff).split(',')[0].trim();
+  return req.ip || 'unknown';
+}
+// Wrap express-rate-limit so every limiter shares the same client-IP resolution
+// and validation is relaxed for the custom keyGenerator (we intentionally key on
+// a forwarded header rather than the socket address).
+const limit = (opts) => rateLimit({
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: clientKey,
+  // Disable express-rate-limit's startup validation advisories. They are dev-time
+  // warnings (e.g. "custom keyGenerator detected"), not runtime safeguards, and we
+  // intentionally key on the CF-Connecting-IP header behind a trusted proxy chain.
+  validate: false,
+  ...opts,
+});
+
 // ── CORS — allow Astro/Pages frontend to call the API with cookies ─────────────
 const ALLOWED_ORIGINS = [
   'https://www.theanirudhcode.com',
@@ -111,9 +155,13 @@ const ALLOWED_ORIGINS = [
 ];
 app.use(cors({
   origin: (origin, cb) => {
-    // allow server-to-server / curl (no origin) + listed origins
+    // allow server-to-server / curl (no origin) + listed origins.
+    // For a DISALLOWED origin we resolve with `false` (NOT an Error). Throwing here
+    // bubbles to the global error handler and surfaces as a 500; returning false makes
+    // cors() simply omit the Access-Control-Allow-Origin header, so the preflight gets
+    // a clean 204 and the browser blocks the cross-origin read itself. No 500.
     if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    cb(new Error(`CORS: origin ${origin} not allowed`));
+    return cb(null, false);
   },
   credentials: true,               // send cookies cross-origin
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
@@ -188,36 +236,35 @@ function csrfGuard(req, res, next) {
 app.use('/api', csrfGuard);
 app.use('/portal-management', csrfGuard);
 
-// Stricter rate limits for auth (must be BEFORE general API limiter)
-app.use('/api/auth/login',                rateLimit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many login attempts. Please try again later.' } }));
-app.use('/api/auth/forgot-password',      rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
-app.use('/api/auth/resend-verification',  rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
-app.use('/api/auth/reset-password',       rateLimit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: 'Too many requests. Please try again later.' } }));
-app.use('/api/auth/register',             rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many registration attempts. Please try again later.' } }));
-app.use('/api/subscribe',                 rateLimit({ windowMs: 60 * 60 * 1000, max: 8,  message: { error: 'Too many requests. Please try again later.' } }));
-app.use('/api/consultation',              rateLimit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
+// Stricter rate limits for auth (must be BEFORE general API limiter).
+// All use limit() so they key on the real client IP (CF-Connecting-IP), not a
+// shared proxy address.
+app.use('/api/auth/login',                limit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many login attempts. Please try again later.' } }));
+app.use('/api/auth/forgot-password',      limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/auth/resend-verification',  limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/auth/reset-password',       limit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/auth/register',             limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many registration attempts. Please try again later.' } }));
+app.use('/api/auth/otp/request',          limit({ windowMs: 60 * 60 * 1000, max: 8,  message: { error: 'Too many code requests. Please try again later.' } }));
+app.use('/api/subscribe',                 limit({ windowMs: 60 * 60 * 1000, max: 8,  message: { error: 'Too many requests. Please try again later.' } }));
+app.use('/api/consultation',              limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
 // Payment creation: prevent order-spam (5 per 10 min per IP)
-app.use('/api/payments/razorpay/create-order', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
-app.use('/api/payments/stripe/create-session', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
-app.use('/api/payments/test/complete',         rateLimit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
+app.use('/api/payments/razorpay/create-order', limit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
+app.use('/api/payments/stripe/create-session', limit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
+app.use('/api/payments/test/complete',         limit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
 // Admin login: separate tight limit before general portal limiter
-app.use('/portal-management/api/login',        rateLimit({ windowMs: 15 * 60 * 1000, max: 5, message: { error: 'Too many admin login attempts. Please try again later.' } }));
+app.use('/portal-management/api/login',        limit({ windowMs: 15 * 60 * 1000, max: 5, message: { error: 'Too many admin login attempts. Please try again later.' } }));
 
 // General rate limiting for API
-app.use('/api', rateLimit({
+app.use('/api', limit({
   windowMs: 15 * 60 * 1000,
   max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
   message: { error: 'Too many requests. Please try again later.' }
 }));
 
 // Rate limiting for admin portal
-app.use('/portal-management', rateLimit({
+app.use('/portal-management', limit({
   windowMs: 15 * 60 * 1000,
   max: 50,
-  standardHeaders: true,
-  legacyHeaders: false,
   message: { error: 'Too many requests. Please try again later.' }
 }));
 

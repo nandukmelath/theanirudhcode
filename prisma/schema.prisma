@@ -246,6 +246,21 @@ model GoogleToken {
   @@map("google_tokens")
 }
 
+model EmailOtp {
+  id        Int      @id @default(autoincrement())
+  email     String
+  codeHash  String   @map("code_hash")
+  purpose   String   @default("login") // 'login' | 'register'
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([expiresAt])
+  @@map("email_otps")
+}
+
 model BlockedSlot {
   id          Int      @id @default(autoincrement())
   date        String
