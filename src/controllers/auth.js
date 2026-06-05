@@ -201,12 +201,13 @@ router.post('/google', async (req, res) => {
       const randomPwHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
       user = await prisma.user.create({
         data: {
-          name:          cleanName,
-          email:         cleanEmail,
-          passwordHash:  randomPwHash,
-          phone:         null,
-          role:          'patient',
-          emailVerified: true,
+          name:             cleanName,
+          email:            cleanEmail,
+          passwordHash:     randomPwHash,
+          phone:            null,
+          role:             'patient',
+          emailVerified:    true,
+          privacyConsentAt: new Date(), // DPDP: consent captured via "continue with Google" notice
         }
       });
       // Welcome email (non-blocking)
