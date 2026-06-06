@@ -279,25 +279,18 @@ app.post('/api/_reset', async (req, res) => {
   if (!key || req.headers['x-reset-key'] !== key) {
     return res.status(403).json({ error: 'Forbidden' });
   }
-  const TABLES = [
-    'email_otps','password_resets','blocked_slots','appointments',
-    'product_orders','cohort_enrollments','consultations','subscribers',
-    'google_tokens','settings','posts','cohorts','products','users',
-  ];
-  const results = [];
   try {
-    await prisma.$executeRawUnsafe('SET session_replication_role = replica;');
-    for (const t of TABLES) {
-      try {
-        await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${t}" RESTART IDENTITY CASCADE;`);
-        results.push({ table: t, status: 'ok' });
-      } catch (e) {
-        results.push({ table: t, status: 'skip', reason: e.message });
-      }
-    }
-    await prisma.$executeRawUnsafe('SET session_replication_role = DEFAULT;');
-    console.log('[reset] DB reset complete');
-    res.json({ success: true, results });
+    // TRUNCATE all tables in one statement with CASCADE — no superuser needed
+    await prisma.$executeRawUnsafe(`
+      TRUNCATE TABLE
+        email_otps, password_resets, blocked_slots,
+        appointments, product_orders, cohort_enrollments,
+        consultations, subscribers, google_tokens,
+        settings, posts, cohorts, products, users
+      RESTART IDENTITY CASCADE
+    `);
+    console.log('[reset] DB reset complete — all tables cleared');
+    res.json({ success: true, message: 'All tables cleared. Schema intact.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
