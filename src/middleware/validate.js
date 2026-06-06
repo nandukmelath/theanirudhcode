@@ -39,12 +39,24 @@ function checkLen(value, field, max) {
 // Password policy: min 8 chars, at least one letter + one digit.
 // We don't force symbols/case because the docs and most security guidance
 // converged on length + entropy over complexity rules. Bcrypt handles the rest.
+// Common/breached password block list (top patterns — augment as needed)
+const BLOCKED_PASSWORDS = new Set([
+  'password','password1','password123','pass1234','12345678','123456789',
+  'qwerty123','qwerty@1','letmein1','welcome1','admin1234','iloveyou1',
+  'sunshine1','monkey123','dragon123','master123','abc@1234','test1234',
+  'india@123','india123','anirudh123','doctor123','health123','wellness1',
+]);
+
 function validatePassword(pw) {
-  if (typeof pw !== 'string') return { ok: false, error: 'Password is required' };
-  if (pw.length < 8)          return { ok: false, error: 'Password must be at least 8 characters' };
-  if (pw.length > LIMITS.password) return { ok: false, error: `Password is too long (max ${LIMITS.password} characters)` };
-  if (!/[A-Za-z]/.test(pw))   return { ok: false, error: 'Password must contain at least one letter' };
-  if (!/\d/.test(pw))         return { ok: false, error: 'Password must contain at least one number' };
+  if (typeof pw !== 'string' || !pw) return { ok: false, error: 'Password is required' };
+  if (pw.length < 10) return { ok: false, error: 'Password must be at least 10 characters' };
+  if (pw.length > LIMITS.password) return { ok: false, error: `Password too long (max ${LIMITS.password} characters)` };
+  if (!/[A-Z]/.test(pw)) return { ok: false, error: 'Password must contain at least one uppercase letter (A–Z)' };
+  if (!/[a-z]/.test(pw)) return { ok: false, error: 'Password must contain at least one lowercase letter (a–z)' };
+  if (!/\d/.test(pw)) return { ok: false, error: 'Password must contain at least one number (0–9)' };
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(pw)) return { ok: false, error: 'Password must contain at least one special character (!@#$%^&* etc.)' };
+  if (/(.)\1{3,}/.test(pw)) return { ok: false, error: 'Password must not repeat the same character 4 or more times in a row' };
+  if (BLOCKED_PASSWORDS.has(pw.toLowerCase())) return { ok: false, error: 'This password is too common. Please choose a stronger one.' };
   return { ok: true };
 }
 
