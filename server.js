@@ -272,30 +272,6 @@ app.use('/portal-management', limit({
   message: { error: 'Too many requests. Please try again later.' }
 }));
 
-// ── ONE-TIME DB RESET (remove after use) ─────────────────────────────────────
-// Protected by ADMIN_RESET_KEY env var. Truncates all tables, keeps schema.
-app.post('/api/_reset', async (req, res) => {
-  const key = process.env.ADMIN_RESET_KEY;
-  if (!key || req.headers['x-reset-key'] !== key) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  try {
-    // TRUNCATE all tables in one statement with CASCADE — no superuser needed
-    await prisma.$executeRawUnsafe(`
-      TRUNCATE TABLE
-        email_otps, password_resets, blocked_slots,
-        appointments, product_orders, cohort_enrollments,
-        consultations, subscribers, google_tokens,
-        settings, posts, cohorts, products, users
-      RESTART IDENTITY CASCADE
-    `);
-    console.log('[reset] DB reset complete — all tables cleared');
-    res.json({ success: true, message: 'All tables cleared. Schema intact.' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // Routes (using new src/controllers)
 app.use('/api', require('./src/controllers/api'));
 app.use('/api/auth', require('./src/controllers/auth'));
