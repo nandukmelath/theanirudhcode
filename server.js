@@ -272,6 +272,37 @@ app.use('/portal-management', limit({
   message: { error: 'Too many requests. Please try again later.' }
 }));
 
+// ── ONE-TIME DB RESET (remove after use) ─────────────────────────────────────
+// Protected by ADMIN_RESET_KEY env var. Truncates all tables, keeps schema.
+app.post('/api/_reset', async (req, res) => {
+  const key = process.env.ADMIN_RESET_KEY;
+  if (!key || req.headers['x-reset-key'] !== key) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const TABLES = [
+    'email_otps','password_resets','blocked_slots','appointments',
+    'product_orders','cohort_enrollments','consultations','subscribers',
+    'google_tokens','settings','posts','cohorts','products','users',
+  ];
+  const results = [];
+  try {
+    await prisma.$executeRawUnsafe('SET session_replication_role = replica;');
+    for (const t of TABLES) {
+      try {
+        await prisma.$executeRawUnsafe(`TRUNCATE TABLE "${t}" RESTART IDENTITY CASCADE;`);
+        results.push({ table: t, status: 'ok' });
+      } catch (e) {
+        results.push({ table: t, status: 'skip', reason: e.message });
+      }
+    }
+    await prisma.$executeRawUnsafe('SET session_replication_role = DEFAULT;');
+    console.log('[reset] DB reset complete');
+    res.json({ success: true, results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Routes (using new src/controllers)
 app.use('/api', require('./src/controllers/api'));
 app.use('/api/auth', require('./src/controllers/auth'));
