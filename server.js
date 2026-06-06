@@ -95,6 +95,9 @@ async function runPaymentMigration() {
     )`,
     `CREATE INDEX IF NOT EXISTS email_otps_email_idx ON email_otps(email)`,
     `CREATE INDEX IF NOT EXISTS email_otps_expires_idx ON email_otps(expires_at)`,
+    // Full bio fields — occupation + health concerns (JSON array)
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS occupation TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS health_concerns TEXT`,
   ];
   // Per-statement resilience: one failing statement (e.g. a unique index that hits
   // pre-existing duplicate rows) must not abort the remaining migrations.

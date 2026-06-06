@@ -19,10 +19,12 @@ router.post('/register', async (req, res) => {
   const {
     name, email, password, phone,
     dateOfBirth, sex, country, city,
+    occupation, healthConcerns, healthConcernsOther,
     referralSource, preferredChannel, language,
     marketingOptIn, privacyConsent,
   } = req.body;
 
+  // ── Mandatory basics ──────────────────────────────────────────────────────────
   if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name is required' });
   const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
   if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
@@ -33,32 +35,40 @@ router.post('/register', async (req, res) => {
   if (!phoneCheck.ok) return res.status(400).json({ error: phoneCheck.error });
   if (!privacyConsent) return res.status(400).json({ error: 'Privacy Policy consent is required' });
 
-  // Profile fields are OPTIONAL at registration (collected here OR later via
-  // /complete-profile / the booking form). Validate format only when provided.
-  // This keeps the lightweight booking-modal signup working while the full
-  // register page can still send everything. Privacy consent stays mandatory (DPDP).
-  let dob = null;
-  if (dateOfBirth) {
-    dob = new Date(dateOfBirth);
-    if (isNaN(dob.getTime())) return res.status(400).json({ error: 'Invalid date of birth' });
-    const minAge = 13, maxAge = 110;
-    const years = (Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-    if (years < minAge || years > maxAge) return res.status(400).json({ error: 'Date of birth out of accepted range' });
+  // ── Mandatory bio fields (collected at registration for clinical context) ──────
+  if (!dateOfBirth) return res.status(400).json({ error: 'Date of birth is required' });
+  const dob = new Date(dateOfBirth);
+  if (isNaN(dob.getTime())) return res.status(400).json({ error: 'Invalid date of birth' });
+  const years = (Date.now() - dob.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+  if (years < 13 || years > 110) return res.status(400).json({ error: 'Date of birth out of accepted range' });
+
+  if (!sex || !ALLOWED_SEX.includes(sex)) return res.status(400).json({ error: 'Please select biological sex' });
+  if (!country || !ALLOWED_COUNTRY.includes(country)) return res.status(400).json({ error: 'Please select country' });
+  if (!city || typeof city !== 'string' || !city.trim()) return res.status(400).json({ error: 'City is required' });
+  const cityCheck = checkLen(city.trim(), 'City', LIMITS.name);
+  if (!cityCheck.ok) return res.status(400).json({ error: cityCheck.error });
+
+  if (!occupation || typeof occupation !== 'string' || !occupation.trim()) return res.status(400).json({ error: 'Occupation is required' });
+  const occCheck = checkLen(occupation.trim(), 'Occupation', 200);
+  if (!occCheck.ok) return res.status(400).json({ error: occCheck.error });
+
+  // healthConcerns: array of strings from the frontend checkboxes
+  const concernsArr = Array.isArray(healthConcerns) ? healthConcerns.filter(Boolean) : [];
+  if (concernsArr.length === 0) return res.status(400).json({ error: 'Please select at least one health concern' });
+  // Append free-text "other" if provided
+  if (healthConcernsOther && typeof healthConcernsOther === 'string' && healthConcernsOther.trim()) {
+    concernsArr.push('Other: ' + sanitize(healthConcernsOther.trim()).slice(0, 300));
   }
-  if (sex && !ALLOWED_SEX.includes(sex)) return res.status(400).json({ error: 'Invalid sex value' });
-  if (country && !ALLOWED_COUNTRY.includes(country)) return res.status(400).json({ error: 'Invalid country' });
-  if (city && typeof city === 'string' && city.trim()) {
-    const cityCheck = checkLen(city.trim(), 'City', LIMITS.name);
-    if (!cityCheck.ok) return res.status(400).json({ error: cityCheck.error });
-  }
-  if (referralSource && !ALLOWED_REFERRAL.includes(referralSource)) return res.status(400).json({ error: 'Invalid referral source' });
+
+  if (!referralSource || !ALLOWED_REFERRAL.includes(referralSource)) return res.status(400).json({ error: 'Please tell us how you found us' });
   const channel = preferredChannel && ALLOWED_CHANNEL.includes(preferredChannel) ? preferredChannel : null;
   const lang = language && ALLOWED_LANG.includes(language) ? language : 'en';
 
-  const cleanName = sanitize(name.trim());
+  const cleanName  = sanitize(name.trim());
   const cleanEmail = email.trim().toLowerCase();
   const cleanPhone = sanitize(phoneCheck.value);
-  const cleanCity = city && city.trim() ? sanitize(city.trim()) : null;
+  const cleanCity  = sanitize(city.trim());
+  const cleanOcc   = sanitize(occupation.trim());
 
   try {
     const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
@@ -85,6 +95,8 @@ router.post('/register', async (req, res) => {
         sex,
         country,
         city:                        cleanCity,
+        occupation:                  cleanOcc,
+        healthConcerns:              JSON.stringify(concernsArr),
         referralSource,
         preferredChannel:            channel,
         language:                    lang,

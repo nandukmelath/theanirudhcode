@@ -59,6 +59,8 @@ model User {
   language                   String          @default("en")
   marketingOptIn             Boolean         @default(false) @map("marketing_opt_in")
   privacyConsentAt           DateTime?       @map("privacy_consent_at")
+  occupation                 String?
+  healthConcerns             String?         @map("health_concerns") // JSON array string
   createdAt                  DateTime        @default(now()) @map("created_at")
   appointments               Appointment[]
   passwordResets             PasswordReset[]
