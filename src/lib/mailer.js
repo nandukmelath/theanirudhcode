@@ -17,14 +17,17 @@ const FROM_ADDRESS = SMTP_FROM; // used by SMTP; Resend uses RESEND_FROM
 // Uses the OAuth refresh token saved during /portal-management → "Connect Google Calendar".
 // Same OAuth client now has gmail.send scope (added 2026-05-13). Practitioner must reconnect once.
 async function sendViaGmail(to, subject, html) {
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) return false;
+  // Accept either GOOGLE_CLIENT_ID or GOOGLE_OAUTH_CLIENT_ID (both may be mounted)
+  const gClientId  = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const gClientSec = process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  if (!gClientId || !gClientSec) return false;
   try {
     const stored = await prisma.googleToken.findUnique({ where: { id: 1 } });
     if (!stored || !stored.refreshToken) return false;
 
     const oauth2 = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
+      gClientId,
+      gClientSec,
       process.env.GOOGLE_REDIRECT_URI
     );
     oauth2.setCredentials({
