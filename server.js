@@ -248,6 +248,7 @@ app.use('/api/auth/resend-verification',  limit({ windowMs: 60 * 60 * 1000, max:
 app.use('/api/auth/reset-password',       limit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: 'Too many requests. Please try again later.' } }));
 app.use('/api/auth/register',             limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many registration attempts. Please try again later.' } }));
 app.use('/api/auth/otp/request',          limit({ windowMs: 60 * 60 * 1000, max: 8,  message: { error: 'Too many code requests. Please try again later.' } }));
+app.use('/api/auth/otp/phone-request',   limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many phone OTP requests. Please try again later.' } }));
 app.use('/api/subscribe',                 limit({ windowMs: 60 * 60 * 1000, max: 8,  message: { error: 'Too many requests. Please try again later.' } }));
 app.use('/api/consultation',              limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
 // Payment creation: prevent order-spam (5 per 10 min per IP)

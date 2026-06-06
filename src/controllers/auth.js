@@ -332,6 +332,61 @@ router.post('/otp/request', async (req, res) => {
   }
 });
 
+// POST /api/auth/otp/phone-request — body: { phone }
+// Looks up registered account by phone → sends OTP to their registered email.
+// Returns masked email hint (e.g. "j***@gmail.com") so user knows where to look.
+// Never reveals whether the phone exists (always 200) to prevent enumeration.
+router.post('/otp/phone-request', async (req, res) => {
+  const { phone } = req.body;
+  if (!phone || typeof phone !== 'string') return res.status(400).json({ error: 'Phone number is required' });
+  const phoneCheck = validatePhone(phone.trim());
+  if (!phoneCheck.ok) return res.status(400).json({ error: phoneCheck.error });
+
+  try {
+    // Normalise phone for lookup — strip all non-digits, match last 10 digits
+    const digits = phone.replace(/\D/g, '');
+    const last10 = digits.slice(-10);
+    // Find user whose stored phone ends with the same 10 digits
+    const users = await prisma.user.findMany({
+      where: { phone: { not: null } },
+      select: { id: true, email: true, phone: true, isActive: true },
+    });
+    const user = users.find(u => u.phone && u.phone.replace(/\D/g, '').slice(-10) === last10);
+
+    // Always respond success — no enumeration
+    const GENERIC = { success: true, message: 'If this phone is registered, a code has been sent to the associated email.' };
+
+    if (!user || !user.isActive) {
+      return res.json({ ...GENERIC, masked: null });
+    }
+
+    const cleanEmail = user.email.trim().toLowerCase();
+
+    if (!checkOtpRateLimit(cleanEmail)) {
+      return res.status(429).json({ error: 'Too many code requests. Try again in an hour.' });
+    }
+
+    // Invalidate prior unused OTPs
+    await prisma.emailOtp.updateMany({ where: { email: cleanEmail, used: false }, data: { used: true } });
+
+    const code = generateOtpCode();
+    const codeHash = hashOtp(code);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MIN * 60 * 1000);
+    await prisma.emailOtp.create({ data: { email: cleanEmail, codeHash, expiresAt, purpose: 'login' } });
+
+    sendOtpEmail(cleanEmail, code, 'login').catch(e => console.error('[OTP/phone] email failed:', e.message));
+
+    // Return masked email so user knows where to check
+    const [local, domain] = cleanEmail.split('@');
+    const masked = local.slice(0, 2) + '***@' + domain;
+
+    res.json({ ...GENERIC, masked, _email: cleanEmail }); // _email used by frontend for otp/verify step
+  } catch (err) {
+    console.error('OTP phone-request error:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
 // POST /api/auth/otp/verify — body: { email, code, name? (for new accounts) }
 router.post('/otp/verify', async (req, res) => {
   const { email, code, name, phone } = req.body;
