@@ -179,19 +179,20 @@ app.use(helmet({
       defaultSrc: ["'self'"],
       scriptSrc:  ["'self'", "'unsafe-inline'",
                    "https://cdnjs.cloudflare.com",
-                   "https://checkout.razorpay.com",
+                   "https://sdk.cashfree.com",
                    "https://js.stripe.com",
                    "https://accounts.google.com/gsi/client",
                    "https://accounts.google.com"],
       scriptSrcAttr: ["'none'"],
       styleSrc:   ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
       fontSrc:    ["'self'", "https://fonts.gstatic.com"],
-      imgSrc:     ["'self'", "data:", "https://checkout.razorpay.com", "https://*.stripe.com", "https://*.googleusercontent.com"],
+      imgSrc:     ["'self'", "data:", "https://*.cashfree.com", "https://*.stripe.com", "https://*.googleusercontent.com"],
       connectSrc: ["'self'",
                    "https://www.googleapis.com", "https://accounts.google.com",
-                   "https://api.razorpay.com",
+                   "https://*.cashfree.com",
                    "https://api.stripe.com"],
-      frameSrc:   ["https://checkout.razorpay.com", "https://js.stripe.com",
+      frameSrc:   ["https://*.cashfree.com",
+                   "https://js.stripe.com",
                    "https://hooks.stripe.com",
                    "https://accounts.google.com"],
       frameAncestors: ["'none'"],
@@ -207,7 +208,7 @@ app.use(helmet({
     ? { maxAge: 365 * 24 * 60 * 60, includeSubDomains: true, preload: true }
     : false,
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  crossOriginEmbedderPolicy: false, // would block Razorpay/Stripe iframes
+  crossOriginEmbedderPolicy: false, // must stay false — Cashfree/Stripe open iframes
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }, // allow Google Sign-In popup to postMessage back
 }));
@@ -215,12 +216,13 @@ app.use(helmet({
 // Disable browser features the site doesn't use (defence-in-depth against injected scripts)
 app.use((req, res, next) => {
   res.setHeader('Permissions-Policy',
-    'geolocation=(), camera=(), microphone=(), payment=(self "https://checkout.razorpay.com" "https://js.stripe.com"), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()');
+    'geolocation=(), camera=(), microphone=(), payment=(self "https://sdk.cashfree.com"), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()');
   next();
 });
 
-// Raw body for Stripe webhook — MUST be before express.json()
-app.use('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }));
+// Raw body for webhook routes — MUST be before express.json()
+app.use('/api/payments/stripe/webhook',   express.raw({ type: 'application/json' }));
+app.use('/api/payments/cashfree/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
@@ -251,8 +253,9 @@ app.use('/api/auth/otp/request',          limit({ windowMs: 60 * 60 * 1000, max:
 app.use('/api/auth/otp/phone-request',   limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many phone OTP requests. Please try again later.' } }));
 app.use('/api/subscribe',                 limit({ windowMs: 60 * 60 * 1000, max: 8,  message: { error: 'Too many requests. Please try again later.' } }));
 app.use('/api/consultation',              limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
-// Payment creation: prevent order-spam (5 per 10 min per IP)
-app.use('/api/payments/razorpay/create-order', limit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
+// Payment endpoints: prevent order-spam and verify-spam (5 per 10 min per IP)
+app.use('/api/payments/cashfree/create-order', limit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
+app.use('/api/payments/cashfree/verify',       limit({ windowMs: 10 * 60 * 1000, max: 10, message: { error: 'Too many verification attempts. Please try again later.' } }));
 app.use('/api/payments/stripe/create-session', limit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
 app.use('/api/payments/test/complete',         limit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
 // Admin login: separate tight limit before general portal limiter
