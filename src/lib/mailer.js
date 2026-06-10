@@ -4,11 +4,71 @@
 
 const nodemailer = require('nodemailer');
 const axios = require('axios');
+const { google } = require('googleapis');
+const prisma = require('./prisma');
 
 const SMTP_FROM    = process.env.SMTP_FROM    || 'Dr. Anirudh | theanirudhcode <nandukannanmelath@gmail.com>';
 // Resend requires a verified domain — always default to theanirudhcode.com address
 const RESEND_FROM  = process.env.RESEND_FROM  || 'Dr. Anirudh | theanirudhcode <dranirudh@theanirudhcode.com>';
+const GMAIL_FROM   = process.env.GMAIL_FROM   || 'Dr. Anirudh | theanirudhcode <dranirudh@theanirudhcode.com>';
 const FROM_ADDRESS = SMTP_FROM; // used by SMTP; Resend uses RESEND_FROM
+
+// ── Gmail API sender ──────────────────────────────────────────────────────────
+// Uses the OAuth refresh token saved during /portal-management → "Connect Google Calendar".
+// Same OAuth client now has gmail.send scope (added 2026-05-13). Practitioner must reconnect once.
+async function sendViaGmail(to, subject, html) {
+  // Accept either GOOGLE_CLIENT_ID or GOOGLE_OAUTH_CLIENT_ID (both may be mounted)
+  const gClientId  = process.env.GOOGLE_CLIENT_ID || process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const gClientSec = process.env.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  if (!gClientId || !gClientSec) return false;
+  try {
+    const stored = await prisma.googleToken.findUnique({ where: { id: 1 } });
+    if (!stored || !stored.refreshToken) return false;
+
+    const oauth2 = new google.auth.OAuth2(
+      gClientId,
+      gClientSec,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+    oauth2.setCredentials({
+      refresh_token: stored.refreshToken,
+      access_token:  stored.accessToken || undefined,
+      expiry_date:   stored.expiry ? parseInt(stored.expiry, 10) : undefined,
+    });
+    // Auto-refresh hook
+    oauth2.on('tokens', async (tokens) => {
+      try {
+        await prisma.googleToken.update({
+          where: { id: 1 },
+          data: {
+            accessToken: tokens.access_token || stored.accessToken,
+            expiry:      tokens.expiry_date ? String(tokens.expiry_date) : stored.expiry,
+          }
+        });
+      } catch (err) { console.error('[Gmail] token persist failed:', err.message); }
+    });
+
+    const gmail = google.gmail({ version: 'v1', auth: oauth2 });
+    const raw = Buffer.from(
+      `From: ${GMAIL_FROM}\r\n` +
+      `To: ${to}\r\n` +
+      `Subject: ${subject}\r\n` +
+      `MIME-Version: 1.0\r\n` +
+      `Content-Type: text/html; charset=UTF-8\r\n` +
+      `\r\n` +
+      html
+    ).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    await gmail.users.messages.send({ userId: 'me', requestBody: { raw } });
+    return true;
+  } catch (err) {
+    console.error('[Gmail API] send failed:', err.message);
+    if (err.message && /invalid_grant|insufficient.*scope|gmail.*not.*enabled/i.test(err.message)) {
+      console.error('[Gmail API] Practitioner needs to reconnect Google account with Gmail scope at /portal-management');
+    }
+    throw err; // let trySend retry
+  }
+}
 
 async function sendViaResend(to, subject, html) {
   if (!process.env.RESEND_API_KEY) return false;
@@ -203,6 +263,47 @@ function welcomeEmailHtml(name) {
 </html>`;
 }
 
+function verificationEmailHtml(name, verifyUrl) {
+  const firstName = name.split(' ')[0];
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify Your Email — theanirudhcode</title></head>
+<body style="margin:0;padding:0;background:#070707;font-family:'Georgia',serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#070707;padding:40px 20px;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#0e0e0e;border:1px solid rgba(200,169,81,0.15);">
+      <tr><td style="padding:40px 48px 32px;border-bottom:1px solid rgba(200,169,81,0.11);text-align:center;">
+        <div style="display:inline-block;width:8px;height:8px;background:#c8a951;transform:rotate(45deg);margin-bottom:16px;"></div>
+        <div style="font-family:'Georgia',serif;font-size:22px;font-weight:300;letter-spacing:0.14em;color:#f8f4ec;">theanirudhcode</div>
+        <div style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:rgba(200,169,81,0.7);margin-top:6px;">Email Verification</div>
+      </td></tr>
+      <tr><td style="padding:48px 48px 40px;">
+        <p style="font-family:'Georgia',serif;font-size:24px;font-weight:300;color:#f8f4ec;margin:0 0 24px;">Hello, <em style="color:#e2c97e;">${firstName}</em></p>
+        <p style="font-size:15px;color:rgba(248,244,236,0.75);line-height:1.9;margin:0 0 32px;font-family:Arial,sans-serif;font-weight:300;">
+          Thank you for creating an account at theanirudhcode. Click the button below to verify your email address and activate your account. This link expires in <strong style="color:#f8f4ec;">24 hours</strong>.
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+          <tr><td align="center">
+            <a href="${verifyUrl}" style="display:inline-block;background:#c8a951;color:#070707;text-decoration:none;padding:16px 40px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;font-weight:600;">Verify Email Address →</a>
+          </td></tr>
+        </table>
+        <p style="font-size:12px;color:rgba(248,244,236,0.4);line-height:1.8;margin:0;font-family:Arial,sans-serif;">
+          If you did not create this account, you can safely ignore this email.<br>
+          This link expires in 24 hours.
+        </p>
+      </td></tr>
+      <tr><td style="padding:28px 48px;border-top:1px solid rgba(200,169,81,0.11);text-align:center;">
+        <p style="font-size:11px;font-family:Arial,sans-serif;color:rgba(248,244,236,0.3);margin:0;line-height:1.7;">
+          theanirudhcode · Hyderabad, India &middot; <a href="https://theanirudhcode.com" style="color:rgba(200,169,81,0.5);text-decoration:none;">theanirudhcode.com</a>
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+}
+
 function passwordResetEmailHtml(name, resetUrl) {
   const firstName = name.split(' ')[0];
   return `<!DOCTYPE html>
@@ -291,7 +392,7 @@ function consultationReplyHtml(name, reply) {
 async function sendPasswordResetEmail(email, name, resetUrl) {
   const subject = `Reset your theanirudhcode password`;
   const html    = passwordResetEmailHtml(name, resetUrl);
-  for (const provider of [sendViaResend, sendViaSmtp]) {
+  for (const provider of [sendViaGmail, sendViaResend, sendViaSmtp]) {
     const sent = await trySend(provider, email, subject, html);
     if (sent) { console.log(`[Mailer] ✓ Password reset email sent via ${provider.name} to ${email}`); return true; }
   }
@@ -302,7 +403,7 @@ async function sendPasswordResetEmail(email, name, resetUrl) {
 async function sendConsultationReply(email, name, reply) {
   const subject = `Re: Your consultation request — theanirudhcode`;
   const html    = consultationReplyHtml(name, reply);
-  for (const provider of [sendViaResend, sendViaSmtp]) {
+  for (const provider of [sendViaGmail, sendViaResend, sendViaSmtp]) {
     const sent = await trySend(provider, email, subject, html);
     if (sent) { console.log(`[Mailer] ✓ Consultation reply sent via ${provider.name} to ${email}`); return true; }
   }
@@ -313,7 +414,7 @@ async function sendConsultationReply(email, name, reply) {
 async function sendWelcomeEmail(email, name) {
   const subject = `Welcome to theanirudhcode, ${name.split(' ')[0]} — Your healing journey begins`;
   const html    = welcomeEmailHtml(name);
-  for (const provider of [sendViaResend, sendViaSmtp]) {
+  for (const provider of [sendViaGmail, sendViaResend, sendViaSmtp]) {
     const sent = await trySend(provider, email, subject, html);
     if (sent) { console.log(`[Mailer] ✓ Welcome email sent via ${provider.name} to ${email}`); return true; }
   }
@@ -321,4 +422,42 @@ async function sendWelcomeEmail(email, name) {
   return false;
 }
 
-module.exports = { sendWelcomeEmail, sendPasswordResetEmail, sendConsultationReply };
+async function sendVerificationEmail(email, name, verifyUrl) {
+  const subject = `Verify your email — theanirudhcode`;
+  const html    = verificationEmailHtml(name, verifyUrl);
+  for (const provider of [sendViaGmail, sendViaResend, sendViaSmtp]) {
+    const sent = await trySend(provider, email, subject, html);
+    if (sent) { console.log(`[Mailer] ✓ Verification email sent via ${provider.name} to ${email}`); return true; }
+  }
+  console.error(`[Mailer] All delivery attempts failed for ${email}`);
+  return false;
+}
+
+// ── OTP email ──────────────────────────────────────────────────────────────────
+function otpEmailHtml(code, purpose) {
+  const heading = purpose === 'register' ? 'Confirm your sign-up' : 'Your sign-in code';
+  return `<!DOCTYPE html><html><body style="font-family:Georgia,serif;background:#0a0a0a;color:#e8e8e8;margin:0;padding:40px 0">
+    <div style="max-width:520px;margin:0 auto;background:#141414;border:1px solid #2a2a2a;border-radius:18px;padding:40px 32px">
+      <h1 style="font-family:Georgia,serif;font-weight:300;color:#c8a951;font-size:28px;margin:0 0 8px">theanirudhcode</h1>
+      <p style="color:#888;font-size:13px;letter-spacing:.18em;text-transform:uppercase;margin:0 0 28px">${heading}</p>
+      <p style="color:#e8e8e8;font-size:15px;line-height:1.7;margin:0 0 24px">Enter this code to continue. It expires in <strong>10 minutes</strong>.</p>
+      <div style="background:linear-gradient(135deg,rgba(200,169,81,.14),rgba(200,169,81,.03));border:1px solid rgba(200,169,81,.32);border-radius:14px;padding:28px;text-align:center;margin:0 0 28px">
+        <div style="font-family:monospace;font-size:36px;letter-spacing:.4em;color:#c8a951;font-weight:600">${code}</div>
+      </div>
+      <p style="color:#666;font-size:12px;line-height:1.7;margin:0">If you didn't request this code, ignore this email — your account remains safe.</p>
+    </div>
+  </body></html>`;
+}
+
+async function sendOtpEmail(email, code, purpose = 'login') {
+  const subject = purpose === 'register' ? `Confirm sign-up — code: ${code}` : `Your sign-in code: ${code}`;
+  const html = otpEmailHtml(code, purpose);
+  for (const provider of [sendViaGmail, sendViaResend, sendViaSmtp]) {
+    const sent = await trySend(provider, email, subject, html);
+    if (sent) { console.log(`[Mailer] ✓ OTP sent via ${provider.name} to ${email}`); return true; }
+  }
+  console.error(`[Mailer] OTP delivery failed for ${email}`);
+  return false;
+}
+
+module.exports = { sendWelcomeEmail, sendPasswordResetEmail, sendConsultationReply, sendVerificationEmail, sendOtpEmail };

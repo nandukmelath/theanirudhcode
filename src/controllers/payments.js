@@ -5,8 +5,9 @@
  * Everything works end-to-end. Flip off when real keys are added.
  *
  * Routes:
- *   POST /api/payments/razorpay/create-order
- *   POST /api/payments/razorpay/verify
+ *   POST /api/payments/cashfree/create-order
+ *   POST /api/payments/cashfree/verify
+ *   POST /api/payments/cashfree/webhook
  *   POST /api/payments/stripe/create-session
  *   POST /api/payments/stripe/webhook
  *   POST /api/payments/test/complete            ← test mode only
@@ -21,7 +22,7 @@ const wa               = require('../lib/whatsapp');
 const { createCalendarEvent } = require('./calendar');
 
 const TEST_MODE        = process.env.PAYMENT_TEST_MODE === 'true';
-const RAZORPAY_READY   = !!(process.env.RAZORPAY_KEY_ID   && !process.env.RAZORPAY_KEY_ID.includes('REPLACE'));
+const CASHFREE_READY   = !!(process.env.CASHFREE_APP_ID && process.env.CASHFREE_SECRET_KEY);
 const STRIPE_READY     = !!(process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.includes('REPLACE'));
 
 // ── Pricing ────────────────────────────────────────────────────────────────────
@@ -46,20 +47,32 @@ function validateBookingBody(body) {
   const { tier, date, time_start, time_end, health_concerns } = body;
   if (!PRICES[tier])          return 'Invalid consultation tier';
   if (!isValidDate(date))     return 'Invalid date (YYYY-MM-DD)';
+  const tzOffset = process.env.PRACTITIONER_TZ_OFFSET || '+05:30';
+  if (new Date(`${date}T23:59:59${tzOffset}`) < new Date()) return 'Cannot book appointments in the past.';
   if (!isValidTime(time_start) || !isValidTime(time_end)) return 'Invalid time (HH:MM)';
+  if (time_end <= time_start) return 'End time must be after start time.';
   if (!health_concerns?.trim()) return 'Health concerns are required';
   return null;
 }
 
 // ── Internal: book appointment after payment confirmed ─────────────────────────
 async function bookAfterPayment({ userId, tier, date, time_start, time_end,
-  health_concerns, medical_history, goals,
+  health_concerns, medical_history, goals, patientAge, consent,
   paymentId, paymentOrderId, paymentGateway, currency }) {
 
   const t = PRICES[tier];
   const cleanConcerns = sanitize(health_concerns.trim());
   const cleanHistory  = sanitize((medical_history || '').trim());
   const cleanGoals    = sanitize((goals || '').trim());
+
+  // TPG-2020: explicit telemedicine consent is mandatory; age required before prescribing
+  if (consent !== true) {
+    const e = new Error('CONSENT_REQUIRED');
+    e.code = 'CONSENT_REQUIRED';
+    throw e;
+  }
+  const age = parseInt(patientAge, 10);
+  const cleanAge = Number.isInteger(age) && age >= 1 && age <= 120 ? age : null;
 
   const appointment = await prisma.$transaction(async (tx) => {
     const conflict = await tx.appointment.findFirst({
@@ -81,6 +94,8 @@ async function bookAfterPayment({ userId, tier, date, time_start, time_end,
         healthConcerns:    cleanConcerns,
         medicalHistory:    cleanHistory || null,
         goals:             cleanGoals  || null,
+        patientAge:        cleanAge,
+        consentAt:         new Date(),   // explicit consent recorded (TPG-2020)
         paymentStatus:     'paid',
         paymentId,
         paymentOrderId,
@@ -110,7 +125,7 @@ router.post('/test/complete', authenticate, async (req, res) => {
   const err = validateBookingBody(req.body);
   if (err) return res.status(400).json({ error: err });
 
-  const { tier, date, time_start, time_end, health_concerns, medical_history, goals } = req.body;
+  const { tier, date, time_start, time_end, health_concerns, medical_history, goals, age, consent } = req.body;
   const currency = req.body.currency || 'INR';
 
   try {
@@ -120,6 +135,7 @@ router.post('/test/complete', authenticate, async (req, res) => {
     const appointment = await bookAfterPayment({
       userId: req.user.id,
       tier, date, time_start, time_end, health_concerns, medical_history, goals,
+      patientAge: age, consent: consent === true,
       paymentId:      fakePayId,
       paymentOrderId: fakeOrderId,
       paymentGateway: 'test',
@@ -164,89 +180,124 @@ router.post('/test/complete', authenticate, async (req, res) => {
     if (e.code === 'SLOT_TAKEN' || e.code === 'P2002' || e.code === 'P2034') {
       return res.status(409).json({ error: 'Time slot already taken. Choose another.' });
     }
+    if (e.code === 'CONSENT_REQUIRED') {
+      return res.status(400).json({ error: 'Telemedicine consent is required to book a consultation.' });
+    }
     console.error('[Test payment] error:', e);
     res.status(500).json({ error: 'Test booking failed.' });
   }
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// RAZORPAY — CREATE ORDER
-// POST /api/payments/razorpay/create-order
+// CASHFREE — CREATE ORDER
+// POST /api/payments/cashfree/create-order
 // ═══════════════════════════════════════════════════════════════════════════════
-router.post('/razorpay/create-order', authenticate, async (req, res) => {
-  const { tier } = req.body;
+router.post('/cashfree/create-order', authenticate, async (req, res) => {
   const err = validateBookingBody(req.body);
   if (err) return res.status(400).json({ error: err });
+
+  const { tier, consent } = req.body;
+
+  // TPG-2020: fail fast — no payment without explicit telemedicine consent
+  if (consent !== true) return res.status(400).json({ error: 'Please accept the telemedicine consent to continue.' });
+
+  if (!CASHFREE_READY) {
+    return res.status(503).json({ error: 'Online payments not yet configured. Please try again later.' });
+  }
 
   const price = getPrice(tier, 'INR');
   if (!price) return res.status(400).json({ error: 'Invalid tier' });
 
-  try {
-    const { getRazorpay } = require('../lib/razorpay');
-    const rzp = getRazorpay();
+  const orderId  = `tac_${req.user.id}_${Date.now()}`;
+  const rawDigits = (req.user.phone || '').replace(/\D/g, '');
+  const phone10   = rawDigits.length >= 10 ? rawDigits.slice(-10) : '9999999999';
+  const appUrl   = process.env.APP_URL || 'https://theanirudhcode.com';
+  const cfEnv    = process.env.CASHFREE_ENV === 'production' ? 'production' : 'sandbox';
 
-    const order = await rzp.orders.create({
-      amount:   price.amount * 100,   // paise
-      currency: 'INR',
-      receipt:  `tac_${req.user.id}_${Date.now()}`,
-      notes: {
-        user_id:    String(req.user.id),
-        tier,
-        patient:    req.user.name,
-        email:      req.user.email,
+  try {
+    const { createOrder } = require('../lib/cashfree');
+    const order = await createOrder({
+      order_id:       orderId,
+      order_amount:   price.amount,
+      order_currency: 'INR',
+      customer_details: {
+        customer_id:    String(req.user.id),
+        customer_name:  req.user.name,
+        customer_email: req.user.email,
+        customer_phone: phone10,
       },
+      order_meta: {
+        return_url:  `${appUrl}/my-appointments?payment=done&order_id=${orderId}`,
+        notify_url:  `${appUrl}/api/payments/cashfree/webhook`,
+      },
+      order_note: `${price.label} · ${req.body.date} ${req.body.time_start}`,
     });
 
     res.json({
-      order_id: order.id,
-      amount:   order.amount,
-      currency: order.currency,
-      key_id:   process.env.RAZORPAY_KEY_ID,
-      tier_label: price.label,
+      order_id:           orderId,
+      payment_session_id: order.payment_session_id,
+      amount:             price.amount,
+      currency:           'INR',
+      tier_label:         price.label,
+      env:                cfEnv,
     });
   } catch (e) {
-    console.error('[Razorpay] create-order error:', e.message);
+    console.error('[Cashfree] create-order error:', e.message);
     res.status(500).json({ error: 'Could not initialise payment. Please try again.' });
   }
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// RAZORPAY — VERIFY + BOOK
-// POST /api/payments/razorpay/verify
+// CASHFREE — VERIFY + BOOK
+// POST /api/payments/cashfree/verify
 // ═══════════════════════════════════════════════════════════════════════════════
-router.post('/razorpay/verify', authenticate, async (req, res) => {
+router.post('/cashfree/verify', authenticate, async (req, res) => {
   const {
-    razorpay_payment_id, razorpay_order_id, razorpay_signature,
+    order_id,
     tier, date, time_start, time_end, health_concerns, medical_history, goals,
+    age, consent,
   } = req.body;
 
-  // 1. Verify HMAC signature
-  if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
-    return res.status(400).json({ error: 'Missing payment verification fields' });
-  }
+  if (!order_id) return res.status(400).json({ error: 'Missing order_id' });
 
-  const expected = crypto
-    .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-    .digest('hex');
-
-  if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(razorpay_signature))) {
-    return res.status(400).json({ error: 'Payment signature verification failed' });
-  }
-
-  // 2. Validate booking fields
   const err = validateBookingBody({ tier, date, time_start, time_end, health_concerns });
   if (err) return res.status(400).json({ error: err });
 
-  // 3. Book appointment
+  // Idempotency: return existing appointment if this order was already booked
+  const existing = await prisma.appointment.findFirst({ where: { paymentOrderId: order_id } });
+  if (existing) {
+    return res.json({
+      success: true,
+      message: 'Appointment already confirmed!',
+      appointment: { id: existing.id, date: existing.date, timeStart: existing.timeStart, timeEnd: existing.timeEnd, status: existing.status },
+    });
+  }
+
   try {
+    const { getOrder, getOrderPayments } = require('../lib/cashfree');
+    const cfOrder = await getOrder(order_id);
+
+    if (cfOrder.order_status !== 'PAID') {
+      return res.status(400).json({ error: `Payment not completed (status: ${cfOrder.order_status}). Please try again.` });
+    }
+
+    // Best-effort: get the actual Cashfree payment ID for audit trail
+    let paymentId = String(cfOrder.cf_order_id || order_id);
+    try {
+      const payments = await getOrderPayments(order_id);
+      if (Array.isArray(payments) && payments[0]?.cf_payment_id) {
+        paymentId = String(payments[0].cf_payment_id);
+      }
+    } catch {}
+
     const appointment = await bookAfterPayment({
-      userId:        req.user.id,
+      userId:         req.user.id,
       tier, date, time_start, time_end, health_concerns, medical_history, goals,
-      paymentId:     razorpay_payment_id,
-      paymentOrderId: razorpay_order_id,
-      paymentGateway: 'razorpay',
-      currency:      'INR',
+      patientAge:     age, consent: consent === true,
+      paymentId,
+      paymentOrderId: order_id,
+      paymentGateway: 'cashfree',
+      currency:       'INR',
     });
 
     // Google Calendar (non-critical)
@@ -254,11 +305,9 @@ router.post('/razorpay/verify', authenticate, async (req, res) => {
       const eventId = await createCalendarEvent(
         {
           id:                 appointment.id,
-          date,
-          time_start,
-          time_end,
-          consultation_type:  tier.key || tier,
-          consultation_price: tier.price,
+          date, time_start, time_end,
+          consultation_type:  tier,
+          consultation_price: getPrice(tier, 'INR')?.amount,
           health_concerns:    sanitize(health_concerns.trim()),
           medical_history:    sanitize((medical_history||'').trim()),
           goals:              sanitize((goals||'').trim()),
@@ -272,7 +321,7 @@ router.post('/razorpay/verify', authenticate, async (req, res) => {
     // WhatsApp (fire-and-forget)
     const apptData = { date, time_start, time_end,
       health_concerns: sanitize(health_concerns.trim()),
-      goals: sanitize((goals||'').trim()),
+      goals:           sanitize((goals||'').trim()),
       medical_history: sanitize((medical_history||'').trim()) };
     wa.sendBookingConfirmation(req.user.phone, req.user.name, apptData).catch(e => console.error('[WhatsApp] booking confirmation failed:', e.message));
     wa.sendAdminNewBooking(apptData, req.user).catch(e => console.error('[WhatsApp] admin booking alert failed:', e.message));
@@ -280,15 +329,73 @@ router.post('/razorpay/verify', authenticate, async (req, res) => {
     res.json({
       success: true,
       message: 'Payment confirmed and appointment booked!',
-      appointment: { id: appointment.id, date, time_start, time_end, status: 'confirmed' }
+      appointment: { id: appointment.id, date, time_start, time_end, status: 'confirmed' },
     });
   } catch (e) {
     if (e.code === 'SLOT_TAKEN' || e.code === 'P2002' || e.code === 'P2034') {
       return res.status(409).json({ error: 'This time slot was just booked by someone else. Please choose another.' });
     }
-    console.error('[Razorpay] verify/book error:', e);
-    res.status(500).json({ error: 'Payment verified but booking failed. Contact support with your payment ID: ' + razorpay_payment_id });
+    if (e.code === 'CONSENT_REQUIRED') {
+      return res.status(400).json({ error: 'Telemedicine consent is required to book a consultation.' });
+    }
+    console.error('[Cashfree] verify/book error:', e);
+    res.status(500).json({ error: `Payment verified but booking failed. Contact support with order ID: ${order_id}` });
   }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CASHFREE — WEBHOOK  (raw body — mounted before express.json in server.js)
+// POST /api/payments/cashfree/webhook
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/cashfree/webhook', async (req, res) => {
+  const signature = req.headers['x-webhook-signature'];
+  const timestamp = req.headers['x-webhook-timestamp'];
+  const secret    = process.env.CASHFREE_SECRET_KEY;
+
+  if (!signature || !timestamp) {
+    console.error('[Cashfree webhook] missing signature / timestamp headers');
+    return res.status(400).end();
+  }
+  if (!secret) {
+    // Our config issue, not a bad request — return 200 to prevent Cashfree retry loops
+    console.error('[Cashfree webhook] CASHFREE_SECRET_KEY not configured');
+    return res.json({ received: true });
+  }
+
+  // Cashfree signature: base64(HMAC-SHA256(timestamp + rawBody, secretKey))
+  const rawBody = req.body.toString('utf8');
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(timestamp + rawBody)
+    .digest('base64');
+
+  if (signature !== expected) {
+    console.error('[Cashfree webhook] signature mismatch');
+    return res.status(400).end();
+  }
+
+  let event;
+  try { event = JSON.parse(rawBody); } catch { return res.status(400).end(); }
+
+  // PAYMENT_SUCCESS_WEBHOOK is the primary event; booking is handled by /cashfree/verify.
+  // Webhook logs the event for audit and handles edge cases (client never called verify).
+  if (event.type === 'PAYMENT_SUCCESS_WEBHOOK') {
+    const orderId = event.data?.order?.order_id;
+    console.log(`[Cashfree webhook] PAYMENT_SUCCESS for order ${orderId}`);
+
+    if (orderId) {
+      const existing = await prisma.appointment.findFirst({ where: { paymentOrderId: orderId } });
+      if (existing) {
+        console.log(`[Cashfree webhook] appointment ${existing.id} already booked — no action needed`);
+      } else {
+        // Booking data not available in webhook — client /cashfree/verify is the primary path.
+        // If verify was never called (e.g. browser crash after redirect), admin must confirm manually.
+        console.warn(`[Cashfree webhook] order ${orderId} PAID but no appointment found — needs manual review`);
+      }
+    }
+  }
+
+  res.json({ received: true });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -412,6 +519,19 @@ router.post('/stripe/webhook', async (req, res) => {
 
     const m = session.metadata;
     const userId = parseInt(m.user_id, 10);
+
+    if (!userId || userId < 1) {
+      console.error(`[Stripe webhook] Invalid user_id in metadata for session ${session.id}`);
+      return res.json({ received: true });
+    }
+    if (!PRICES[m.tier]) {
+      console.error(`[Stripe webhook] Invalid tier "${m.tier}" in metadata for session ${session.id}`);
+      return res.json({ received: true });
+    }
+    if (!m.date || !m.time_start || !m.time_end || !m.health_concerns) {
+      console.error(`[Stripe webhook] Missing required booking fields in metadata for session ${session.id}`);
+      return res.json({ received: true });
+    }
 
     // Guard: don't double-book if webhook fires twice
     const existing = await prisma.appointment.findFirst({

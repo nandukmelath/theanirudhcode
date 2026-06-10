@@ -2,35 +2,117 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#070707">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="robots" content="noindex">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Register — theanirudhcode</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--gold:#c8a951;--gold2:#e2c97e;--gold-d:rgba(200,169,81,.15);--gold-g:rgba(200,169,81,.35);--white:#f8f4ec;--muted:rgba(248,244,236,.72);--faint:rgba(248,244,236,.34);--amber:#c8733a;--line:rgba(200,169,81,.16)}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
-.auth-logo{font-family:'Cormorant',serif;font-size:20px;font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;margin-bottom:48px;display:flex;align-items:center;gap:9px}
-.auth-gem{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);flex-shrink:0}
-.auth-box{background:var(--black2);border:1px solid var(--line);padding:clamp(32px,5vw,48px);max-width:440px;width:min(100%,440px)}
-.auth-box h2{font-family:'Cormorant',serif;font-size:clamp(26px,3.5vw,36px);font-weight:300;margin-bottom:6px}
-.auth-box h2 em{color:var(--gold2);font-style:italic}
-.auth-sub{color:var(--muted);font-size:14px;margin-bottom:28px;font-weight:300}
-.finput{width:100%;padding:14px 16px;background:var(--black3);border:1px solid var(--line);color:var(--white);font-family:'Barlow',sans-serif;font-size:14px;margin-bottom:12px;outline:none;transition:border-color .3s;font-weight:300}
-.finput:focus{border-color:rgba(200,169,81,.4)}
-.finput::placeholder{color:var(--faint)}
-.fsubmit{width:100%;padding:16px;background:var(--gold);border:none;color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-top:8px;transition:all .35s;display:flex;align-items:center;justify-content:center}
-.fsubmit:hover{background:var(--gold2)}
-.fsubmit:disabled{opacity:.6}
-.auth-link{display:block;text-align:center;margin-top:20px;font-size:13px;color:var(--muted);font-weight:300}
-.auth-link a{color:var(--gold2);text-decoration:none;transition:color .3s}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(16px,4vw,32px);position:relative;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(200,169,81,.06),transparent 60%);pointer-events:none;z-index:0}
+.auth-logo{position:relative;z-index:1;font-family:'Cormorant',serif;font-size:clamp(18px,2.2vw,22px);font-weight:300;letter-spacing:.16em;color:var(--white);text-decoration:none;margin-bottom:clamp(28px,5vh,48px);display:flex;align-items:center;gap:10px;opacity:.92}
+.auth-gem{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);flex-shrink:0;box-shadow:0 0 16px rgba(200,169,81,.4)}
+.auth-box{position:relative;z-index:1;background:linear-gradient(180deg,rgba(20,20,20,.78),rgba(14,14,14,.62));backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(200,169,81,.18);border-radius:20px;box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.03),inset 0 1px 0 rgba(255,255,255,.06);padding:clamp(28px,5vw,44px);max-width:440px;width:min(100%,440px)}
+.auth-box h2{font-family:'Cormorant',serif;font-size:clamp(28px,4vw,38px);font-weight:300;line-height:1.15;margin-bottom:8px;letter-spacing:-.01em}
+.auth-box h2 em{color:var(--gold2);font-style:italic;font-weight:400}
+.auth-sub{color:var(--muted);font-size:clamp(13px,1.4vw,14px);margin-bottom:clamp(20px,3.5vw,28px);font-weight:300;line-height:1.6}
+.finput{width:100%;min-height:48px;padding:14px 16px;background:rgba(7,7,7,.5);border:1px solid rgba(200,169,81,.14);border-radius:12px;color:var(--white);font-family:'Barlow',sans-serif;font-size:15px;margin-bottom:12px;outline:none;transition:border-color .25s,background .25s,box-shadow .25s;font-weight:300;-webkit-appearance:none;appearance:none}
+.finput:hover{border-color:rgba(200,169,81,.24);background:rgba(7,7,7,.65)}
+.finput:focus{border-color:rgba(200,169,81,.55);background:rgba(7,7,7,.78);box-shadow:0 0 0 3px rgba(200,169,81,.10)}
+.finput::placeholder{color:var(--faint);font-weight:300}
+.finput:-webkit-autofill,.finput:-webkit-autofill:hover,.finput:-webkit-autofill:focus{-webkit-text-fill-color:var(--white);-webkit-box-shadow:0 0 0 1000px rgba(7,7,7,.78) inset;caret-color:var(--white)}
+.fsubmit{width:100%;min-height:50px;padding:14px 20px;background:linear-gradient(135deg,var(--gold),#b89940);border:1px solid rgba(255,255,255,.18);border-radius:999px;color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-top:10px;transition:transform .2s,box-shadow .25s,opacity .2s;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(200,169,81,.22),inset 0 1px 0 rgba(255,255,255,.35)}
+.fsubmit:hover{transform:translateY(-1px);box-shadow:0 14px 36px rgba(200,169,81,.36),inset 0 1px 0 rgba(255,255,255,.45)}
+.fsubmit:active{transform:translateY(0)}
+.fsubmit:disabled{opacity:.55;transform:none;cursor:not-allowed}
+.auth-link{display:block;text-align:center;margin-top:18px;font-size:13px;color:var(--muted);font-weight:300}
+.auth-link a{color:var(--gold2);text-decoration:none;transition:color .25s;font-weight:400}
 .auth-link a:hover{color:var(--gold)}
-.auth-error{background:rgba(200,115,58,.1);border:1px solid rgba(200,115,58,.3);padding:12px 16px;font-size:13px;color:var(--amber);margin-bottom:16px;display:none}
-.pw-strength{height:3px;background:var(--line);margin-bottom:12px;overflow:hidden}
-.pw-bar{height:100%;width:0;transition:width .3s,background .3s}
+.auth-error{background:rgba(200,115,58,.10);border:1px solid rgba(200,115,58,.32);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--amber);margin-bottom:14px;display:none;line-height:1.5}
+.auth-divider{display:flex;align-items:center;gap:14px;margin:18px 0;color:var(--faint);font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-family:'Tenor Sans',sans-serif}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(200,169,81,.18),transparent)}
+.pw-strength{height:3px;background:rgba(200,169,81,.10);margin-bottom:12px;overflow:hidden;border-radius:2px}
+.pw-bar{height:100%;width:0;transition:width .35s,background .3s;border-radius:2px}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:500px){.field-row{grid-template-columns:1fr}}
-@media(max-width:540px){body{justify-content:flex-start;padding-top:40px;padding-bottom:40px}.auth-logo{margin-bottom:28px}}
+
+/* Native select — styled to match .finput, OS-native picker on mobile */
+select.finput{
+  cursor:pointer;
+  padding-right:40px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%23c8a951' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat:no-repeat;
+  background-position:right 16px center;
+  background-size:12px 8px;
+  background-color:rgba(7,7,7,.5)
+}
+select.finput::-ms-expand{display:none}
+select.finput option{background:#0e0e0e;color:var(--white);padding:8px}
+/* Date input — native OS picker on mobile */
+input[type="date"].finput::-webkit-calendar-picker-indicator{filter:invert(.7) sepia(1) hue-rotate(20deg) saturate(2);cursor:pointer;margin-right:4px}
+input[type="date"].finput{color:var(--white);font-family:'Barlow',sans-serif}
+
+/* Field label */
+.flabel{display:block;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:14px;margin-bottom:6px}
+.flabel.optional::after{content:' · optional';color:var(--faint);font-size:9px}
+
+/* Step indicator */
+.step-bar{display:flex;gap:8px;margin-bottom:24px}
+.step-dot{flex:1;height:3px;background:rgba(200,169,81,.12);border-radius:2px;transition:background .4s}
+.step-dot.active{background:linear-gradient(90deg,var(--gold),var(--gold2));box-shadow:0 0 16px rgba(200,169,81,.4)}
+.step-dot.done{background:rgba(200,169,81,.45)}
+
+/* Step nav */
+.step-nav{display:flex;gap:10px;margin-top:12px}
+.step-nav .fsubmit{flex:1}
+.btn-back{background:rgba(255,255,255,.04);border:1px solid rgba(200,169,81,.18);color:var(--gold2);box-shadow:none}
+.btn-back:hover{background:rgba(255,255,255,.07);border-color:rgba(200,169,81,.32);transform:none;box-shadow:none}
+
+/* Checkbox */
+.fcheck{display:flex;align-items:flex-start;gap:10px;margin:14px 0;font-size:13px;color:var(--muted);line-height:1.5;font-weight:300;cursor:pointer}
+.fcheck input[type="checkbox"]{width:18px;height:18px;min-width:18px;accent-color:var(--gold);margin-top:1px;cursor:pointer}
+.fcheck a{color:var(--gold2);text-decoration:underline}
+
+.step{display:none}
+.step.active{display:block}
+@media(max-width:540px){
+  body{justify-content:flex-start;padding-top:max(40px,env(safe-area-inset-top));padding-bottom:max(40px,env(safe-area-inset-bottom))}
+  .auth-logo{margin-bottom:24px}
+  .auth-box{border-radius:18px}
+  .field-row{grid-template-columns:1fr}
+  .finput{font-size:16px;min-height:52px}
+  .fsubmit{min-height:54px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ═══════ iOS GLASS — universal buttons ═══════ */
+button:not(.hamburger):not(.modal-close):not(.mclose):not(.auth-close):not(.btn-modal-cancel):not(.btn-cancel):not(.mc){
+  border-radius:999px;
+  backdrop-filter:blur(14px) saturate(180%);
+  -webkit-backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:0 4px 14px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.08);
+  transition:all .3s
+}
+button:not(.hamburger):not(.modal-close):not(.mclose):not(.auth-close):not(.btn-modal-cancel):not(.btn-cancel):not(.mc):hover{
+  transform:translateY(-1px);
+  box-shadow:0 8px 22px rgba(200,169,81,.18),inset 0 1px 0 rgba(255,255,255,.12)
+}
+.logout-btn,.tab-btn,.action-btn,.share-btn,.btn-ghost,.btn-reschedule,.btn-modal-cancel,.btn-cancel{
+  background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.01))!important
+}
+.login-btn,.save-btn,.modal-btn,.btn-modal-save,.btn-book-first,.btn-book-new,.btn-home,.btn-gem{
+  background:linear-gradient(135deg,var(--gold,#c8a951),#b89940)!important;
+  border:1px solid rgba(255,255,255,.18)!important
+}
+.connect-btn,.export-btn{
+  background:linear-gradient(135deg,rgba(200,169,81,.10),rgba(200,169,81,.02))!important
+}
+
 </style>
 </head>
 <body>
@@ -41,17 +123,262 @@ body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;
   <h2>Begin your <em>journey</em></h2>
   <p class="auth-sub">Create an account to book consultations with Dr. Anirudh</p>
   <div class="auth-error" id="auth-error"></div>
+
+  <div class="step-bar" aria-hidden="true">
+    <div class="step-dot active" id="step-dot-1"></div>
+    <div class="step-dot" id="step-dot-2"></div>
+  </div>
+
   <form id="register-form">
-    <input class="finput" type="text" name="name" placeholder="Full name" required autocomplete="name">
-    <input class="finput" type="email" name="email" placeholder="Email address" required autocomplete="email">
-    <input class="finput" type="tel" name="phone" placeholder="Phone number (optional)" autocomplete="tel">
-    <input class="finput" type="password" name="password" id="pw" placeholder="Password (min 8 characters)" required minlength="8" autocomplete="new-password">
-    <div class="pw-strength"><div class="pw-bar" id="pw-bar"></div></div>
-    <input class="finput" type="password" name="confirm" placeholder="Confirm password" required autocomplete="new-password">
-    <button type="submit" class="fsubmit" id="reg-btn"><span>Create Account</span></button>
+    <!-- ── Step 1: Account basics ────────────────────────────────────── -->
+    <div class="step active" data-step="1">
+      <label class="flabel">Full Name</label>
+      <input class="finput" type="text" name="name" placeholder="e.g. Anirudh Vaddineni" required autocomplete="name">
+
+      <label class="flabel">Email Address</label>
+      <input class="finput" type="email" name="email" placeholder="you@example.com" required autocomplete="email">
+
+      <label class="flabel">Phone Number</label>
+      <input class="finput" type="tel" name="phone" placeholder="+91 98765 43210" required autocomplete="tel">
+
+      <label class="flabel">Password</label>
+      <input class="finput" type="password" name="password" id="pw" placeholder="Min 8 chars, letter + number" required minlength="8" autocomplete="new-password">
+      <div class="pw-strength"><div class="pw-bar" id="pw-bar"></div></div>
+
+      <label class="flabel">Confirm Password</label>
+      <input class="finput" type="password" name="confirm" placeholder="Re-enter password" required autocomplete="new-password">
+
+      <button type="button" class="fsubmit" id="next-btn"><span>Continue →</span></button>
+    </div>
+
+    <!-- ── Step 2: About you ─────────────────────────────────────────── -->
+    <div class="step" data-step="2">
+      <div class="field-row">
+        <div>
+          <label class="flabel">Date of Birth</label>
+          <input class="finput" type="date" name="dateOfBirth" required max="2010-12-31" min="1920-01-01">
+        </div>
+        <div>
+          <label class="flabel">Sex</label>
+          <select class="finput" name="sex" required>
+            <option value="" disabled selected>Select</option>
+            <option value="female">Female</option>
+            <option value="male">Male</option>
+            <option value="other">Other</option>
+            <option value="prefer_not_to_say">Prefer not to say</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div>
+          <label class="flabel">Country</label>
+          <select class="finput" name="country" required>
+            <option value="" disabled selected>Select</option>
+            <option value="IN">India</option>
+            <option value="US">United States</option>
+            <option value="GB">United Kingdom</option>
+            <option value="AE">UAE</option>
+            <option value="SG">Singapore</option>
+            <option value="AU">Australia</option>
+            <option value="CA">Canada</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="flabel">City</label>
+          <input class="finput" type="text" name="city" placeholder="e.g. Bengaluru" required autocomplete="address-level2">
+        </div>
+      </div>
+
+      <label class="flabel">How did you find us?</label>
+      <select class="finput" name="referralSource" required>
+        <option value="" disabled selected>Select</option>
+        <option value="instagram">Instagram</option>
+        <option value="youtube">YouTube</option>
+        <option value="google">Google search</option>
+        <option value="friend">Friend / family</option>
+        <option value="podcast">Podcast</option>
+        <option value="event">Event / workshop</option>
+        <option value="news">News article</option>
+        <option value="other">Other</option>
+      </select>
+
+      <label class="flabel optional">Preferred Contact Channel</label>
+      <select class="finput" name="preferredChannel">
+        <option value="" selected>No preference</option>
+        <option value="email">Email</option>
+        <option value="whatsapp">WhatsApp</option>
+        <option value="sms">SMS</option>
+      </select>
+
+      <label class="flabel optional">Preferred Language</label>
+      <select class="finput" name="language">
+        <option value="en" selected>English</option>
+        <option value="hi">Hindi</option>
+        <option value="te">Telugu</option>
+        <option value="ta">Tamil</option>
+      </select>
+
+      <label class="fcheck">
+        <input type="checkbox" name="marketingOptIn" value="1" checked>
+        <span>Email me wellness insights, new programs, and occasional updates from Dr. Anirudh.</span>
+      </label>
+
+      <label class="fcheck">
+        <input type="checkbox" name="privacyConsent" value="1" required>
+        <span>I agree to the <a href="/privacy" target="_blank">Privacy Policy</a> and consent to processing of my health information.</span>
+      </label>
+
+      <div class="step-nav">
+        <button type="button" class="fsubmit btn-back" id="back-btn"><span>← Back</span></button>
+        <button type="submit" class="fsubmit" id="reg-btn"><span>Create Account</span></button>
+      </div>
+    </div>
   </form>
+  <div class="auth-divider">or</div>
+  <div id="g-signin-btn" style="display:flex;justify-content:center;min-height:44px;margin-bottom:14px"></div>
+  <button type="button" id="otp-toggle" class="fsubmit" style="background:transparent;border:1px solid rgba(200,169,81,.32);color:var(--gold2);margin-top:8px"><span>Sign up with email code</span></button>
+
+  <form id="otp-form" style="display:none;margin-top:16px">
+    <input class="finput" type="text" name="otp-name" id="otp-name" placeholder="Full name" required autocomplete="name">
+    <input class="finput" type="email" name="otp-email" id="otp-email" placeholder="Email address" required autocomplete="email">
+    <input class="finput" type="tel" name="otp-phone" id="otp-phone" placeholder="Phone (optional)" autocomplete="tel">
+    <input class="finput" type="text" name="otp-code" id="otp-code" placeholder="6-digit code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" style="display:none;letter-spacing:.4em;text-align:center;font-family:monospace;font-size:18px">
+    <button type="submit" class="fsubmit" id="otp-submit"><span>Email Me a Code</span></button>
+    <p class="auth-link" style="margin-top:8px;font-size:11px"><a href="#" id="otp-back">&larr; Back to password sign-up</a></p>
+  </form>
+
   <p class="auth-link">Already have an account? <a href="/login">Sign in</a></p>
 </div>
+
+<script src="/api/auth/google-config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+window.handleGoogleSignIn = async (response) => {
+  const errEl = document.getElementById('auth-error');
+  try {
+    const r = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential })
+    });
+    const data = await r.json();
+    if (r.ok) {
+      if (data.profileIncomplete) window.location.href = '/complete-profile';
+      else window.location.href = '/';
+    }
+    else { errEl.textContent = data.error || 'Google sign-in failed'; errEl.style.display = 'block'; }
+  } catch {
+    errEl.textContent = 'Connection error. Please try again.'; errEl.style.display = 'block';
+  }
+};
+const initGoogleBtn = () => {
+  if (!window.google || !window.google.accounts || !window.__GOOGLE_OAUTH_CLIENT_ID__) {
+    return setTimeout(initGoogleBtn, 300);
+  }
+  google.accounts.id.initialize({
+    client_id: window.__GOOGLE_OAUTH_CLIENT_ID__,
+    callback: window.handleGoogleSignIn,
+    ux_mode: 'popup'
+  });
+  google.accounts.id.renderButton(document.getElementById('g-signin-btn'), {
+    theme: 'filled_black', size: 'large', text: 'signup_with', shape: 'pill', logo_alignment: 'center', width: 280
+  });
+};
+initGoogleBtn();
+</script>
+
+<script>
+// ── OTP signup flow ──────────────────────────────────────────────────────────
+(function () {
+  const otpToggle = document.getElementById('otp-toggle');
+  const regForm = document.getElementById('register-form');
+  const otpForm = document.getElementById('otp-form');
+  const otpName = document.getElementById('otp-name');
+  const otpEmail = document.getElementById('otp-email');
+  const otpPhone = document.getElementById('otp-phone');
+  const otpCode = document.getElementById('otp-code');
+  const otpSubmit = document.getElementById('otp-submit');
+  const otpBack = document.getElementById('otp-back');
+  const errEl = document.getElementById('auth-error');
+  let codeRequested = false;
+
+  otpToggle.addEventListener('click', () => {
+    regForm.style.display = 'none';
+    otpForm.style.display = 'block';
+    otpToggle.style.display = 'none';
+    errEl.style.display = 'none';
+    codeRequested = false;
+    otpCode.style.display = 'none';
+    otpSubmit.querySelector('span').textContent = 'Email Me a Code';
+    otpName.focus();
+  });
+
+  otpBack.addEventListener('click', (e) => {
+    e.preventDefault();
+    otpForm.style.display = 'none';
+    regForm.style.display = 'block';
+    otpToggle.style.display = '';
+    errEl.style.display = 'none';
+  });
+
+  otpForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errEl.style.display = 'none';
+    otpSubmit.disabled = true;
+    const name = otpName.value.trim();
+    const email = otpEmail.value.trim();
+    const phone = otpPhone.value.trim();
+
+    try {
+      if (!codeRequested) {
+        otpSubmit.querySelector('span').textContent = 'Sending...';
+        const r = await fetch('/api/auth/otp/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name })
+        });
+        const data = await r.json();
+        if (!r.ok) {
+          errEl.textContent = data.error || 'Could not send code';
+          errEl.style.display = 'block';
+          otpSubmit.querySelector('span').textContent = 'Email Me a Code';
+          return;
+        }
+        codeRequested = true;
+        otpCode.style.display = 'block';
+        otpCode.focus();
+        otpSubmit.querySelector('span').textContent = 'Verify & Create Account';
+      } else {
+        otpSubmit.querySelector('span').textContent = 'Verifying...';
+        const code = otpCode.value.trim();
+        const r = await fetch('/api/auth/otp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, code, name, phone })
+        });
+        const data = await r.json();
+        if (!r.ok) {
+          errEl.textContent = data.error || 'Invalid code';
+          errEl.style.display = 'block';
+          otpSubmit.querySelector('span').textContent = 'Verify & Create Account';
+          return;
+        }
+        // OTP-created accounts always lack Tier-1 profile fields — force completion
+        if (data.profileIncomplete) window.location.href = '/complete-profile';
+        else window.location.href = '/';
+      }
+    } catch {
+      errEl.textContent = 'Connection error. Please try again.';
+      errEl.style.display = 'block';
+      otpSubmit.querySelector('span').textContent = codeRequested ? 'Verify & Create Account' : 'Email Me a Code';
+    } finally {
+      otpSubmit.disabled = false;
+    }
+  });
+})();
+</script>
 
 <script>
 // Password strength indicator
@@ -68,6 +395,51 @@ document.getElementById('pw').addEventListener('input', (e) => {
   bar.style.width = pct + '%';
   bar.style.background = pct < 40 ? 'var(--amber)' : pct < 70 ? 'var(--gold)' : '#4a9';
 });
+
+// ── Multi-step nav ───────────────────────────────────────────────────────────
+(function () {
+  const form = document.getElementById('register-form');
+  const step1 = form.querySelector('[data-step="1"]');
+  const step2 = form.querySelector('[data-step="2"]');
+  const dot1 = document.getElementById('step-dot-1');
+  const dot2 = document.getElementById('step-dot-2');
+  const nextBtn = document.getElementById('next-btn');
+  const backBtn = document.getElementById('back-btn');
+  const errEl = document.getElementById('auth-error');
+
+  function go(step) {
+    step1.classList.toggle('active', step === 1);
+    step2.classList.toggle('active', step === 2);
+    dot1.classList.toggle('active', step === 1);
+    dot1.classList.toggle('done', step === 2);
+    dot2.classList.toggle('active', step === 2);
+    errEl.style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  nextBtn.addEventListener('click', () => {
+    // Validate step 1 fields
+    const step1Inputs = step1.querySelectorAll('input[required]');
+    for (const i of step1Inputs) {
+      if (!i.checkValidity()) { i.reportValidity(); return; }
+    }
+    const pw = form.elements['password'].value;
+    const confirm = form.elements['confirm'].value;
+    if (pw !== confirm) {
+      errEl.textContent = 'Passwords do not match';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) {
+      errEl.textContent = 'Password must be 8+ chars with a letter and number';
+      errEl.style.display = 'block';
+      return;
+    }
+    go(2);
+  });
+
+  backBtn.addEventListener('click', () => go(1));
+})();
 
 document.getElementById('register-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -86,7 +458,13 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     errEl.style.display = 'block';
     return;
   }
+  if (!data.privacyConsent) {
+    errEl.textContent = 'Please accept the Privacy Policy to continue';
+    errEl.style.display = 'block';
+    return;
+  }
 
+  const sentEmail = data.email; // capture before async
   btn.disabled = true;
   btn.querySelector('span').textContent = 'Creating account...';
   errEl.style.display = 'none';
@@ -95,12 +473,38 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: data.name, email: data.email, password: data.password, phone: data.phone })
+      body: JSON.stringify({
+        name: data.name, email: data.email, password: data.password, phone: data.phone,
+        dateOfBirth: data.dateOfBirth, sex: data.sex,
+        country: data.country, city: data.city,
+        referralSource: data.referralSource,
+        preferredChannel: data.preferredChannel || null,
+        language: data.language || 'en',
+        marketingOptIn: !!data.marketingOptIn,
+        privacyConsent: !!data.privacyConsent,
+      })
     });
     const result = await res.json();
 
     if (res.ok) {
-      window.location.href = '/';
+      // Show "check your email" instead of redirecting
+      const box = document.querySelector('.auth-box');
+      box.innerHTML = `
+        <div style="text-align:center;padding:8px 0">
+          <div style="width:8px;height:8px;background:#c8a951;transform:rotate(45deg);margin:0 auto 20px;"></div>
+          <h2 style="font-family:'Cormorant',serif;font-size:clamp(24px,3.5vw,34px);font-weight:300;color:#f8f4ec;margin-bottom:10px">Check your <em style="color:#e2c97e">inbox</em></h2>
+          <p style="color:rgba(248,244,236,.72);font-size:14px;line-height:1.8;font-weight:300;margin-bottom:28px">
+            We sent a verification link to<br>
+            <strong id="reg-sent-email" style="color:#e2c97e"></strong><br>
+            Click the link to activate your account.
+          </p>
+          <p style="color:rgba(248,244,236,.4);font-size:12px;line-height:1.7;margin-bottom:24px">
+            Didn't receive it? Check your spam folder,<br>or <a href="/verify-email" style="color:#e2c97e;text-decoration:none">request a new link</a>.
+          </p>
+          <a href="/login" style="display:inline-block;padding:14px 32px;background:#c8a951;color:#070707;font-family:'Tenor Sans',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none">Go to Sign In →</a>
+        </div>
+      `;
+      document.getElementById('reg-sent-email').textContent = sentEmail;
     } else {
       errEl.textContent = result.error;
       errEl.style.display = 'block';
@@ -109,8 +513,10 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
     errEl.textContent = 'Connection error. Please try again.';
     errEl.style.display = 'block';
   } finally {
-    btn.disabled = false;
-    btn.querySelector('span').textContent = 'Create Account';
+    if (document.getElementById('reg-btn')) {
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Create Account';
+    }
   }
 });
 </script>

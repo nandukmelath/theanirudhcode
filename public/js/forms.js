@@ -27,8 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 600);
   }
 
-  // ═══════════ FREE GUIDE FORM ═══════════
-  const guideForm = document.getElementById('guide-form');
+  // FREE GUIDE FORM removed
+  const guideForm = null;
   if (guideForm) {
     guideForm.addEventListener('submit', async (e) => {
       e.preventDefault();

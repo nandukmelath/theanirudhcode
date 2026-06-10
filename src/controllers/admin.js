@@ -38,15 +38,28 @@ router.post('/api/login', (req, res) => {
     return res.status(400).json({ error: 'Username and password required' });
   }
 
-  try {
-    const uMatch = crypto.timingSafeEqual(Buffer.from(username), Buffer.from(envUser));
-    const pMatch = crypto.timingSafeEqual(Buffer.from(password), Buffer.from(envPass));
-    if (uMatch && pMatch) {
-      const token = generateAdminToken(username);
-      res.cookie('admin_token', token, ADMIN_COOKIE_OPTIONS);
-      return res.json({ success: true });
-    }
-  } catch {}
+  // Always compare both fields in constant time regardless of length.
+  // Pad shorter buffers with a zero byte so timingSafeEqual never throws on length mismatch.
+  // The result is AND-ed so both must match.
+  const uBuf  = Buffer.from(username);
+  const eBuf  = Buffer.from(envUser);
+  const pBuf  = Buffer.from(password);
+  const epBuf = Buffer.from(envPass);
+  const maxULen = Math.max(uBuf.length, eBuf.length) + 1;
+  const maxPLen = Math.max(pBuf.length, epBuf.length) + 1;
+  const uA = Buffer.concat([uBuf,  Buffer.alloc(maxULen - uBuf.length)]);
+  const uB = Buffer.concat([eBuf,  Buffer.alloc(maxULen - eBuf.length)]);
+  const pA = Buffer.concat([pBuf,  Buffer.alloc(maxPLen - pBuf.length)]);
+  const pB = Buffer.concat([epBuf, Buffer.alloc(maxPLen - epBuf.length)]);
+  const uMatch = crypto.timingSafeEqual(uA, uB);
+  const pMatch = crypto.timingSafeEqual(pA, pB);
+  const lenOk  = uBuf.length === eBuf.length && pBuf.length === epBuf.length;
+
+  if (uMatch && pMatch && lenOk) {
+    const token = generateAdminToken(username);
+    res.cookie('admin_token', token, ADMIN_COOKIE_OPTIONS);
+    return res.json({ success: true });
+  }
 
   res.status(401).json({ error: 'Invalid credentials' });
 });
@@ -57,8 +70,15 @@ router.post('/api/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// Serve admin page (public — login wall is client-side; API is server-guarded)
+// Serve admin page. The HTML shell itself is intentionally public because it
+// CONTAINS the login form — every data endpoint below is guarded by hybridAdminAuth,
+// so no sensitive data is exposed by serving the shell. Hard-401'ing here would make
+// it impossible to render the login screen. We do mark it noindex/no-store so the
+// panel never lands in a search index or a shared cache (defence-in-depth).
 router.get('/', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Referrer-Policy', 'no-referrer');
   res.sendFile(path.join(__dirname, '..', '..', 'views', 'admin.html'));
 });
 
@@ -117,6 +137,8 @@ router.delete('/api/subscribers/:id', hybridAdminAuth, async (req, res) => {
 router.get('/api/consultations', hybridAdminAuth, async (req, res) => {
   try {
     const { status } = req.query;
+    const validStatuses = ['new', 'read', 'contacted', 'completed'];
+    if (status && !validStatuses.includes(status)) return res.status(400).json({ error: 'Invalid status filter' });
     const where = status ? { status } : {};
     const consultations = await prisma.consultation.findMany({ where, orderBy: { createdAt: 'desc' } });
     const all = await prisma.consultation.findMany({ select: { status: true } });

@@ -1,14 +1,16 @@
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const prisma = require('../lib/prisma');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
 
+// SameSite=None (+ Secure) required so the Astro/Pages frontend can send cookies
+// cross-site to the API. On localhost dev, keep 'lax' (None requires HTTPS).
+const IS_PROD = process.env.NODE_ENV === 'production';
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
+  secure: IS_PROD,
+  sameSite: IS_PROD ? 'none' : 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000
 };
 
@@ -24,9 +26,13 @@ async function authenticate(req, res, next) {
     const payload = jwt.verify(token, JWT_SECRET);
     const user = await prisma.user.findUnique({
       where: { id: payload.id },
-      select: { id: true, name: true, email: true, phone: true, role: true, isActive: true }
+      select: { id: true, name: true, email: true, phone: true, role: true, isActive: true, passwordChangedAt: true }
     });
     if (!user || !user.isActive) return res.status(401).json({ error: 'Invalid session' });
+    // Reject tokens issued before the most recent password change
+    if (user.passwordChangedAt && payload.iat * 1000 < user.passwordChangedAt.getTime()) {
+      return res.status(401).json({ error: 'Session expired. Please sign in again.' });
+    }
     req.user = { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role };
     next();
   } catch {
@@ -49,9 +55,11 @@ async function optionalAuth(req, res, next) {
     const payload = jwt.verify(token, JWT_SECRET);
     const user = await prisma.user.findUnique({
       where: { id: payload.id },
-      select: { id: true, name: true, email: true, phone: true, role: true, isActive: true }
+      select: { id: true, name: true, email: true, phone: true, role: true, isActive: true, passwordChangedAt: true }
     });
-    req.user = (user && user.isActive) ? { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role } : null;
+    const valid = user && user.isActive &&
+      (!user.passwordChangedAt || payload.iat * 1000 >= user.passwordChangedAt.getTime());
+    req.user = valid ? { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role } : null;
   } catch {
     req.user = null;
   }
@@ -93,20 +101,6 @@ async function hybridAdminAuth(req, res, next) {
       });
       if (user && user.isActive && user.role === 'admin') {
         req.user = { id: user.id, name: user.name, email: user.email, phone: user.phone, role: user.role };
-        return next();
-      }
-    } catch {}
-  }
-
-  // 3. x-admin-token header fallback (legacy API clients)
-  const adminToken = req.headers['x-admin-token'];
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (adminToken && adminPassword) {
-    try {
-      const a = Buffer.from(adminToken);
-      const b = Buffer.from(adminPassword);
-      if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
-        req.user = { id: 0, name: 'Admin', email: 'admin@theanirudhcode.com', role: 'admin' };
         return next();
       }
     } catch {}

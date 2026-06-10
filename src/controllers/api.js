@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
-const { validateEmail, sanitize } = require('../middleware/validate');
+const { validateEmail, sanitize, checkLen, validatePhone, LIMITS } = require('../middleware/validate');
 const wa = require('../lib/whatsapp');
 const sanitizeHtml = require('sanitize-html');
 
@@ -21,8 +21,12 @@ const BLOG_SAFE = {
 router.post('/subscribe', async (req, res) => {
   const { name, email, source } = req.body;
 
-  if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+  if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+  const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
+  if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
   if (!email || !validateEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
+  const srcCheck = checkLen(typeof source === 'string' ? source : 'free-guide', 'Source', LIMITS.shortText);
+  if (!srcCheck.ok) return res.status(400).json({ error: srcCheck.error });
 
   const cleanName = sanitize(name.trim());
   const cleanEmail = email.trim().toLowerCase();
@@ -50,20 +54,45 @@ router.post('/subscribe', async (req, res) => {
 
 // POST /api/consultation
 router.post('/consultation', async (req, res) => {
-  const { name, email, phone, preferred_date, message } = req.body;
+  const { name, email, phone, preferred_date, message, health_concerns, age } = req.body;
 
-  if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+  if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+  const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
+  if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
   if (!email || !validateEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
-  if (preferred_date && !/^\d{4}-\d{2}-\d{2}$/.test(preferred_date.trim())) {
+  if (preferred_date && (typeof preferred_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(preferred_date.trim()))) {
     return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
   }
-  const rawPhone = (phone || '').trim();
-  if (rawPhone) {
-    const digits = rawPhone.replace(/[\s\-+().]/g, '');
-    if (!/^\d{7,15}$/.test(digits)) {
-      return res.status(400).json({ error: 'Please enter a valid phone number' });
+  if (message != null && message !== '') {
+    const msgCheck = checkLen(message, 'Message', LIMITS.message);
+    if (!msgCheck.ok) return res.status(400).json({ error: msgCheck.error });
+  }
+  // health_concerns is an optional discrete field (some clients send it separately
+  // instead of folding it into `message`). Bound its length; it gets HTML-stripped
+  // by sanitize() below before storage, same as every other free-text field.
+  if (health_concerns != null && health_concerns !== '') {
+    const hcCheck = checkLen(String(health_concerns), 'Health concerns', LIMITS.healthConcerns);
+    if (!hcCheck.ok) return res.status(400).json({ error: hcCheck.error });
+  }
+  // Age: optional, but if supplied it must be a plausible human age. Rejects the
+  // negative / >120 values a scanner probes with (VALIDATION_001).
+  let ageNum = null;
+  if (age != null && age !== '') {
+    ageNum = Number(age);
+    if (!Number.isInteger(ageNum) || ageNum < 1 || ageNum > 120) {
+      return res.status(400).json({ error: 'Please enter a valid age between 1 and 120.' });
     }
   }
+  const phoneCheck = validatePhone((phone || '').trim());
+  if (!phoneCheck.ok) return res.status(400).json({ error: phoneCheck.error });
+
+  // Build the stored message: fold age + health_concerns (when sent discretely) into
+  // the free-text note so admin sees them, and so they pass through HTML sanitisation.
+  const baseMsg = (message || '').trim();
+  const extras = [];
+  if (ageNum != null) extras.push(`Age: ${ageNum}`);
+  if (health_concerns != null && String(health_concerns).trim()) extras.push(`Concerns: ${String(health_concerns).trim()}`);
+  const composedMsg = [baseMsg, ...extras].filter(Boolean).join('\n');
 
   try {
     await prisma.consultation.create({
@@ -72,7 +101,7 @@ router.post('/consultation', async (req, res) => {
         email: email.trim().toLowerCase(),
         phone: sanitize((phone || '').trim()) || null,
         preferredDate: preferred_date ? sanitize(preferred_date.trim()) : null,
-        message: sanitize((message || '').trim()) || null,
+        message: sanitize(composedMsg) || null,
       }
     });
 
@@ -81,9 +110,10 @@ router.post('/consultation', async (req, res) => {
       message: 'Your consultation request has been received. We will reach out within 24 hours.'
     });
 
-    // Notify admin via WhatsApp (non-blocking, after response sent)
-    const consult = { name: sanitize(name.trim()), email: email.trim().toLowerCase(), phone: sanitize((phone || '').trim()) || null, message: sanitize((message || '').trim()) || null };
+    // Notify admin + patient via WhatsApp (non-blocking, after response sent)
+    const consult = { name: sanitize(name.trim()), email: email.trim().toLowerCase(), phone: sanitize((phone || '').trim()) || null, message: sanitize(composedMsg) || null };
     wa.sendAdminConsultationAlert(consult).catch(e => console.error('[WhatsApp] consultation alert failed:', e.message));
+    if (consult.phone) wa.sendConsultationAck(consult.phone, consult.name).catch(e => console.error('[WhatsApp] consultation ack failed:', e.message));
   } catch (err) {
     console.error('Consultation error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -121,55 +151,7 @@ router.get('/posts/:slug', async (req, res) => {
   }
 });
 
-// GET /api/products
-router.get('/products', async (req, res) => {
-  try {
-    const products = await prisma.product.findMany({
-      where: { available: true },
-      orderBy: { price: 'asc' },
-    });
-    res.json({ products });
-  } catch (err) {
-    console.error('Products error:', err);
-    res.status(500).json({ error: 'Failed to load products' });
-  }
-});
-
-// POST /api/products/:id/order
-router.post('/products/:id/order', async (req, res) => {
-  const productId = parseInt(req.params.id, 10);
-  if (!productId || productId < 1) return res.status(400).json({ error: 'Invalid product' });
-
-  const { name, email, phone } = req.body;
-  if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
-  if (!email || !validateEmail(email)) return res.status(400).json({ error: 'Valid email is required' });
-
-  try {
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product || !product.available) return res.status(404).json({ error: 'Product not found' });
-
-    await prisma.productOrder.create({
-      data: {
-        productId,
-        name:  sanitize(name.trim()),
-        email: email.trim().toLowerCase(),
-        phone: sanitize((phone || '').trim()) || null,
-      }
-    });
-
-    wa.sendAdminConsultationAlert({
-      name: sanitize(name.trim()),
-      email: email.trim().toLowerCase(),
-      phone: sanitize((phone || '').trim()) || null,
-      message: `Product order: "${product.title}" — ₹${product.price}`,
-    }).catch(e => console.error('[WhatsApp] admin alert failed:', e.message));
-
-    res.status(201).json({ success: true, message: `Order received! We will reach out within 24 hours with payment details for "${product.title}".` });
-  } catch (err) {
-    console.error('Product order error:', err);
-    res.status(500).json({ error: 'Something went wrong. Please try again.' });
-  }
-});
+// /api/products endpoints removed — store cut
 
 // GET /api/cohorts
 router.get('/cohorts', async (req, res) => {
@@ -191,8 +173,16 @@ router.post('/cohorts/:id/enroll', async (req, res) => {
   if (!cohortId || cohortId < 1) return res.status(400).json({ error: 'Invalid cohort' });
 
   const { name, email, phone, message } = req.body;
-  if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+  if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+  const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
+  if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
   if (!email || !validateEmail(email)) return res.status(400).json({ error: 'Valid email is required' });
+  const phoneCheck = validatePhone((phone || '').trim());
+  if (!phoneCheck.ok) return res.status(400).json({ error: phoneCheck.error });
+  if (message != null && message !== '') {
+    const msgCheck = checkLen(message, 'Message', LIMITS.message);
+    if (!msgCheck.ok) return res.status(400).json({ error: msgCheck.error });
+  }
 
   try {
     const cohort = await prisma.cohort.findUnique({ where: { id: cohortId } });

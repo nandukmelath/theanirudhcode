@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../lib/prisma');
 const { authenticate, requireAdmin } = require('../middleware/auth');
-const { sanitize } = require('../middleware/validate');
+const { sanitize, checkLen, LIMITS } = require('../middleware/validate');
 const { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } = require('./calendar');
 const wa = require('../lib/whatsapp');
 
@@ -60,8 +60,18 @@ router.post('/book', authenticate, async (req, res) => {
   if (time_end <= time_start) {
     return res.status(400).json({ error: 'End time must be after start time.' });
   }
-  if (!health_concerns || !health_concerns.trim()) {
+  if (!health_concerns || typeof health_concerns !== 'string' || !health_concerns.trim()) {
     return res.status(400).json({ error: 'Please describe your health concerns' });
+  }
+  const hcCheck = checkLen(health_concerns, 'Health concerns', LIMITS.healthConcerns);
+  if (!hcCheck.ok) return res.status(400).json({ error: hcCheck.error });
+  if (medical_history != null && medical_history !== '') {
+    const mhCheck = checkLen(medical_history, 'Medical history', LIMITS.medicalHistory);
+    if (!mhCheck.ok) return res.status(400).json({ error: mhCheck.error });
+  }
+  if (goals != null && goals !== '') {
+    const gCheck = checkLen(goals, 'Goals', LIMITS.goals);
+    if (!gCheck.ok) return res.status(400).json({ error: gCheck.error });
   }
 
   const tierKey   = CONSULTATION_TYPES[consultation_type] ? consultation_type : 'deepdive';

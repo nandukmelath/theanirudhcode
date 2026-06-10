@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+*.md
+.dockerignore
+Dockerfile
+.vscode
+.idea
+*.log
+.DS_Store
+dropdown-debug.png
+build_pdf.py
+scripts/smoke.js

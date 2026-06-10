@@ -4,6 +4,7 @@ const { google } = require('googleapis');
 const crypto  = require('crypto');
 const prisma  = require('../lib/prisma');
 const { authenticate, requireAdmin, hybridAdminAuth } = require('../middleware/auth');
+const { sanitize } = require('../middleware/validate');
 
 // In-memory OAuth state store: state → expiry timestamp (10-min window)
 const oauthStates = new Map();
@@ -102,7 +103,10 @@ router.get('/auth-url', hybridAdminAuth, async (req, res) => {
   const url = client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: ['https://www.googleapis.com/auth/calendar'],
+    scope: [
+      'https://www.googleapis.com/auth/calendar',
+      'https://www.googleapis.com/auth/gmail.send',
+    ],
     state,
   });
   res.json({ url });
@@ -439,10 +443,11 @@ router.post('/admin/block', hybridAdminAuth, async (req, res) => {
     }
   }
 
+  const cleanReason = reason ? sanitize(reason.trim()) || null : null;
   await prisma.blockedSlot.upsert({
     where:  { date_timeStart: { date, timeStart } },
-    update: { timeEnd, reason: reason || null, gcalEventId },
-    create: { date, timeStart, timeEnd, reason: reason || null, gcalEventId }
+    update: { timeEnd, reason: cleanReason, gcalEventId },
+    create: { date, timeStart, timeEnd, reason: cleanReason, gcalEventId }
   });
 
   res.json({ success: true });
@@ -585,6 +590,49 @@ async function deleteCalendarEvent(eventId) {
     await calendar.events.delete({ calendarId: tokens.calendarId, eventId });
   } catch (err) { console.error('Delete calendar event error:', err.message); }
 }
+
+// POST /api/calendar/backfill-events  (admin, one-shot — backfills missing GCal events)
+router.post('/backfill-events', hybridAdminAuth, async (req, res) => {
+  if (!gcalConfigured()) return res.status(400).json({ error: 'Google Calendar not configured' });
+  const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
+  if (!tokens?.refreshToken || !tokens?.calendarId) return res.status(400).json({ error: 'Google Calendar not connected or no calendar selected' });
+
+  const appointments = await prisma.appointment.findMany({
+    where:   { status: 'confirmed', googleEventId: null },
+    include: { user: { select: { id: true, name: true, email: true, phone: true } } }
+  });
+
+  const results = [];
+  for (const appt of appointments) {
+    try {
+      const eventId = await createCalendarEvent(
+        {
+          id:                 appt.id,
+          date:               appt.date,
+          time_start:         appt.timeStart,
+          time_end:           appt.timeEnd,
+          consultation_type:  appt.consultationType,
+          consultation_price: appt.consultationPrice,
+          health_concerns:    appt.healthConcerns,
+          medical_history:    appt.medicalHistory,
+          goals:              appt.goals,
+          status:             'confirmed',
+        },
+        appt.user
+      );
+      if (eventId) {
+        await prisma.appointment.update({ where: { id: appt.id }, data: { googleEventId: eventId } });
+        results.push({ id: appt.id, patient: appt.user?.name, date: appt.date, eventId, ok: true });
+      } else {
+        results.push({ id: appt.id, patient: appt.user?.name, date: appt.date, ok: false, reason: 'createCalendarEvent returned null' });
+      }
+    } catch (err) {
+      results.push({ id: appt.id, patient: appt.user?.name, date: appt.date, ok: false, reason: err.message });
+    }
+  }
+
+  res.json({ processed: results.length, results });
+});
 
 router.createCalendarEvent  = createCalendarEvent;
 router.updateCalendarEvent  = updateCalendarEvent;

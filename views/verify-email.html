@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#070707">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>Email Verification — theanirudhcode</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--gold:#c8a951;--gold2:#e2c97e;--white:#f8f4ec;--muted:rgba(248,244,236,.72);--faint:rgba(248,244,236,.34);--amber:#c8733a;--line:rgba(200,169,81,.16)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(16px,4vw,32px);position:relative;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(200,169,81,.06),transparent 60%);pointer-events:none;z-index:0}
+.auth-logo{position:relative;z-index:1;font-family:'Cormorant',serif;font-size:clamp(18px,2.2vw,22px);font-weight:300;letter-spacing:.16em;color:var(--white);text-decoration:none;margin-bottom:clamp(28px,5vh,48px);display:flex;align-items:center;gap:10px;opacity:.92}
+.auth-gem{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);flex-shrink:0;box-shadow:0 0 16px rgba(200,169,81,.4)}
+.auth-box{position:relative;z-index:1;background:linear-gradient(180deg,rgba(20,20,20,.78),rgba(14,14,14,.62));backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(200,169,81,.18);border-radius:20px;box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.03),inset 0 1px 0 rgba(255,255,255,.06);padding:clamp(28px,5vw,44px);max-width:440px;width:min(100%,440px);text-align:center}
+.icon{font-size:36px;margin-bottom:18px;color:var(--gold2)}
+.auth-box h2{font-family:'Cormorant',serif;font-size:clamp(26px,3.5vw,34px);font-weight:300;line-height:1.15;margin-bottom:10px;letter-spacing:-.01em}
+.auth-box h2 em{color:var(--gold2);font-style:italic;font-weight:400}
+.auth-sub{color:var(--muted);font-size:clamp(13px,1.4vw,14px);line-height:1.7;font-weight:300;margin-bottom:clamp(20px,3.5vw,28px)}
+.fsubmit{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:14px 28px;background:linear-gradient(135deg,var(--gold),#b89940);border:1px solid rgba(255,255,255,.18);border-radius:999px;color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:12px;letter-spacing:.22em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:transform .2s,box-shadow .25s;margin-top:8px;box-shadow:0 8px 24px rgba(200,169,81,.22),inset 0 1px 0 rgba(255,255,255,.35)}
+.fsubmit:hover{transform:translateY(-1px);box-shadow:0 14px 36px rgba(200,169,81,.36),inset 0 1px 0 rgba(255,255,255,.45)}
+.fsubmit:active{transform:translateY(0)}
+.fsubmit:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.auth-link{display:block;margin-top:18px;font-size:13px;color:var(--muted);font-weight:300}
+.auth-link a{color:var(--gold2);text-decoration:none;transition:color .25s;font-weight:400}
+.auth-link a:hover{color:var(--gold)}
+.auth-error{background:rgba(200,115,58,.10);border:1px solid rgba(200,115,58,.32);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--amber);margin-bottom:14px;display:none;line-height:1.5}
+.auth-success{background:rgba(74,154,100,.10);border:1px solid rgba(74,154,100,.32);border-radius:10px;padding:12px 14px;font-size:13px;color:#6fbf73;margin-bottom:14px;display:none;line-height:1.5}
+.resend-input{width:100%;min-height:48px;padding:14px 16px;background:rgba(7,7,7,.5);border:1px solid rgba(200,169,81,.14);border-radius:12px;color:var(--white);font-family:'Barlow',sans-serif;font-size:15px;margin-bottom:12px;outline:none;transition:border-color .25s,background .25s,box-shadow .25s;font-weight:300;text-align:left;-webkit-appearance:none;appearance:none}
+.resend-input:hover{border-color:rgba(200,169,81,.24);background:rgba(7,7,7,.65)}
+.resend-input:focus{border-color:rgba(200,169,81,.55);background:rgba(7,7,7,.78);box-shadow:0 0 0 3px rgba(200,169,81,.10)}
+.resend-input::placeholder{color:var(--faint)}
+@media(max-width:540px){
+  body{justify-content:flex-start;padding-top:max(40px,env(safe-area-inset-top));padding-bottom:max(40px,env(safe-area-inset-bottom))}
+  .auth-logo{margin-bottom:24px}
+  .auth-box{border-radius:18px}
+  .resend-input{font-size:16px;min-height:52px}
+  .fsubmit{min-height:54px}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ═══════ iOS GLASS — universal buttons ═══════ */
+button:not(.hamburger):not(.modal-close):not(.mclose):not(.auth-close):not(.btn-modal-cancel):not(.btn-cancel):not(.mc){
+  border-radius:999px;
+  backdrop-filter:blur(14px) saturate(180%);
+  -webkit-backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:0 4px 14px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.08);
+  transition:all .3s
+}
+button:not(.hamburger):not(.modal-close):not(.mclose):not(.auth-close):not(.btn-modal-cancel):not(.btn-cancel):not(.mc):hover{
+  transform:translateY(-1px);
+  box-shadow:0 8px 22px rgba(200,169,81,.18),inset 0 1px 0 rgba(255,255,255,.12)
+}
+.logout-btn,.tab-btn,.action-btn,.share-btn,.btn-ghost,.btn-reschedule,.btn-modal-cancel,.btn-cancel{
+  background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.01))!important
+}
+.login-btn,.save-btn,.modal-btn,.btn-modal-save,.btn-book-first,.btn-book-new,.btn-home,.btn-gem{
+  background:linear-gradient(135deg,var(--gold,#c8a951),#b89940)!important;
+  border:1px solid rgba(255,255,255,.18)!important
+}
+.connect-btn,.export-btn{
+  background:linear-gradient(135deg,rgba(200,169,81,.10),rgba(200,169,81,.02))!important
+}
+
+</style>
+</head>
+<body>
+
+<a href="/" class="auth-logo"><div class="auth-gem"></div>theanirudhcode</a>
+
+<div class="auth-box" id="box">
+  <!-- Content injected by JS based on ?status param -->
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const status = params.get('status');
+const box    = document.getElementById('box');
+
+const states = {
+  success: {
+    icon:  '◆',
+    title: 'Email <em>verified</em>',
+    sub:   'Your account is now active. You can sign in and start your healing journey.',
+    cta:   '<a href="/login" class="fsubmit">Sign In →</a>',
+    extra: ''
+  },
+  already: {
+    icon:  '◆',
+    title: 'Already <em>verified</em>',
+    sub:   'This email address has already been verified. You can sign in to your account.',
+    cta:   '<a href="/login" class="fsubmit">Sign In →</a>',
+    extra: ''
+  },
+  expired: {
+    icon:  '◇',
+    title: 'Link <em>expired</em>',
+    sub:   'This verification link has expired. Enter your email below to receive a new one.',
+    cta:   '',
+    extra: 'resend'
+  },
+  invalid: {
+    icon:  '◇',
+    title: 'Invalid <em>link</em>',
+    sub:   'This verification link is not valid or has already been used. Enter your email below to get a new one.',
+    cta:   '',
+    extra: 'resend'
+  },
+  error: {
+    icon:  '◇',
+    title: 'Something went <em>wrong</em>',
+    sub:   'We could not verify your email right now. Please try again or request a new link.',
+    cta:   '',
+    extra: 'resend'
+  },
+};
+
+const state = states[status] || {
+  icon:  '◆',
+  title: 'Verify your <em>email</em>',
+  sub:   'If you need a new verification link, enter your email address below.',
+  cta:   '',
+  extra: 'resend'
+};
+
+const resendHtml = `
+  <div class="auth-error" id="resend-error"></div>
+  <div class="auth-success" id="resend-success"></div>
+  <input type="email" class="resend-input" id="resend-email" placeholder="Your email address" autocomplete="email">
+  <button class="fsubmit" id="resend-btn" style="width:100%">Resend Verification Email</button>
+`;
+
+box.innerHTML = `
+  <div class="icon" style="color:var(--gold)">${state.icon}</div>
+  <h2>${state.title}</h2>
+  <p class="auth-sub">${state.sub}</p>
+  ${state.cta}
+  ${state.extra === 'resend' ? resendHtml : ''}
+  <p class="auth-link" style="margin-top:24px"><a href="/">← Back to Home</a></p>
+`;
+
+if (state.extra === 'resend') {
+  document.getElementById('resend-btn').addEventListener('click', async () => {
+    const email  = (document.getElementById('resend-email').value || '').trim();
+    const errEl  = document.getElementById('resend-error');
+    const okEl   = document.getElementById('resend-success');
+    const btn    = document.getElementById('resend-btn');
+    errEl.style.display = 'none';
+    okEl.style.display  = 'none';
+    if (!email) { errEl.textContent = 'Please enter your email address'; errEl.style.display = 'block'; return; }
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      okEl.textContent = 'If that email is registered and unverified, a new link has been sent. Check your inbox.';
+      okEl.style.display = 'block';
+    } catch {
+      errEl.textContent = 'Connection error. Please try again.';
+      errEl.style.display = 'block';
+    }
+    btn.disabled = false; btn.textContent = 'Resend Verification Email';
+  });
+}
+</script>
+</body>
+</html>

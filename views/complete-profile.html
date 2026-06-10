@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#070707">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<title>Complete Your Profile — theanirudhcode</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Tenor+Sans&family=Barlow:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#070707;--black2:#0e0e0e;--black3:#141414;--gold:#c8a951;--gold2:#e2c97e;--gold-d:rgba(200,169,81,.15);--gold-g:rgba(200,169,81,.35);--white:#f8f4ec;--muted:rgba(248,244,236,.72);--faint:rgba(248,244,236,.34);--amber:#c8733a;--line:rgba(200,169,81,.16)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{background:var(--black);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(16px,4vw,32px);position:relative;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(200,169,81,.06),transparent 60%);pointer-events:none;z-index:0}
+.auth-logo{position:relative;z-index:1;font-family:'Cormorant',serif;font-size:clamp(18px,2.2vw,22px);font-weight:300;letter-spacing:.16em;color:var(--white);text-decoration:none;margin-bottom:clamp(28px,5vh,48px);display:flex;align-items:center;gap:10px;opacity:.92}
+.auth-gem{width:8px;height:8px;background:var(--gold);transform:rotate(45deg);flex-shrink:0;box-shadow:0 0 16px rgba(200,169,81,.4)}
+.auth-box{position:relative;z-index:1;background:linear-gradient(180deg,rgba(20,20,20,.78),rgba(14,14,14,.62));backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(200,169,81,.18);border-radius:20px;box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.03),inset 0 1px 0 rgba(255,255,255,.06);padding:clamp(28px,5vw,44px);max-width:480px;width:min(100%,480px)}
+.auth-box h2{font-family:'Cormorant',serif;font-size:clamp(28px,4vw,38px);font-weight:300;line-height:1.15;margin-bottom:8px;letter-spacing:-.01em}
+.auth-box h2 em{color:var(--gold2);font-style:italic;font-weight:400}
+.auth-sub{color:var(--muted);font-size:clamp(13px,1.4vw,14px);margin-bottom:clamp(20px,3.5vw,28px);font-weight:300;line-height:1.6}
+.finput{width:100%;min-height:48px;padding:14px 16px;background:rgba(7,7,7,.5);border:1px solid rgba(200,169,81,.14);border-radius:12px;color:var(--white);font-family:'Barlow',sans-serif;font-size:15px;margin-bottom:12px;outline:none;transition:border-color .25s,background .25s,box-shadow .25s;font-weight:300;-webkit-appearance:none;appearance:none}
+.finput:hover{border-color:rgba(200,169,81,.24);background:rgba(7,7,7,.65)}
+.finput:focus{border-color:rgba(200,169,81,.55);background:rgba(7,7,7,.78);box-shadow:0 0 0 3px rgba(200,169,81,.10)}
+.finput::placeholder{color:var(--faint);font-weight:300}
+.fsubmit{width:100%;min-height:50px;padding:14px 20px;background:linear-gradient(135deg,var(--gold),#b89940);border:1px solid rgba(255,255,255,.18);border-radius:999px;color:var(--black);font-family:'Tenor Sans',sans-serif;font-size:12px;letter-spacing:.22em;text-transform:uppercase;margin-top:10px;transition:transform .2s,box-shadow .25s,opacity .2s;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 24px rgba(200,169,81,.22),inset 0 1px 0 rgba(255,255,255,.35)}
+.fsubmit:hover{transform:translateY(-1px);box-shadow:0 14px 36px rgba(200,169,81,.36),inset 0 1px 0 rgba(255,255,255,.45)}
+.fsubmit:active{transform:translateY(0)}
+.fsubmit:disabled{opacity:.55;transform:none;cursor:not-allowed}
+.auth-error{background:rgba(200,115,58,.10);border:1px solid rgba(200,115,58,.32);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--amber);margin-bottom:14px;display:none;line-height:1.5}
+select.finput{cursor:pointer;padding-right:40px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' width='12' height='8'><path d='M1 1l5 5 5-5' stroke='%23c8a951' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-repeat:no-repeat;background-position:right 16px center;background-size:12px 8px;background-color:rgba(7,7,7,.5)}
+select.finput option{background:#0e0e0e;color:var(--white)}
+input[type="date"].finput::-webkit-calendar-picker-indicator{filter:invert(.7) sepia(1) hue-rotate(20deg) saturate(2);cursor:pointer}
+.flabel{display:block;font-family:'Tenor Sans',sans-serif;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:14px;margin-bottom:6px}
+.flabel.optional::after{content:' · optional';color:var(--faint);font-size:9px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fcheck{display:flex;align-items:flex-start;gap:10px;margin:14px 0;font-size:13px;color:var(--muted);line-height:1.5;font-weight:300;cursor:pointer}
+.fcheck input[type="checkbox"]{width:18px;height:18px;min-width:18px;accent-color:var(--gold);margin-top:1px;cursor:pointer}
+.fcheck a{color:var(--gold2);text-decoration:underline}
+@media(max-width:540px){body{justify-content:flex-start;padding-top:max(40px,env(safe-area-inset-top));padding-bottom:max(40px,env(safe-area-inset-bottom))}.auth-logo{margin-bottom:24px}.auth-box{border-radius:18px}.field-row{grid-template-columns:1fr}.finput{font-size:16px;min-height:52px}.fsubmit{min-height:54px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<a href="/" class="auth-logo"><div class="auth-gem"></div>theanirudhcode</a>
+<div class="auth-box">
+  <h2>One last <em>step</em></h2>
+  <p class="auth-sub">Tell us a bit about yourself so Dr. Anirudh can personalise your protocols.</p>
+  <div class="auth-error" id="auth-error"></div>
+  <form id="profile-form">
+    <div class="field-row">
+      <div>
+        <label class="flabel">Date of Birth</label>
+        <input class="finput" type="date" name="dateOfBirth" required max="2010-12-31" min="1920-01-01">
+      </div>
+      <div>
+        <label class="flabel">Sex</label>
+        <select class="finput" name="sex" required>
+          <option value="" disabled selected>Select</option>
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+          <option value="other">Other</option>
+          <option value="prefer_not_to_say">Prefer not to say</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div>
+        <label class="flabel">Country</label>
+        <select class="finput" name="country" required>
+          <option value="" disabled selected>Select</option>
+          <option value="IN">India</option>
+          <option value="US">United States</option>
+          <option value="GB">United Kingdom</option>
+          <option value="AE">UAE</option>
+          <option value="SG">Singapore</option>
+          <option value="AU">Australia</option>
+          <option value="CA">Canada</option>
+          <option value="OTHER">Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="flabel">City</label>
+        <input class="finput" type="text" name="city" placeholder="e.g. Bengaluru" required autocomplete="address-level2">
+      </div>
+    </div>
+    <label class="flabel">How did you find us?</label>
+    <select class="finput" name="referralSource" required>
+      <option value="" disabled selected>Select</option>
+      <option value="instagram">Instagram</option>
+      <option value="youtube">YouTube</option>
+      <option value="google">Google search</option>
+      <option value="friend">Friend / family</option>
+      <option value="podcast">Podcast</option>
+      <option value="event">Event / workshop</option>
+      <option value="news">News article</option>
+      <option value="other">Other</option>
+    </select>
+    <label class="flabel optional">Preferred Contact Channel</label>
+    <select class="finput" name="preferredChannel">
+      <option value="" selected>No preference</option>
+      <option value="email">Email</option>
+      <option value="whatsapp">WhatsApp</option>
+      <option value="sms">SMS</option>
+    </select>
+    <label class="flabel optional">Preferred Language</label>
+    <select class="finput" name="language">
+      <option value="en" selected>English</option>
+      <option value="hi">Hindi</option>
+      <option value="te">Telugu</option>
+      <option value="ta">Tamil</option>
+    </select>
+    <label class="fcheck">
+      <input type="checkbox" name="marketingOptIn" value="1" checked>
+      <span>Email me wellness insights, new programs, and occasional updates from Dr. Anirudh.</span>
+    </label>
+    <label class="fcheck">
+      <input type="checkbox" name="privacyConsent" value="1" required>
+      <span>I agree to the <a href="/privacy" target="_blank">Privacy Policy</a> and consent to processing of my health information.</span>
+    </label>
+    <button type="submit" class="fsubmit" id="save-btn"><span>Finish & Continue →</span></button>
+  </form>
+</div>
+<script>
+// Guard: if user already logged out, send to login
+fetch('/api/auth/me', { credentials: 'same-origin' }).then(r => {
+  if (!r.ok) window.location.href = '/login?redirect=/complete-profile';
+});
+
+document.getElementById('profile-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('save-btn');
+  const errEl = document.getElementById('auth-error');
+  const fd = new FormData(e.target);
+  const data = Object.fromEntries(fd);
+  data.marketingOptIn = !!data.marketingOptIn;
+  data.privacyConsent = !!data.privacyConsent;
+  btn.disabled = true;
+  btn.querySelector('span').textContent = 'Saving...';
+  errEl.style.display = 'none';
+  try {
+    const res = await fetch('/api/auth/complete-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(data)
+    });
+    const out = await res.json();
+    if (res.ok) {
+      const p = new URLSearchParams(window.location.search);
+      const redirect = p.get('redirect');
+      window.location.href = (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) ? redirect : '/';
+    } else {
+      errEl.textContent = out.error || 'Could not save profile';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.querySelector('span').textContent = 'Finish & Continue →';
+    }
+  } catch {
+    errEl.textContent = 'Connection error. Please try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.querySelector('span').textContent = 'Finish & Continue →';
+  }
+});
+</script>
+</body>
+</html>

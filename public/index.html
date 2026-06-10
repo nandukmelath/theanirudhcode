@@ -90,18 +90,26 @@ footer{overflow-x:hidden}
    NAV
 ═══════════════════════════════════════ */
 nav,nav.z{position:fixed;top:0;left:0;right:0;z-index:5000;padding:clamp(14px,2vw,26px) var(--px);display:flex;justify-content:space-between;align-items:center;transition:background .4s,border .4s;isolation:isolate}
-nav.s{background:rgba(7,7,7,.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
+nav.s{background:rgba(7,7,7,.55);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 8px 32px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06)}
+/* iOS-style glass utility — premium accents only */
+.glass{background:rgba(255,255,255,.06);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 32px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.08);border-radius:16px}
+.glass-gold{background:linear-gradient(135deg,rgba(200,169,81,.14),rgba(200,169,81,.03));backdrop-filter:blur(22px) saturate(200%);-webkit-backdrop-filter:blur(22px) saturate(200%);border:1px solid rgba(200,169,81,.28);box-shadow:0 12px 40px rgba(200,169,81,.14),inset 0 1px 0 rgba(255,255,255,.08);border-radius:18px}
+.glass-dark{background:rgba(14,14,14,.45);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);border:1px solid rgba(200,169,81,.16);box-shadow:0 16px 48px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05);border-radius:20px}
 .nlogo{font-family:'Cormorant',serif;font-size:clamp(15px,1.6vw,20px);font-weight:300;letter-spacing:.14em;color:var(--white);text-decoration:none;display:flex;align-items:center;gap:9px}
 .ngem{width:7px;height:7px;background:var(--gold);transform:rotate(45deg);box-shadow:0 0 14px var(--gold-g);animation:gpulse 3s ease-in-out infinite;flex-shrink:0}
 @keyframes gpulse{0%,100%{opacity:1;box-shadow:0 0 14px var(--gold-g)}50%{opacity:.5;box-shadow:0 0 28px var(--gold-g)}}
 .nlinks{display:flex;gap:clamp(18px,2.8vw,40px);list-style:none}
 .nlinks a{font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .3s}
 .nlinks a:hover{color:var(--gold2)}
-.ncta{background:transparent;border:1px solid rgba(200,169,81,.32);color:var(--gold2);padding:clamp(7px,.9vw,11px) clamp(18px,1.8vw,30px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;transition:all .35s}
-.ncta:hover{background:var(--gold-d);border-color:var(--gold)}
-.hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;padding:4px}
-.hamburger span{display:block;width:22px;height:1px;background:var(--gold2);transition:all .3s}
-.mmenu{display:none;position:fixed;inset:0;z-index:6000;background:rgba(7,7,7,.97);backdrop-filter:blur(24px);flex-direction:column;justify-content:center;align-items:center;gap:clamp(20px,4vh,36px);overflow-y:auto}
+.ncta{background:linear-gradient(135deg,rgba(200,169,81,.12),rgba(200,169,81,.02));backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);border:1px solid rgba(200,169,81,.32);color:var(--gold2);padding:clamp(7px,.9vw,11px) clamp(18px,1.8vw,30px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;border-radius:999px;box-shadow:0 4px 14px rgba(200,169,81,.1),inset 0 1px 0 rgba(255,255,255,.06);transition:all .35s}
+.ncta:hover{background:linear-gradient(135deg,rgba(200,169,81,.25),rgba(200,169,81,.08));border-color:var(--gold);box-shadow:0 8px 22px rgba(200,169,81,.22),inset 0 1px 0 rgba(255,255,255,.1);transform:translateY(-1px)}
+.hamburger{display:none;flex-direction:column;justify-content:center;align-items:center;gap:6px;background:rgba(200,169,81,.06);border:1px solid rgba(200,169,81,.22);border-radius:12px;width:44px;height:44px;padding:0;cursor:pointer;transition:background .25s,border-color .25s}
+.hamburger:hover,.hamburger:active{background:rgba(200,169,81,.14);border-color:rgba(200,169,81,.42)}
+.hamburger span{display:block;width:18px;height:1.5px;background:var(--gold2);transition:transform .3s,opacity .3s;border-radius:1px}
+.hamburger.open span:nth-child(1){transform:translateY(7.5px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0}
+.hamburger.open span:nth-child(3){transform:translateY(-7.5px) rotate(-45deg)}
+.mmenu{display:none;position:fixed;inset:0;z-index:6000;background:rgba(7,7,7,.72);backdrop-filter:blur(32px) saturate(180%);-webkit-backdrop-filter:blur(32px) saturate(180%);flex-direction:column;justify-content:center;align-items:center;gap:clamp(20px,4vh,36px);overflow-y:auto;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
 .mmenu.open{display:flex}
 .mmenu a{font-family:'Cormorant',serif;font-size:clamp(26px,6vw,50px);font-weight:300;font-style:italic;color:var(--white);text-decoration:none;letter-spacing:.06em;transition:color .3s}
 .mmenu a:hover{color:var(--gold)}
@@ -112,19 +120,19 @@ nav.s{background:rgba(7,7,7,.94);backdrop-filter:blur(20px);border-bottom:1px so
 ═══════════════════════════════════════ */
 .hero{min-height:100svh;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:clamp(20px,4vw,56px);padding:clamp(96px,13vh,148px) var(--px) clamp(52px,7vh,96px)}
 .hero-l{}
-.eyebrow{margin-bottom:clamp(18px,2.5vh,32px);opacity:0;animation:rise .9s .3s forwards}
+.eyebrow{margin-bottom:clamp(18px,2.5vh,32px);opacity:0;animation:rise .9s .3s forwards;display:inline-block;padding:8px 18px;background:linear-gradient(135deg,rgba(200,169,81,.10),rgba(200,169,81,.02));backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);border:1px solid rgba(200,169,81,.22);border-radius:999px;box-shadow:0 8px 24px rgba(200,169,81,.08),inset 0 1px 0 rgba(255,255,255,.06)}
 h1.ht{font-family:'Cormorant',serif;font-size:var(--fh);font-weight:300;line-height:.9;opacity:0;animation:rise 1.1s .6s forwards}
 h1.ht .it{font-style:italic;color:var(--gold2)}
 .hsub{font-family:'Cormorant',serif;font-style:italic;font-size:clamp(15px,1.8vw,24px);font-weight:300;color:var(--muted);margin-top:clamp(10px,1.5vh,18px);letter-spacing:.05em;opacity:0;animation:rise 1s .85s forwards}
 .hdesc{font-size:var(--fb);color:var(--muted);line-height:2.05;font-weight:300;margin-top:clamp(18px,2.5vh,32px);max-width:480px;opacity:0;animation:rise 1s 1.05s forwards}
 .hcta{display:flex;flex-wrap:wrap;gap:clamp(10px,1.5vw,18px);margin-top:clamp(26px,3.5vh,48px);opacity:0;animation:rise 1s 1.25s forwards}
-.btn-g{background:var(--gold);color:var(--black);border:none;padding:clamp(12px,1.4vw,17px) clamp(26px,2.8vw,48px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;position:relative;overflow:hidden;transition:box-shadow .4s}
-.btn-g::after{content:'';position:absolute;inset:0;background:var(--gold2);transform:translateX(-101%);transition:transform .42s cubic-bezier(.77,0,.18,1)}
-.btn-g:hover{box-shadow:0 16px 48px rgba(200,169,81,.32)}
+.btn-g{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--black);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);box-shadow:0 8px 24px rgba(200,169,81,.22),inset 0 1px 0 rgba(255,255,255,.35);border-radius:999px;padding:clamp(12px,1.4vw,17px) clamp(26px,2.8vw,48px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;position:relative;overflow:hidden;transition:box-shadow .4s,transform .25s}
+.btn-g::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.18),transparent 50%);transform:translateX(-101%);transition:transform .42s cubic-bezier(.77,0,.18,1)}
+.btn-g:hover{box-shadow:0 16px 48px rgba(200,169,81,.4),inset 0 1px 0 rgba(255,255,255,.45);transform:translateY(-1px)}
 .btn-g:hover::after{transform:translateX(0)}
 .btn-g span{position:relative;z-index:1}
-.btn-o{background:transparent;border:1px solid rgba(200,169,81,.28);color:var(--gold3);padding:clamp(12px,1.4vw,17px) clamp(26px,2.8vw,48px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;transition:all .35s}
-.btn-o:hover{border-color:var(--gold);background:var(--gold-d)}
+.btn-o{background:linear-gradient(135deg,rgba(200,169,81,.10),rgba(200,169,81,.02));backdrop-filter:blur(16px) saturate(180%);-webkit-backdrop-filter:blur(16px) saturate(180%);border:1px solid rgba(200,169,81,.28);color:var(--gold3);padding:clamp(12px,1.4vw,17px) clamp(26px,2.8vw,48px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.06);transition:all .35s}
+.btn-o:hover{border-color:var(--gold);background:linear-gradient(135deg,rgba(200,169,81,.22),rgba(200,169,81,.08));box-shadow:0 10px 28px rgba(200,169,81,.18),inset 0 1px 0 rgba(255,255,255,.1);transform:translateY(-1px)}
 .hero-r{display:flex;justify-content:center;align-items:center;position:relative;min-height:clamp(340px,48vw,620px);width:100%;opacity:0;animation:fadein 1.6s 1.4s forwards;overflow:hidden}
 .orbwrap{position:relative;width:min(100%,clamp(320px,42vw,620px));aspect-ratio:1/1;display:grid;place-items:center;margin-inline:auto}
 #orb{border-radius:50%;width:100%;height:100%;aspect-ratio:1/1}
@@ -224,9 +232,12 @@ h1.ht .it{font-style:italic;color:var(--gold2)}
 .fb-form h3{font-family:'Cormorant',serif;font-size:clamp(22px,2.5vw,34px);font-weight:300}
 .fb-form h3 em{font-style:italic;color:var(--gold2)}
 .fb-form p{font-size:var(--fb);color:var(--muted);font-weight:300;margin-top:10px;line-height:1.8}
-.finput{width:100%;margin-top:20px;background:rgba(200,169,81,.04);border:1px solid var(--line);color:var(--white);padding:clamp(12px,1.4vw,16px) clamp(16px,1.8vw,20px);font-family:'Barlow',sans-serif;font-size:var(--fb);font-weight:300;transition:border-color .3s;outline:none}
+.finput{width:100%;min-height:48px;margin-top:14px;background:rgba(7,7,7,.5);border:1px solid rgba(200,169,81,.14);border-radius:12px;color:var(--white);padding:clamp(12px,1.4vw,16px) clamp(16px,1.8vw,20px);font-family:'Barlow',sans-serif;font-size:15px;font-weight:300;transition:border-color .25s,background .25s,box-shadow .25s;outline:none;-webkit-appearance:none;appearance:none}
 .finput::placeholder{color:var(--faint)}
-.finput:focus{border-color:rgba(200,169,81,.4)}
+.finput:hover{border-color:rgba(200,169,81,.24);background:rgba(7,7,7,.65)}
+.finput:focus{border-color:rgba(200,169,81,.55);background:rgba(7,7,7,.78);box-shadow:0 0 0 3px rgba(200,169,81,.10)}
+.finput:-webkit-autofill,.finput:-webkit-autofill:hover,.finput:-webkit-autofill:focus{-webkit-text-fill-color:var(--white);-webkit-box-shadow:0 0 0 1000px rgba(7,7,7,.78) inset;caret-color:var(--white)}
+@media(max-width:540px){.finput{font-size:16px;min-height:52px}}
 .fsubmit{width:100%;margin-top:12px;background:var(--gold);color:var(--black);border:none;padding:clamp(13px,1.5vw,17px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;transition:all .4s;position:relative;overflow:hidden}
 .fsubmit::after{content:'';position:absolute;inset:0;background:var(--gold2);transform:translateX(-101%);transition:transform .42s cubic-bezier(.77,0,.18,1)}
 .fsubmit:hover::after{transform:translateX(0)}
@@ -364,9 +375,9 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 /* ═══════════════════════════════════════
    MODAL
 ═══════════════════════════════════════ */
-.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(7,7,7,.92);backdrop-filter:blur(20px);justify-content:center;align-items:center;padding:16px}
+.modal-overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(7,7,7,.55);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);justify-content:center;align-items:center;padding:16px}
 .modal-overlay.open{display:flex}
-.modal-content{background:var(--black2);border:1px solid var(--line);padding:clamp(28px,4vw,52px);max-width:640px;width:100%;position:relative;animation:rise .5s ease forwards;max-height:88vh;max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.modal-content{background:linear-gradient(135deg,rgba(20,20,20,.78),rgba(14,14,14,.62));backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(200,169,81,.18);box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04),inset 0 1px 0 rgba(255,255,255,.06);border-radius:20px;padding:clamp(28px,4vw,52px);max-width:640px;width:100%;position:relative;animation:rise .5s ease forwards;max-height:88vh;max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .modal-close{position:absolute;top:16px;right:20px;background:none;border:none;color:var(--gold);font-size:24px;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:flex-end;cursor:pointer}
 .auth-close{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:flex-end}
 /* Drag handle — hidden on desktop, shown as sheet indicator on mobile */
@@ -378,10 +389,10 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 ═══════════════════════════════════════ */
 .nav-auth{display:flex;align-items:center;position:relative;z-index:5001}
 .nav-user{position:relative;z-index:5002}
-.nav-user-btn{background:transparent;border:1px solid rgba(200,169,81,.32);color:var(--gold2);padding:clamp(7px,.9vw,11px) clamp(18px,1.8vw,30px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;transition:all .35s}
-.nav-user-btn:hover{background:var(--gold-d);border-color:var(--gold)}
-.nav-user.open .nav-user-btn{background:var(--gold-d);border-color:var(--gold)}
-.nav-dropdown{position:absolute;top:calc(100% + 10px);right:0;background:rgba(14,14,14,.98);border:1px solid var(--line);min-width:min(220px,calc(100vw - 32px));z-index:5003;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(8px);transition:opacity .22s ease,transform .22s ease,visibility .22s ease;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.nav-user-btn{background:linear-gradient(135deg,rgba(200,169,81,.10),rgba(200,169,81,.02));backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);border:1px solid rgba(200,169,81,.32);color:var(--gold2);padding:clamp(7px,.9vw,11px) clamp(18px,1.8vw,30px);font-family:'Tenor Sans',sans-serif;font-size:var(--fs);letter-spacing:.22em;text-transform:uppercase;border-radius:999px;box-shadow:0 4px 14px rgba(200,169,81,.08),inset 0 1px 0 rgba(255,255,255,.06);transition:all .35s}
+.nav-user-btn:hover{background:linear-gradient(135deg,rgba(200,169,81,.22),rgba(200,169,81,.06));border-color:var(--gold);box-shadow:0 8px 22px rgba(200,169,81,.18),inset 0 1px 0 rgba(255,255,255,.1);transform:translateY(-1px)}
+.nav-user.open .nav-user-btn{background:linear-gradient(135deg,rgba(200,169,81,.22),rgba(200,169,81,.06));border-color:var(--gold)}
+.nav-dropdown{position:absolute;top:calc(100% + 10px);right:0;background:rgba(14,14,14,.55);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(200,169,81,.18);border-radius:14px;min-width:min(220px,calc(100vw - 32px));z-index:5003;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(8px);transition:opacity .22s ease,transform .22s ease,visibility .22s ease;box-shadow:0 24px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden}
 .nav-user.open .nav-dropdown{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0)}
 .nav-dropdown a,.nav-dropdown button{display:block;width:100%;padding:14px 20px;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);color:var(--muted);font-family:'Barlow',sans-serif;font-size:13px;text-decoration:none;transition:all .3s;font-weight:300;letter-spacing:.04em}
 .nav-dropdown a:hover,.nav-dropdown button:hover{color:var(--gold2);background:var(--gold-d)}
@@ -958,6 +969,130 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   .auth-close{top:max(14px,env(safe-area-inset-top))}
 }
 
+/* ═══════════════════════════════════════
+   PREMIUM WOW LAYER
+═══════════════════════════════════════ */
+/* Custom gold scrollbar */
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:rgba(7,7,7,.6)}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(200,169,81,.32),rgba(200,169,81,.18));border-radius:10px;border:2px solid rgba(7,7,7,.6)}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,rgba(200,169,81,.55),rgba(200,169,81,.3))}
+html{scrollbar-color:rgba(200,169,81,.32) rgba(7,7,7,.6);scrollbar-width:thin}
+
+/* Refined selection color */
+::selection{background:rgba(200,169,81,.32);color:var(--white)}
+::-moz-selection{background:rgba(200,169,81,.32);color:var(--white)}
+
+/* Focus-visible outlines (accessibility + polish) */
+*:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:6px}
+button:focus-visible,a:focus-visible{outline-color:var(--gold2)}
+.finput:focus-visible{outline:none}
+
+/* Smoother scroll with offset for fixed nav */
+html{scroll-behavior:smooth;scroll-padding-top:96px}
+
+/* Gold gradient sweep on big section headings (h2 with em italic — Dr. A signature look) */
+.philo h2,.profile h2,.tiers-section h2,.testis h2,.cohorts-section h2,.faq h2,.cta h2,.insights h2,.truths-section h2,.cpillars h2,.vault-section h2,.journey h2,.manifesto h2,.freebie h2,.pdf-dl-right h2{
+  background:linear-gradient(135deg,#f8f4ec 0%,#f8f4ec 40%,#e2c97e 70%,#c8a951 100%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+}
+/* `em` inside heading stays italic gold */
+.philo h2 em,.profile h2 em,.tiers-section h2 em,.testis h2 em,.cohorts-section h2 em,.faq h2 em,.cta h2 em,.insights h2 em,.truths-section h2 em,.cpillars h2 em,.vault-section h2 em,.journey h2 em,.manifesto h2 em,.freebie h2 em,.pdf-dl-right h2 em{
+  background:linear-gradient(135deg,#e2c97e 0%,#c8a951 100%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+}
+
+/* Shimmer sweep on primary gold buttons (subtle, infinite, slow) */
+@keyframes shimmerSweep{0%{transform:translateX(-100%) skewX(-12deg)}60%,100%{transform:translateX(220%) skewX(-12deg)}}
+.btn-g{position:relative;overflow:hidden}
+.btn-g::before{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.32),transparent);transform:translateX(-100%) skewX(-12deg);animation:shimmerSweep 4.5s ease-in-out infinite;animation-delay:1.2s;pointer-events:none}
+
+/* Card 3D-tilt prep: smooth transform, willChange hint */
+.cp-card,.ins-card,.truth-card,.tcard{will-change:transform;transform-style:preserve-3d;transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .5s,background .5s,border-color .35s}
+
+/* Reveal staggering — refined easing */
+.rv{opacity:0;transform:translateY(28px) scale(.985);transition:opacity .9s cubic-bezier(.22,1,.36,1),transform .9s cubic-bezier(.22,1,.36,1)}
+.rv.in{opacity:1;transform:none}
+
+/* Animated stat counters — gold pulse */
+.stat-num{display:inline-block;font-family:'Cormorant',serif;font-weight:300;background:linear-gradient(135deg,var(--gold2),var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+
+/* Magnetic button base */
+.btn-g,.btn-o,.ncta,.float-cta,.pdf-dl-btn,.cohort-enroll-btn{transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s}
+
+/* Premium link underline */
+a:not(.nlogo):not(.ncta):not([class*="btn"]):not([class*="cta"]):hover{text-shadow:0 0 18px rgba(200,169,81,.5)}
+
+/* Accent glow on hero orb subtle pulse */
+@keyframes auraPulse{0%,100%{opacity:.6}50%{opacity:1}}
+.orbring,.orbring2{animation-timing-function:cubic-bezier(.4,0,.2,1)}
+
+/* Mobile: disable shimmer + reduce-motion respect */
+@media(max-width:540px){.btn-g::before{display:none}}
+@media(prefers-reduced-motion:reduce){.btn-g::before,.orbring,.orbring2,.rv{animation:none!important;opacity:1!important;transform:none!important;transition:none!important}}
+
+/* ═══════════════════════════════════════
+   iOS GLASS — universal button layer (premium feel)
+═══════════════════════════════════════ */
+.pdf-dl-btn,.cohort-enroll-btn,.float-cta{
+  border-radius:999px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  border:1px solid rgba(255,255,255,.18);
+  backdrop-filter:blur(14px) saturate(180%);
+  -webkit-backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:0 8px 24px rgba(200,169,81,.22),inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .25s,box-shadow .35s
+}
+.pdf-dl-btn:hover,.cohort-enroll-btn:hover,.float-cta:hover{
+  transform:translateY(-1px);
+  box-shadow:0 14px 36px rgba(200,169,81,.36),inset 0 1px 0 rgba(255,255,255,.45)
+}
+.tier-p-cta,.product-buy-btn{
+  background:linear-gradient(135deg,rgba(200,169,81,.10),rgba(200,169,81,.02));
+  backdrop-filter:blur(14px) saturate(180%);
+  -webkit-backdrop-filter:blur(14px) saturate(180%);
+  border-radius:999px;
+  box-shadow:0 4px 14px rgba(200,169,81,.08),inset 0 1px 0 rgba(255,255,255,.06);
+  transition:all .35s
+}
+.tier-p-cta:hover,.product-buy-btn:hover{
+  background:linear-gradient(135deg,rgba(200,169,81,.24),rgba(200,169,81,.08));
+  border-color:var(--gold);
+  box-shadow:0 10px 28px rgba(200,169,81,.22),inset 0 1px 0 rgba(255,255,255,.1);
+  transform:translateY(-1px)
+}
+.tier-select-btn{
+  background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.01));
+  backdrop-filter:blur(12px) saturate(160%);
+  -webkit-backdrop-filter:blur(12px) saturate(160%);
+  border-radius:999px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  transition:all .3s
+}
+.tier-select-btn:hover{
+  background:linear-gradient(135deg,rgba(200,169,81,.18),rgba(200,169,81,.04));
+  border-color:rgba(200,169,81,.32);
+  color:var(--gold2);
+  box-shadow:0 6px 18px rgba(200,169,81,.14),inset 0 1px 0 rgba(255,255,255,.08)
+}
+.fsoc-btn{
+  background:rgba(255,255,255,.04);
+  backdrop-filter:blur(12px) saturate(160%);
+  -webkit-backdrop-filter:blur(12px) saturate(160%);
+  border-radius:50%;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  transition:all .3s
+}
+.fsoc-btn:hover{
+  background:linear-gradient(135deg,rgba(200,169,81,.18),rgba(200,169,81,.04));
+  border-color:rgba(200,169,81,.32);
+  color:var(--gold2);
+  transform:translateY(-1px);
+  box-shadow:0 6px 18px rgba(200,169,81,.14),inset 0 1px 0 rgba(255,255,255,.08)
+}
+
 </style>
 </head>
 <body>
@@ -974,10 +1109,10 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   <a href="/" class="nlogo"><div class="ngem"></div>theanirudhcode</a>
   <ul class="nlinks">
     <li><a href="#about">About</a></li>
-    <li><a href="#protocols">Protocols</a></li>
+    <!-- <li><a href="#protocols">Protocols</a></li> hidden -->
     <li><a href="#philo">Philosophy</a></li>
     <li><a href="#insights">Insights</a></li>
-    <li><a href="#journey">Journey</a></li>
+    <!-- <li><a href="#journey">Journey</a></li> hidden -->
     <li><a href="#stories">Stories</a></li>
   </ul>
   <div class="nav-auth">
@@ -988,10 +1123,10 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 <div class="mmenu" id="mm">
   <button class="mclose" id="mc">&#10005;</button>
   <a href="#about" class="mml">About</a>
-  <a href="#protocols" class="mml">Protocols</a>
+  <!-- <a href="#protocols" class="mml">Protocols</a> hidden -->
   <a href="#philo" class="mml">Philosophy</a>
   <a href="#insights" class="mml">Insights</a>
-  <a href="#journey" class="mml">Journey</a>
+  <!-- <a href="#journey" class="mml">Journey</a> hidden -->
   <a href="#stories" class="mml">Stories</a>
   <button class="btn-g" style="margin-top:8px" data-action="open-consultation"><span>Begin Healing</span></button>
 </div>
@@ -1005,7 +1140,6 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
     <p class="hdesc">Dr. Anirudh M. Vaddineni — Specialist in Metabolic Biochemistry — goes beyond symptom management. theanirudhcode bridges ancient Ayurvedic wisdom with cutting-edge metabolic science — to restore your gut, rewire your hormones, and realign your biology.</p>
     <div class="hcta">
       <button class="btn-g" data-action="open-consultation"><span>Start Your Journey</span></button>
-      <button class="btn-o" data-scroll="#free-guide">Explore Free Guide</button>
     </div>
   </div>
   <div class="hero-r">
@@ -1053,8 +1187,8 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   <div class="stat"><div class="stn" data-target="30">0<sup>K+</sup></div><div class="stl">Instagram Community</div></div>
 </div>
 
-<!-- ══════════ CONTENT PILLARS ══════════ -->
-<section class="cpillars z" id="pillars">
+<!-- ══════════ CONTENT PILLARS (hidden per request 2026-05-12) ══════════ -->
+<section class="cpillars z" id="pillars" hidden style="display:none">
   <div class="hr"></div>
   <div style="padding-top:var(--py)">
     <div class="cp-head rv">
@@ -1164,14 +1298,14 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
       </div>
       <div class="prof-actions">
         <button class="btn-g" data-action="open-consultation"><span>Book a Consultation</span></button>
-        <a href="#protocols" class="btn-o">Explore Protocols</a>
+        <!-- <a href="#protocols" class="btn-o">Explore Protocols</a> hidden -->
       </div>
     </div>
   </div>
 </section>
 
-<!-- ══════════ HEALING PROTOCOLS ══════════ -->
-<section class="protocols z" id="protocols">
+<!-- ══════════ HEALING PROTOCOLS (hidden per request 2026-05-12) ══════════ -->
+<section class="protocols z" id="protocols" hidden style="display:none">
   <div class="prot-head rv">
     <div class="gl" style="justify-content:center;margin-bottom:clamp(12px,1.8vw,20px)">The Protocols</div>
     <h2>Proven frameworks<br>for <em>real transformation</em></h2>
@@ -1238,64 +1372,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   </div>
 </section>
 
-<!-- ══════════ FREE GUIDE ══════════ -->
-<section class="freebie z rv" id="free-guide">
-  <div class="fb-text rv">
-    <div class="gl" style="margin-bottom:clamp(14px,2vw,22px)">Free Resource</div>
-    <h2>The <em>7-Day</em><br>Healing Reset Guide</h2>
-    <p>Anirudh's most downloaded protocol — a step-by-step, science-backed guide to resetting your gut, nervous system, and sleep in one week. Used by over 12,000 people.</p>
-    <div class="fb-list">
-      <div class="fb-item">Day-by-day meal & fasting schedule aligned with your circadian biology</div>
-      <div class="fb-item">Morning Dinacharya ritual (Ayurvedic daily routine)</div>
-      <div class="fb-item">Evening nervous system wind-down sequence</div>
-      <div class="fb-item">Supplement stack recommendations with dosage</div>
-      <div class="fb-item">Breathwork audio guides for morning & night</div>
-    </div>
-  </div>
-  <form id="guide-form" class="fb-form rv" style="transition-delay:.2s">
-    <h3>Get your free <em>guide</em></h3>
-    <p>Join 12,000+ people who have already begun their healing journey.</p>
-    <input class="finput" type="text" name="name" placeholder="Your first name" required>
-    <input class="finput" type="email" name="email" placeholder="Your email address" required>
-    <button type="submit" class="fsubmit"><span>Send Me the Guide &rarr;</span></button>
-    <p class="fprivacy">No spam. Unsubscribe anytime. Your data is safe.</p>
-  </form>
-</section>
-
-<!-- ══════════ PDF DOWNLOAD ══════════ -->
-<section class="pdf-dl-section z rv" id="pdf-download">
-  <div class="pdf-dl-inner">
-    <div class="pdf-dl-left">
-      <div class="pdf-dl-mockup" aria-hidden="true">
-        <div class="pdf-mockup-page pdf-pg1">
-          <div class="pdf-m-logo">theanirudhcode</div>
-          <div class="pdf-m-title">THE<br>ANIRUDH<br>CODE</div>
-          <div class="pdf-m-sub">Decode Your Health.<br>Reclaim Your Life.</div>
-          <div class="pdf-m-orb"></div>
-        </div>
-        <div class="pdf-mockup-page pdf-pg2"></div>
-        <div class="pdf-mockup-page pdf-pg3"></div>
-      </div>
-    </div>
-    <div class="pdf-dl-right rv">
-      <div class="gl" style="margin-bottom:clamp(12px,1.8vw,20px)">Free Download</div>
-      <h2>The Complete<br><em>Wellness Guide</em></h2>
-      <p class="pdf-dl-desc">8 beautifully designed pages covering the full theanirudhcode philosophy — from root-cause medicine and metabolic biochemistry to the 5 principles of metabolic mastery and how to begin your transformation.</p>
-      <ul class="pdf-dl-list">
-        <li>Core philosophy &amp; root-cause framework</li>
-        <li>Consultation options explained</li>
-        <li>6 metabolic truths you need to know</li>
-        <li>The Code We Live By — 5 principles</li>
-        <li>Vault resource overview</li>
-      </ul>
-      <a href="/theanirudhcode-guide.pdf" download="theanirudhcode-complete-guide.pdf" class="pdf-dl-btn">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v10M4 8l5 5 5-5M2 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Download Free Guide · PDF</span>
-      </a>
-      <p class="pdf-dl-note">8 pages · 152 KB · No sign-up required</p>
-    </div>
-  </div>
-</section>
+<!-- free-guide + PDF download removed -->
 
 <!-- ══════════ INSIGHTS / BLOG ══════════ -->
 <section class="insights z" id="insights">
@@ -1393,8 +1470,8 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   </div>
 </section>
 
-<!-- ══════════ JOURNEY ══════════ -->
-<section class="journey z" id="journey">
+<!-- ══════════ JOURNEY (hidden per request 2026-05-13) ══════════ -->
+<section class="journey z" id="journey" hidden style="display:none">
   <div class="hr"></div>
   <div style="padding-top:var(--py)">
     <div class="jhead rv">
@@ -1486,8 +1563,8 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   </div>
 </section>
 
-<!-- ══════════ COHORT PROGRAMS ══════════ -->
-<section class="cohorts-section z" id="programs">
+<!-- ══════════ COHORT PROGRAMS (hidden per request 2026-05-13) ══════════ -->
+<section class="cohorts-section z" id="programs" hidden style="display:none">
   <div class="cohorts-head rv">
     <div class="gl" style="justify-content:center;margin-bottom:clamp(14px,2vw,22px)">Transform Together</div>
     <h2>Group programs<br>for <em>deep change</em></h2>
@@ -1587,92 +1664,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
   </div>
 </section>
 
-<!-- ══════════ THE VAULT / DIGITAL PRODUCTS ══════════ -->
-<section class="vault-section z" id="vault">
-  <div class="vault-head rv">
-    <div>
-      <div class="gl" style="margin-bottom:clamp(12px,1.8vw,20px)">The Vault</div>
-      <h2>Healing resources<br>you can start <em>today</em></h2>
-      <p>Distilled protocols and guides built from years of clinical practice. Instant access. No consultation needed to begin.</p>
-    </div>
-  </div>
-  <div class="vault-grid" id="vault-grid">
-    <div class="product-card rv">
-      <div class="product-badge">Bestseller</div>
-      <div class="product-category">E-Book</div>
-      <div class="product-title">7-Day Gut Reset Protocol</div>
-      <p class="product-desc">A step-by-step digital guide to eliminate bloating, reset your gut microbiome, and restore digestive clarity in one week — using food, fasting, and targeted supplements.</p>
-      <ul class="product-features">
-        <li>7-day meal &amp; fasting plan</li>
-        <li>Supplement stack guide</li>
-        <li>Daily tracking sheets</li>
-        <li>Lifetime access &amp; updates</li>
-      </ul>
-      <div class="product-footer">
-        <button class="product-buy-btn" data-product-id="1" data-product-title="7-Day Gut Reset Protocol">Order Now</button>
-      </div>
-    </div>
-    <div class="product-card rv" style="transition-delay:.08s">
-      <div class="product-category">E-Book</div>
-      <div class="product-title">Fasting for Women: The Complete Guide</div>
-      <p class="product-desc">Why standard fasting protocols fail women — and the cycle-synced approach that actually works. Covers hormones, hair loss, thyroid, fertility, and sustainable fat loss.</p>
-      <ul class="product-features">
-        <li>Cycle-synced fasting schedules</li>
-        <li>Hormone safety protocols</li>
-        <li>Hair &amp; thyroid protection</li>
-        <li>Real case studies</li>
-      </ul>
-      <div class="product-footer">
-        <button class="product-buy-btn" data-product-id="2" data-product-title="Fasting for Women">Order Now</button>
-      </div>
-    </div>
-    <div class="product-card rv" style="transition-delay:.16s">
-      <div class="product-badge">New</div>
-      <div class="product-category">E-Book</div>
-      <div class="product-title">Dosha Cookbook: 60 Metabolic Recipes</div>
-      <p class="product-desc">Sixty seasonal, dosha-specific recipes built around metabolic biochemistry. Each dish targets gut healing, insulin sensitivity, or hormonal balance.</p>
-      <ul class="product-features">
-        <li>60 dosha-specific recipes</li>
-        <li>Seasonal eating calendar</li>
-        <li>Metabolic nutrition notes</li>
-        <li>Shopping lists included</li>
-      </ul>
-      <div class="product-footer">
-        <button class="product-buy-btn" data-product-id="3" data-product-title="Dosha Cookbook">Order Now</button>
-      </div>
-    </div>
-    <div class="product-card rv" style="transition-delay:.04s">
-      <div class="product-badge">Premium</div>
-      <div class="product-category">Audio Bundle</div>
-      <div class="product-title">Breathwork &amp; Healing Audio Bundle</div>
-      <p class="product-desc">Four guided breathwork sessions (15–30 min each) for nervous system reset, cortisol reduction, deep sleep, and morning energy activation.</p>
-      <ul class="product-features">
-        <li>4 guided sessions (60+ min total)</li>
-        <li>Morning activation protocol</li>
-        <li>Deep sleep breathwork</li>
-        <li>Stress reset session</li>
-      </ul>
-      <div class="product-footer">
-        <button class="product-buy-btn" data-product-id="4" data-product-title="Breathwork Audio Bundle">Order Now</button>
-      </div>
-    </div>
-    <div class="product-card rv" style="transition-delay:.12s;grid-column:span 2;background:rgba(208,175,82,.04);border-color:rgba(208,175,82,.22)">
-      <div class="product-badge">Best Value · 30% Off</div>
-      <div class="product-category">Bundle</div>
-      <div class="product-title">Metabolic Reset Starter Bundle</div>
-      <p class="product-desc">Everything you need to begin: 7-Day Gut Reset + Fasting for Women + Breathwork Bundle. The complete starter stack — bundled at a 30% saving.</p>
-      <ul class="product-features" style="grid-template-columns:1fr 1fr;display:grid;gap:8px">
-        <li>7-Day Gut Reset ebook</li>
-        <li>Fasting for Women guide</li>
-        <li>Breathwork audio bundle</li>
-        <li>30% off individual price</li>
-      </ul>
-      <div class="product-footer" style="margin-top:20px">
-        <button class="product-buy-btn" style="background:var(--gold);color:var(--black);border-color:var(--gold);padding:12px 28px" data-product-id="5" data-product-title="Metabolic Reset Starter Bundle">Get the Bundle</button>
-      </div>
-    </div>
-  </div>
-</section>
+<!-- vault / digital products removed -->
 
 <!-- ══════════ CTA ══════════ -->
 <section class="cta z rv">
@@ -1704,16 +1696,16 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
     <h5>Explore</h5>
     <a href="#about">About Dr. Anirudh</a>
     <a href="#philo">Philosophy</a>
-    <a href="#protocols">Protocols</a>
+    <!-- <a href="#protocols">Protocols</a> hidden -->
     <a href="#insights">Insights</a>
-    <a href="#journey">Journey</a>
+    <!-- <a href="#journey">Journey</a> hidden -->
     <a href="#stories">Stories</a>
     <a href="#faq">FAQ</a>
   </div>
   <div class="flinks-col">
     <h5>Connect</h5>
     <a href="https://instagram.com/theanirudhcode" target="_blank" rel="noopener">Instagram</a>
-    <a href="#pdf-download">Free Guide</a>
+    <!-- <a href="#pdf-download">Free Guide</a> hidden -->
     <a href="/theanirudhcode-guide.pdf" download="theanirudhcode-complete-guide.pdf">Download PDF</a>
     <a href="#" data-action="open-consultation">Consultation</a>
     <a href="https://t.me/theanirudhcode" target="_blank" rel="noopener">Community</a>
@@ -1749,7 +1741,8 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
       <input class="finput" type="text" name="name" placeholder="Full name" required>
       <input class="finput" type="email" name="email" placeholder="Email address" required>
       <input class="finput" type="tel" name="phone" placeholder="Phone number (optional)">
-      <input class="finput" type="password" name="password" placeholder="Password (min 8 characters)" required>
+      <input class="finput" type="password" name="password" placeholder="Password (min 8, letter + number)" required>
+      <p style="font-size:11px;color:var(--faint);margin:-4px 0 12px;line-height:1.5">At least 8 characters, including a letter and a number.</p>
       <button type="submit" class="fsubmit"><span>Create Account →</span></button>
     </form>
     <p class="auth-sep">Secure · Encrypted · No spam ever</p>
@@ -1839,6 +1832,7 @@ footer{padding:clamp(36px,5.5vw,72px) var(--px);border-top:1px solid var(--line)
 <script src="/js/forms.js"></script>
 <script src="/js/auth-modal.js"></script>
 <script src="/js/enhancements.js"></script>
+<script src="/js/wow.js" defer></script>
 <script>
 /* ═══ CONSULTATION TIER BUTTONS → open booking modal at correct tier ═══ */
 document.addEventListener('DOMContentLoaded', () => {
