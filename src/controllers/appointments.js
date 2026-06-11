@@ -14,6 +14,15 @@ function isValidTime(t) {
   return /^\d{2}:\d{2}$/.test(t);
 }
 
+// Today's date (YYYY-MM-DD) in the practitioner's timezone, not UTC. Using UTC made
+// appointments flip between "upcoming" and "past" during the 00:00–05:30 IST window.
+function practitionerToday() {
+  const off = process.env.PRACTITIONER_TZ_OFFSET || '+05:30';
+  const m = /^([+-])(\d{2}):(\d{2})$/.exec(off);
+  const mins = m ? (m[1] === '-' ? -1 : 1) * (parseInt(m[2], 10) * 60 + parseInt(m[3], 10)) : 330;
+  return new Date(Date.now() + mins * 60000).toISOString().split('T')[0];
+}
+
 // Normalize Prisma appointment to snake_case for the frontend
 function normalize(a) {
   return {
@@ -87,10 +96,21 @@ router.post('/book', authenticate, async (req, res) => {
     // at the DB level; P2002 (unique violation) and P2034 (serialization failure)
     // are both surfaced as a 409 to the client.
     appointment = await prisma.$transaction(async (tx) => {
+      // Range-overlap conflict — catches partial overlaps, not just identical start times
+      // (a crafted off-grid time_start could otherwise slip past an exact-match check).
       const existing = await tx.appointment.findFirst({
-        where: { date, timeStart: time_start, status: 'confirmed' }
+        where: { date, status: 'confirmed', timeStart: { lt: time_end }, timeEnd: { gt: time_start } }
       });
       if (existing) {
+        const e = new Error('SLOT_TAKEN');
+        e.code  = 'SLOT_TAKEN';
+        throw e;
+      }
+      // Reject bookings that overlap a slot the practitioner has blocked off.
+      const blocked = await tx.blockedSlot.findFirst({
+        where: { date, timeStart: { lt: time_end }, timeEnd: { gt: time_start } }
+      });
+      if (blocked) {
         const e = new Error('SLOT_TAKEN');
         e.code  = 'SLOT_TAKEN';
         throw e;
@@ -163,7 +183,7 @@ router.get('/my', authenticate, async (req, res) => {
     });
 
     const normalized = appointments.map(normalize);
-    const today    = new Date().toISOString().split('T')[0];
+    const today    = practitionerToday();
     const upcoming = normalized.filter(a => a.date >= today && a.status === 'confirmed');
     const past     = normalized.filter(a => a.date < today  || a.status !== 'confirmed');
 
@@ -286,9 +306,13 @@ router.post('/:id/reschedule', authenticate, async (req, res) => {
 
     await prisma.$transaction(async (tx) => {
       const conflict = await tx.appointment.findFirst({
-        where: { date, timeStart: time_start, status: 'confirmed', NOT: { id } }
+        where: { date, status: 'confirmed', NOT: { id }, timeStart: { lt: time_end }, timeEnd: { gt: time_start } }
       });
       if (conflict) { const e = new Error('SLOT_TAKEN'); e.code = 'SLOT_TAKEN'; throw e; }
+      const blocked = await tx.blockedSlot.findFirst({
+        where: { date, timeStart: { lt: time_end }, timeEnd: { gt: time_start } }
+      });
+      if (blocked) { const e = new Error('SLOT_TAKEN'); e.code = 'SLOT_TAKEN'; throw e; }
       await tx.appointment.update({ where: { id }, data: { date, timeStart: time_start, timeEnd: time_end } });
     }, { isolationLevel: 'Serializable' });
 

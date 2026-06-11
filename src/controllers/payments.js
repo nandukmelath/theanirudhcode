@@ -75,8 +75,9 @@ async function bookAfterPayment({ userId, tier, date, time_start, time_end,
   const cleanAge = Number.isInteger(age) && age >= 1 && age <= 120 ? age : null;
 
   const appointment = await prisma.$transaction(async (tx) => {
+    // Range-overlap conflict (not just identical start) — same hardening as /book.
     const conflict = await tx.appointment.findFirst({
-      where: { date, timeStart: time_start, status: 'confirmed' }
+      where: { date, status: 'confirmed', timeStart: { lt: time_end }, timeEnd: { gt: time_start } }
     });
     if (conflict) {
       const e = new Error('SLOT_TAKEN');
