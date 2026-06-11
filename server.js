@@ -67,6 +67,10 @@ async function runPaymentMigration() {
     `ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'INR'`,
     `ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS amount_paid INT`,
     `CREATE INDEX IF NOT EXISTS pord_payment_order_idx ON product_orders(payment_order_id)`,
+    // Fasting Program enrollments live in cohort_enrollments (program + intake JSON)
+    `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS user_id INT`,
+    `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS program TEXT`,
+    `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS intake JSONB`,
     `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'pending'`,
     `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS payment_id TEXT`,
     `ALTER TABLE cohort_enrollments ADD COLUMN IF NOT EXISTS payment_order_id TEXT`,
@@ -256,6 +260,8 @@ app.use('/api/consultation',              limit({ windowMs: 60 * 60 * 1000, max:
 // Payment endpoints: prevent order-spam and verify-spam (5 per 10 min per IP)
 app.use('/api/payments/cashfree/create-order', limit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
 app.use('/api/payments/cashfree/verify',       limit({ windowMs: 10 * 60 * 1000, max: 10, message: { error: 'Too many verification attempts. Please try again later.' } }));
+app.use('/api/payments/fasting/create-order',  limit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
+app.use('/api/payments/fasting/verify',        limit({ windowMs: 10 * 60 * 1000, max: 10, message: { error: 'Too many verification attempts. Please try again later.' } }));
 app.use('/api/payments/stripe/create-session', limit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
 app.use('/api/payments/test/complete',         limit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));
 // Admin login: separate tight limit before general portal limiter

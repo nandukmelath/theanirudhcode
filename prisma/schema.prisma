@@ -183,10 +183,13 @@ model Cohort {
 model CohortEnrollment {
   id             Int      @id @default(autoincrement())
   cohortId       Int      @map("cohort_id")
+  userId         Int?     @map("user_id")
   name           String
   email          String
   phone          String?
   message        String?
+  program        String?
+  intake         Json?
   status         String   @default("waitlist")
   paymentStatus  String   @default("pending") @map("payment_status")
   paymentId      String?  @map("payment_id")

@@ -384,18 +384,250 @@ router.post('/cashfree/webhook', async (req, res) => {
     console.log(`[Cashfree webhook] PAYMENT_SUCCESS for order ${orderId}`);
 
     if (orderId) {
-      const existing = await prisma.appointment.findFirst({ where: { paymentOrderId: orderId } });
+      // fp_ orders are Fasting Program enrollments; everything else is an appointment
+      const isFasting = orderId.startsWith('fp_');
+      const existing = isFasting
+        ? await prisma.cohortEnrollment.findFirst({ where: { paymentOrderId: orderId } })
+        : await prisma.appointment.findFirst({ where: { paymentOrderId: orderId } });
       if (existing) {
-        console.log(`[Cashfree webhook] appointment ${existing.id} already booked — no action needed`);
+        console.log(`[Cashfree webhook] ${isFasting ? 'enrollment' : 'appointment'} ${existing.id} already recorded — no action needed`);
       } else {
-        // Booking data not available in webhook — client /cashfree/verify is the primary path.
+        // Booking data not available in webhook — client verify is the primary path.
         // If verify was never called (e.g. browser crash after redirect), admin must confirm manually.
-        console.warn(`[Cashfree webhook] order ${orderId} PAID but no appointment found — needs manual review`);
+        console.warn(`[Cashfree webhook] order ${orderId} PAID but no ${isFasting ? 'enrollment' : 'appointment'} found — needs manual review`);
       }
     }
   }
 
   res.json({ received: true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FASTING PROGRAM — 3-Day Guided Water Fast (₹1,999)
+// POST /api/payments/fasting/create-order   POST /api/payments/fasting/verify
+// Enrollments stored in cohort_enrollments under a rolling cohort row.
+// ═══════════════════════════════════════════════════════════════════════════════
+const FASTING = { key: 'water-fast-3day', label: '3-Day Guided Water Fast', INR: 1999 };
+// Water fasting is contraindicated for these — hard-block, route to consultation
+const FASTING_BLOCKED    = ['pregnant', 'eating_disorder', 'type1_diabetes'];
+const FASTING_CONDITIONS = ['none', 'diabetes_meds', 'bp_meds', 'kidney_liver', 'heart', 'pregnant', 'eating_disorder', 'type1_diabetes', 'other'];
+const FASTING_EXPERIENCE = ['none', 'intermittent', 'extended'];
+
+function validateFastingBody(body) {
+  const age = parseInt(body.age, 10);
+  if (!Number.isInteger(age) || age < 18 || age > 75) return 'Age must be between 18 and 75 for a supervised water fast.';
+  const wa = String(body.whatsapp || '').replace(/\D/g, '');
+  if (wa.length < 10) return 'A valid WhatsApp number is required — the support community lives there.';
+  if (!FASTING_EXPERIENCE.includes(body.experience)) return 'Select your fasting experience.';
+  if (!body.goal || !String(body.goal).trim()) return 'Tell us your primary goal for the fast.';
+  if (!Array.isArray(body.conditions) || !body.conditions.every(c => FASTING_CONDITIONS.includes(c))) return 'Invalid medical screening data.';
+  if (body.consent !== true) return 'Please accept the telemedicine consent to continue.';
+  return null;
+}
+
+function sanitizeFastingIntake(body) {
+  return {
+    age:         parseInt(body.age, 10),
+    sex:         ['male', 'female', 'other'].includes(body.sex) ? body.sex : null,
+    whatsapp:    String(body.whatsapp || '').replace(/\D/g, '').slice(-12),
+    city:        sanitize(String(body.city || '').trim()).slice(0, 80) || null,
+    experience:  body.experience,
+    goal:        sanitize(String(body.goal || '').trim()).slice(0, 500),
+    conditions:  (body.conditions || []).filter(c => FASTING_CONDITIONS.includes(c)),
+    medications: sanitize(String(body.medications || '').trim()).slice(0, 500) || null,
+    consent_at:  new Date().toISOString(),   // TPG-2020 explicit consent
+  };
+}
+
+async function getOrCreateFastingCohort() {
+  let cohort = await prisma.cohort.findFirst({ where: { name: FASTING.label, isActive: true } });
+  if (!cohort) {
+    cohort = await prisma.cohort.create({
+      data: {
+        name: FASTING.label,
+        tagline: 'Reset your metabolism in 72 hours',
+        description: '3-day doctor-guided water fast — daily live sessions, WhatsApp community, prep and refeed protocols.',
+        startDate: 'rolling',
+        durationWeeks: 1,
+        price: FASTING.INR,
+        maxParticipants: 100000,
+        spotsLeft: 100000,
+      },
+    });
+  }
+  return cohort;
+}
+
+async function enrollFasting({ user, orderId, paymentId, gateway, intake }) {
+  const cohort = await getOrCreateFastingCohort();
+  return prisma.cohortEnrollment.create({
+    data: {
+      cohortId:       cohort.id,
+      userId:         user.id,
+      name:           user.name,
+      email:          user.email,
+      phone:          intake.whatsapp || user.phone || null,
+      message:        intake.goal || null,
+      program:        FASTING.key,
+      intake,
+      status:         'enrolled',
+      paymentStatus:  'paid',
+      paymentId,
+      paymentOrderId: orderId,
+      paymentGateway: gateway,
+      currency:       'INR',
+      amountPaid:     FASTING.INR,
+    },
+  });
+}
+
+// Welcome (user) + intake summary (doctor) on WhatsApp — fire-and-forget
+async function notifyFastingEnrollment(user, intake) {
+  const group = process.env.WHATSAPP_GROUP_INVITE || '';
+  const first = (user.name || '').split(' ')[0] || 'there';
+  const userMsg =
+    `🌿 *theanirudhcode — You're enrolled!*\n\n*${FASTING.label}*\n\n` +
+    `Welcome, ${first}. Your 72-hour reset begins soon.\n\n` +
+    `✅ Daily live sessions with Dr. Anirudh\n` +
+    `✅ Doctor-monitored WhatsApp community\n` +
+    `✅ Pre-fast prep + electrolyte protocol\n` +
+    `✅ Structured refeed plan` +
+    (group ? `\n\n👉 Join your support group now:\n${group}` : `\n\nYour support-group invite arrives on WhatsApp shortly.`);
+  const adminMsg =
+    `🔔 *New Fasting Program enrollment*\n\n` +
+    `${user.name} (${user.email})\n` +
+    `WhatsApp: ${intake.whatsapp}\nAge ${intake.age}${intake.sex ? ' · ' + intake.sex : ''}${intake.city ? ' · ' + intake.city : ''}\n` +
+    `Experience: ${intake.experience}\nGoal: ${intake.goal}\n` +
+    `Conditions: ${(intake.conditions || []).filter(c => c !== 'none').join(', ') || 'none'}\n` +
+    `Meds: ${intake.medications || '—'}\n` +
+    `Paid ₹${FASTING.INR.toLocaleString('en-IN')}`;
+  await Promise.allSettled([
+    wa.sendText(intake.whatsapp || user.phone, userMsg),
+    process.env.DOCTOR_WHATSAPP ? wa.sendText(process.env.DOCTOR_WHATSAPP, adminMsg) : Promise.resolve(),
+  ]);
+}
+
+router.post('/fasting/create-order', authenticate, async (req, res) => {
+  const err = validateFastingBody(req.body);
+  if (err) return res.status(400).json({ error: err });
+
+  // Safety gate: contraindicated profiles never reach payment
+  const blocked = (req.body.conditions || []).filter(c => FASTING_BLOCKED.includes(c));
+  if (blocked.length) {
+    return res.status(422).json({
+      blocked: true,
+      error: "For your safety, an unsupervised 3-day water fast isn't recommended with your profile. Book a consultation instead — Dr. Anirudh will design a protocol that fits your biology.",
+    });
+  }
+
+  const intake = sanitizeFastingIntake(req.body);
+
+  // Test mode — enroll immediately, no gateway
+  if (TEST_MODE) {
+    try {
+      const enrollment = await enrollFasting({
+        user: req.user,
+        orderId: `fp_test_${Date.now()}`,
+        paymentId: `fp_pay_test_${Date.now()}`,
+        gateway: 'test',
+        intake,
+      });
+      notifyFastingEnrollment(req.user, intake).catch(() => {});
+      return res.json({
+        test_mode: true, success: true,
+        message: 'Test enrollment accepted — you are in!',
+        enrollment_id: enrollment.id,
+        whatsapp_group: process.env.WHATSAPP_GROUP_INVITE || '',
+      });
+    } catch (e) {
+      console.error('[Fasting test] enroll error:', e);
+      return res.status(500).json({ error: 'Enrollment failed. Please try again.' });
+    }
+  }
+
+  if (!CASHFREE_READY) {
+    return res.status(503).json({ error: 'Online payments not yet configured. Please try again later.' });
+  }
+
+  const orderId   = `fp_${req.user.id}_${Date.now()}`;
+  const rawDigits = (intake.whatsapp || req.user.phone || '').replace(/\D/g, '');
+  const phone10   = rawDigits.length >= 10 ? rawDigits.slice(-10) : '9999999999';
+  const appUrl    = process.env.APP_URL || 'https://theanirudhcode.com';
+  const cfEnv     = process.env.CASHFREE_ENV === 'production' ? 'production' : 'sandbox';
+
+  try {
+    const { createOrder } = require('../lib/cashfree');
+    const order = await createOrder({
+      order_id:       orderId,
+      order_amount:   FASTING.INR,
+      order_currency: 'INR',
+      customer_details: {
+        customer_id:    String(req.user.id),
+        customer_name:  req.user.name,
+        customer_email: req.user.email,
+        customer_phone: phone10,
+      },
+      order_meta: {
+        return_url: `${appUrl}/my-appointments?payment=done&order_id=${orderId}`,
+        notify_url: `${appUrl}/api/payments/cashfree/webhook`,
+      },
+      order_note: FASTING.label,
+    });
+
+    res.json({
+      order_id:           orderId,
+      payment_session_id: order.payment_session_id,
+      amount:             FASTING.INR,
+      currency:           'INR',
+      tier_label:         FASTING.label,
+      env:                cfEnv,
+    });
+  } catch (e) {
+    console.error('[Fasting] create-order error:', e.message);
+    res.status(500).json({ error: 'Could not initialise payment. Please try again.' });
+  }
+});
+
+router.post('/fasting/verify', authenticate, async (req, res) => {
+  const { order_id } = req.body;
+  if (!order_id || !order_id.startsWith('fp_')) return res.status(400).json({ error: 'Missing order_id' });
+
+  const err = validateFastingBody(req.body);
+  if (err) return res.status(400).json({ error: err });
+
+  // Idempotency — refresh/double-call returns the existing enrollment
+  const existing = await prisma.cohortEnrollment.findFirst({ where: { paymentOrderId: order_id } });
+  if (existing) {
+    return res.json({ success: true, message: 'You are already enrolled!', whatsapp_group: process.env.WHATSAPP_GROUP_INVITE || '' });
+  }
+
+  try {
+    const { getOrder, getOrderPayments } = require('../lib/cashfree');
+    const cfOrder = await getOrder(order_id);
+
+    if (cfOrder.order_status !== 'PAID') {
+      return res.status(400).json({ error: `Payment not completed (status: ${cfOrder.order_status}). Please try again.` });
+    }
+
+    let paymentId = String(cfOrder.cf_order_id || order_id);
+    try {
+      const payments = await getOrderPayments(order_id);
+      if (Array.isArray(payments) && payments[0]?.cf_payment_id) paymentId = String(payments[0].cf_payment_id);
+    } catch {}
+
+    const intake = sanitizeFastingIntake(req.body);
+    await enrollFasting({ user: req.user, orderId: order_id, paymentId, gateway: 'cashfree', intake });
+    notifyFastingEnrollment(req.user, intake).catch(() => {});
+
+    res.json({
+      success: true,
+      message: 'Payment confirmed — you are enrolled!',
+      whatsapp_group: process.env.WHATSAPP_GROUP_INVITE || '',
+    });
+  } catch (e) {
+    console.error('[Fasting] verify/enroll error:', e);
+    res.status(500).json({ error: `Payment verified but enrollment failed. Contact support with order ID: ${order_id}` });
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
