@@ -281,6 +281,13 @@ router.post('/cashfree/verify', authenticate, async (req, res) => {
       return res.status(400).json({ error: `Payment not completed (status: ${cfOrder.order_status}). Please try again.` });
     }
 
+    // Ownership guard: order must belong to the authenticated user
+    const cfCustomerId = cfOrder.customer_details?.customer_id;
+    if (cfCustomerId && String(cfCustomerId) !== String(req.user.id)) {
+      console.error(`[Cashfree] ownership mismatch: order ${order_id} owner=${cfCustomerId}, requester=${req.user.id}`);
+      return res.status(403).json({ error: 'Payment session mismatch. Contact support.' });
+    }
+
     // Best-effort: get the actual Cashfree payment ID for audit trail
     let paymentId = String(cfOrder.cf_order_id || order_id);
     try {
@@ -607,6 +614,13 @@ router.post('/fasting/verify', authenticate, async (req, res) => {
 
     if (cfOrder.order_status !== 'PAID') {
       return res.status(400).json({ error: `Payment not completed (status: ${cfOrder.order_status}). Please try again.` });
+    }
+
+    // Ownership guard: order must belong to the authenticated user
+    const fcCustomerId = cfOrder.customer_details?.customer_id;
+    if (fcCustomerId && String(fcCustomerId) !== String(req.user.id)) {
+      console.error(`[Cashfree/fasting] ownership mismatch: order ${order_id} owner=${fcCustomerId}, requester=${req.user.id}`);
+      return res.status(403).json({ error: 'Payment session mismatch. Contact support.' });
     }
 
     let paymentId = String(cfOrder.cf_order_id || order_id);
