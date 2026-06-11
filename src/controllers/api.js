@@ -3,6 +3,7 @@ const router = express.Router();
 const prisma = require('../lib/prisma');
 const { validateEmail, sanitize, checkLen, validatePhone, LIMITS } = require('../middleware/validate');
 const wa = require('../lib/whatsapp');
+const { sendQuizResultEmail, QUIZ_ARCHETYPES } = require('../lib/mailer');
 const sanitizeHtml = require('sanitize-html');
 
 const BLOG_SAFE = {
@@ -48,6 +49,44 @@ router.post('/subscribe', async (req, res) => {
     });
   } catch (err) {
     console.error('Subscribe error:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+// POST /api/quiz/lead — "Meet the Real You" metabolic assessment lead capture.
+// Stores/refreshes the subscriber and emails the full personalised report.
+// The archetype is computed client-side; we validate it against the known set.
+router.post('/quiz/lead', async (req, res) => {
+  const { name, email, archetype } = req.body;
+
+  if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+  const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
+  if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
+  if (!email || !validateEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
+  if (!archetype || typeof archetype !== 'string' || !Object.prototype.hasOwnProperty.call(QUIZ_ARCHETYPES, archetype)) {
+    return res.status(400).json({ error: 'Invalid assessment result' });
+  }
+
+  const cleanName = sanitize(name.trim());
+  const cleanEmail = email.trim().toLowerCase();
+  const source = `metabolic-quiz:${archetype}`;
+
+  try {
+    // Upsert — a retake or an existing subscriber just refreshes the source/name,
+    // never errors. The point is the lead + the emailed report, not uniqueness.
+    await prisma.subscriber.upsert({
+      where: { email: cleanEmail },
+      update: { name: cleanName, source, isActive: true },
+      create: { name: cleanName, email: cleanEmail, source },
+    });
+
+    res.status(201).json({ success: true, message: 'Your full report is on its way to your inbox.' });
+
+    // Fire the report email after responding — non-blocking.
+    sendQuizResultEmail(cleanEmail, cleanName, archetype)
+      .catch((e) => console.error('[Quiz] result email failed:', e.message));
+  } catch (err) {
+    console.error('Quiz lead error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
   }
 });
