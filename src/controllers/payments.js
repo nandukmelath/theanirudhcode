@@ -113,6 +113,9 @@ async function bookAfterPayment({ userId, tier, date, time_start, time_end,
 // GET /api/payments/config.js  — injects window.__PAYMENT_TEST_MODE__
 router.get('/config.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
+  // Dynamic payment config — must never be cached by any CDN/browser. A stale
+  // test-mode flag would route live checkout to the test endpoint (and 403).
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
   res.send(`window.__PAYMENT_TEST_MODE__ = ${TEST_MODE};`);
 });
 
