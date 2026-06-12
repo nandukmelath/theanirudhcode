@@ -349,6 +349,15 @@ router.post('/cashfree/verify', authenticate, async (req, res) => {
     if (e.code === 'CONSENT_REQUIRED') {
       return res.status(400).json({ error: 'Telemedicine consent is required to book a consultation.' });
     }
+    // Cashfree API rejected the order lookup (e.status set by cashfreeRequest) —
+    // the order does not exist / is unreadable. Payment was NOT verified, so don't
+    // tell the user to contact support about a debit that never happened.
+    if (e.status === 404) {
+      return res.status(404).json({ error: 'Payment order not found. Please start the booking again.' });
+    }
+    if (e.status >= 400 && e.status < 500) {
+      return res.status(400).json({ error: 'Could not verify this payment. If money was debited it will auto-refund; otherwise please try again.' });
+    }
     console.error('[Cashfree] verify/book error:', e);
     res.status(500).json({ error: `Payment verified but booking failed. Contact support with order ID: ${order_id}` });
   }
@@ -643,6 +652,12 @@ router.post('/fasting/verify', authenticate, async (req, res) => {
       whatsapp_group: process.env.WHATSAPP_GROUP_INVITE || '',
     });
   } catch (e) {
+    if (e.status === 404) {
+      return res.status(404).json({ error: 'Payment order not found. Please start the enrollment again.' });
+    }
+    if (e.status >= 400 && e.status < 500) {
+      return res.status(400).json({ error: 'Could not verify this payment. If money was debited it will auto-refund; otherwise please try again.' });
+    }
     console.error('[Fasting] verify/enroll error:', e);
     res.status(500).json({ error: `Payment verified but enrollment failed. Contact support with order ID: ${order_id}` });
   }
