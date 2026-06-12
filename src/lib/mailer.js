@@ -519,6 +519,17 @@ const QUIZ_ARCHETYPES = {
     ],
     cta: { label: 'Book a Root-Cause Consultation', url: 'https://www.theanirudhcode.com/programs' },
   },
+  hormonal: {
+    title: 'The Hormonal Tide',
+    essence: 'Your hormones are pulling the strings — weight, mood, energy and cycles all rise and fall with them.',
+    body: 'Your answers point to a hormonal and endocrine imbalance — the insulin–cortisol–thyroid–sex-hormone axis drifting out of rhythm. This is the pattern behind stubborn weight that diet alone won’t shift, mood and energy that swing, irregular cycles or PCOS, and thyroid-like fatigue. Hormones don’t act alone — they are downstream of blood sugar, stress, sleep and the gut, which is exactly why a root-cause map (and often simple labs) untangles them faster than treating each symptom in isolation.',
+    steps: [
+      'Stabilise blood sugar first — protein-forward meals calm the insulin swings that drive other hormones.',
+      'Protect deep sleep and a steady rhythm — most hormone repair happens overnight.',
+      'Ask about a basic hormonal panel (thyroid, fasting insulin, key sex hormones) — measure, don’t guess.',
+    ],
+    cta: { label: 'Book a Root-Cause Consultation', url: 'https://www.theanirudhcode.com/programs' },
+  },
   free: {
     title: 'The Metabolically Free',
     essence: 'You are metabolically flexible — a rare and valuable place to be. Now protect it.',
