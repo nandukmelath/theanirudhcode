@@ -44,6 +44,8 @@ function normalize(a) {
 }
 
 const CONSULTATION_TYPES = {
+  consultation:  { label: 'Consultation',         price: 3000, duration: 45 },
+  // legacy keys retained so historical appointments still render/reschedule correctly
   discovery:     { label: '30-min Discovery',     price: 1500, duration: 30 },
   deepdive:      { label: '60-min Deep Dive',     price: 5000, duration: 60 },
   comprehensive: { label: '90-min Comprehensive', price: 8000, duration: 90 },
@@ -83,7 +85,7 @@ router.post('/book', authenticate, async (req, res) => {
     if (!gCheck.ok) return res.status(400).json({ error: gCheck.error });
   }
 
-  const tierKey   = CONSULTATION_TYPES[consultation_type] ? consultation_type : 'deepdive';
+  const tierKey   = CONSULTATION_TYPES[consultation_type] ? consultation_type : 'consultation';
   const tier      = CONSULTATION_TYPES[tierKey];
   const cleanConcerns = sanitize(health_concerns.trim());
   const cleanHistory  = sanitize((medical_history || '').trim());

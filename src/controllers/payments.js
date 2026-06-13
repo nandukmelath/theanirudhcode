@@ -28,9 +28,7 @@ const STRIPE_READY     = !!(process.env.STRIPE_SECRET_KEY && !process.env.STRIPE
 // ── Pricing ────────────────────────────────────────────────────────────────────
 // Prices must match what Razorpay/Stripe receives (Razorpay: paise, Stripe: cents)
 const PRICES = {
-  discovery:     { label: '30-min Discovery',     INR: 1500,  USD: 18,  durationMin: 30  },
-  deepdive:      { label: '60-min Deep Dive',     INR: 5000,  USD: 60,  durationMin: 60  },
-  comprehensive: { label: '90-min Comprehensive', INR: 8000,  USD: 96,  durationMin: 90  },
+  consultation:  { label: 'Consultation',         INR: 3000,  USD: 36,  durationMin: 45  },
 };
 
 function getPrice(tier, currency) {

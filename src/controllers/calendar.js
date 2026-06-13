@@ -484,6 +484,7 @@ router.delete('/admin/unblock', hybridAdminAuth, async (req, res) => {
 // ── Helpers exported to appointments controller ────────────────────────────────
 
 const CONSULTATION_LABELS = {
+  consultation:  'Consultation',
   discovery:     '30-min Discovery Call',
   deepdive:      '60-min Deep Dive',
   comprehensive: '90-min Comprehensive',
