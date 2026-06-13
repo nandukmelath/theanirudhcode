@@ -59,6 +59,11 @@ async function runPaymentMigration() {
     // TPG-2020 compliance: patient age + explicit-consent timestamp
     `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS patient_age INT`,
     `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS consent_at TIMESTAMPTZ`,
+    // Video consult (Whereby) — room id + patient/host join URLs. Column names match
+    // the (now-dead) Pages backend so a shared DB stays consistent.
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS video_room_id TEXT`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS video_room_url TEXT`,
+    `ALTER TABLE appointments ADD COLUMN IF NOT EXISTS video_host_url TEXT`,
     `CREATE INDEX IF NOT EXISTS appt_payment_order_idx ON appointments(payment_order_id)`,
     `ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'pending'`,
     `ALTER TABLE product_orders ADD COLUMN IF NOT EXISTS payment_id TEXT`,
@@ -223,6 +228,37 @@ app.use((req, res, next) => {
     'geolocation=(), camera=(), microphone=(), payment=(self "https://sdk.cashfree.com"), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()');
   next();
 });
+
+// ── Optional shared-secret origin gate ────────────────────────────────────────
+// The rate limiter (and abuse defences) trust CF-Connecting-IP, which is only safe
+// if the Cloud Run origin is reachable EXCLUSIVELY through Cloudflare. To enforce
+// that at the app layer, set ORIGIN_SHARED_SECRET in Cloud Run AND have Cloudflare
+// add a matching `X-Origin-Secret` request header (Transform Rule). When the env is
+// set, any request without the matching header is rejected (so direct *.run.app hits
+// that bypass Cloudflare — and the spoofable CF-Connecting-IP they carry — are
+// dropped before reaching a handler). When the env is UNSET this is a no-op, so the
+// site keeps working unchanged until the user opts in. Webhooks are exempt because
+// Cashfree/Stripe call the origin directly and are authenticated by their own
+// signatures, not by this gate.
+const crypto = require('crypto');
+const ORIGIN_SHARED_SECRET = process.env.ORIGIN_SHARED_SECRET;
+if (ORIGIN_SHARED_SECRET) {
+  const WEBHOOK_PATHS = ['/api/payments/cashfree/webhook', '/api/payments/stripe/webhook'];
+  const secretBuf = Buffer.from(ORIGIN_SHARED_SECRET);
+  app.use((req, res, next) => {
+    if (WEBHOOK_PATHS.includes(req.path)) return next();
+    const provided = Buffer.from(String(req.headers['x-origin-secret'] || ''));
+    // Length-equality + constant-time byte compare (pad both to the same length so
+    // timingSafeEqual never throws on a mismatched-length header).
+    const max = Math.max(provided.length, secretBuf.length) + 1;
+    const a = Buffer.concat([provided,  Buffer.alloc(max - provided.length)]);
+    const b = Buffer.concat([secretBuf, Buffer.alloc(max - secretBuf.length)]);
+    const ok = provided.length === secretBuf.length && crypto.timingSafeEqual(a, b);
+    if (!ok) return res.status(403).json({ error: 'Forbidden' });
+    next();
+  });
+  console.log('[security] ORIGIN_SHARED_SECRET set — enforcing X-Origin-Secret on non-webhook routes');
+}
 
 // Raw body for webhook routes — MUST be before express.json()
 app.use('/api/payments/stripe/webhook',   express.raw({ type: 'application/json' }));

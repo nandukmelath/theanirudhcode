@@ -38,6 +38,7 @@ function normalize(a) {
     medical_history:      a.medicalHistory,
     goals:                a.goals,
     google_event_id:      a.googleEventId,
+    video_room_url:       a.videoRoomUrl || null,
     created_at:           a.createdAt,
     updated_at:           a.updatedAt,
   };

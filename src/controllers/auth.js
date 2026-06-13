@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const { Prisma } = require('@prisma/client');
 const prisma = require('../lib/prisma');
 const { generateToken, authenticate, COOKIE_OPTIONS } = require('../middleware/auth');
 const { validateEmail, sanitize, validatePassword, validatePhone, checkLen, LIMITS } = require('../middleware/validate');
@@ -253,11 +254,24 @@ router.post('/google', async (req, res) => {
 });
 
 // ── Email OTP (passwordless / signup) ────────────────────────────────────────
-// Rate-limit guard: simple in-memory token bucket per email (production swap for Redis)
+// Rate-limit guard: simple in-memory token bucket per email (production swap for Redis;
+// this Map is per-instance and unbounded without the sweep below — see flagged item).
 const otpRequestLimits = new Map(); // email -> { count, resetAt }
 const OTP_MAX_PER_HOUR = 5;
 const OTP_EXPIRY_MIN = 10;
 const OTP_MAX_VERIFY_ATTEMPTS = 5;
+
+// Periodic eviction so the map can't grow unbounded over the process lifetime
+// (every distinct email created an entry that previously lived forever). Runs hourly;
+// unref() so it never by itself keeps the process alive.
+const OTP_SWEEP_INTERVAL_MS = 60 * 60 * 1000;
+const _otpSweep = setInterval(() => {
+  const now = Date.now();
+  for (const [email, entry] of otpRequestLimits) {
+    if (!entry || entry.resetAt < now) otpRequestLimits.delete(email);
+  }
+}, OTP_SWEEP_INTERVAL_MS);
+if (typeof _otpSweep.unref === 'function') _otpSweep.unref();
 
 function generateOtpCode() {
   // 6-digit code, leading zeros allowed
@@ -296,19 +310,17 @@ router.post('/otp/request', async (req, res) => {
     const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
     const purpose = existing ? 'login' : 'register';
 
-    // If registering, validate name
-    let cleanName = null;
-    if (purpose === 'register') {
-      if (!name || typeof name !== 'string' || !name.trim()) {
-        return res.status(400).json({ error: 'Name is required for new accounts' });
-      }
-      const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
-      if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
-      cleanName = sanitize(name.trim());
-    }
+    // NOTE: name is intentionally NOT required (or validated) here. Requiring it only
+    // for new emails made the response shape differ between existing and new accounts
+    // — an account-enumeration oracle on an unauthenticated endpoint. The name is
+    // collected and validated at /otp/verify, which only needs it when the verified
+    // email turns out to be new. `name` in this request body is ignored.
+    void name;
 
     if (existing && !existing.isActive) {
-      return res.status(401).json({ error: 'Account is disabled' });
+      // Mirror the generic success path: never reveal that a disabled account exists.
+      // (The disabled-account block is enforced at /otp/verify.)
+      return res.json({ success: true, message: 'If this email can receive a code, one has been sent. Check your inbox.' });
     }
 
     // Invalidate prior unused OTPs for this email
@@ -724,6 +736,21 @@ router.post('/delete-account', authenticate, async (req, res) => {
     const deadHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
     await prisma.$transaction([
       prisma.passwordReset.deleteMany({ where: { userId: user.id } }),
+      // DPDP-2023 erasure: scrub free-text PHI from the patient's appointments while
+      // preserving scheduling fields (date/time/status) so the admin schedule + clinical
+      // record of WHEN a visit happened stays intact. Health intake free-text is the
+      // sensitive part and is redacted here.
+      prisma.appointment.updateMany({
+        where: { userId: user.id },
+        data:  { healthConcerns: '[redacted on account deletion]', medicalHistory: null, goals: null },
+      }),
+      // Scrub cohort/fasting enrollment PII + intake JSON (carries WhatsApp, city,
+      // medications, goal, screening conditions). Keep the row for payment/audit
+      // integrity but strip the personal data.
+      prisma.cohortEnrollment.updateMany({
+        where: { userId: user.id },
+        data:  { name: 'Deleted user', email: anonEmail, phone: null, message: null, intake: Prisma.DbNull },
+      }),
       prisma.user.update({
         where: { id: user.id },
         data: {
@@ -735,6 +762,12 @@ router.post('/delete-account', authenticate, async (req, res) => {
           passwordChangedAt: new Date(),
           emailVerificationTokenHash: null,
           emailVerificationExpiresAt: null,
+          // Profile PII collected at registration (DPDP erasure).
+          city: null,
+          occupation: null,
+          healthConcerns: null,
+          referralSource: null,
+          dateOfBirth: null,
         }
       }),
     ]);

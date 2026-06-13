@@ -20,6 +20,7 @@ const { authenticate } = require('../middleware/auth');
 const { sanitize }     = require('../middleware/validate');
 const wa               = require('../lib/whatsapp');
 const { createCalendarEvent } = require('./calendar');
+const { createVideoRoom }     = require('../lib/video');
 
 const TEST_MODE        = process.env.PAYMENT_TEST_MODE === 'true';
 const CASHFREE_READY   = !!(process.env.CASHFREE_APP_ID && process.env.CASHFREE_SECRET_KEY);
@@ -123,6 +124,24 @@ async function bookAfterPayment({ userId, tier, date, time_start, time_end,
     });
   }, { isolationLevel: 'Serializable' });
 
+  // Video consult room (Whereby) — created AFTER the booking commits so a video
+  // provider outage can never roll back a paid appointment. Degrades to no room
+  // when WHEREBY_API_KEY is unset (createVideoRoom returns nulls, never throws).
+  // The room URL is surfaced to the patient (verify response) and saved so
+  // /appointments/my and reminders can show the "Join video" link.
+  try {
+    const room = await createVideoRoom({ date, timeEnd: time_end });
+    if (room.roomUrl) {
+      const updated = await prisma.appointment.update({
+        where: { id: appointment.id },
+        data:  { videoRoomId: room.roomId, videoRoomUrl: room.roomUrl, videoHostUrl: room.hostUrl },
+      });
+      return updated;
+    }
+  } catch (e) {
+    console.error('[Video] room creation/persist failed (booking still confirmed):', e.message);
+  }
+
   return appointment;
 }
 
@@ -195,7 +214,7 @@ router.post('/test/complete', authenticate, async (req, res) => {
       success: true,
       test_mode: true,
       message: 'Test payment accepted — appointment booked!',
-      appointment: { id: appointment.id, date, time_start, time_end, status: 'confirmed' },
+      appointment: { id: appointment.id, date, time_start, time_end, status: 'confirmed', video_room_url: appointment.videoRoomUrl || null },
     });
   } catch (e) {
     if (e.code === 'SLOT_TAKEN' || e.code === 'P2002' || e.code === 'P2034') {
@@ -290,7 +309,7 @@ router.post('/cashfree/verify', authenticate, async (req, res) => {
     return res.json({
       success: true,
       message: 'Appointment already confirmed!',
-      appointment: { id: existing.id, date: existing.date, timeStart: existing.timeStart, timeEnd: existing.timeEnd, status: existing.status },
+      appointment: { id: existing.id, date: existing.date, timeStart: existing.timeStart, timeEnd: existing.timeEnd, status: existing.status, video_room_url: existing.videoRoomUrl || null },
     });
   }
 
@@ -309,6 +328,15 @@ router.post('/cashfree/verify', authenticate, async (req, res) => {
     if (!cfCustomerId || String(cfCustomerId) !== String(req.user.id)) {
       console.error(`[Cashfree] ownership mismatch: order ${order_id} owner=${cfCustomerId}, requester=${req.user.id}`);
       return res.status(403).json({ error: 'Payment session mismatch. Contact support.' });
+    }
+
+    // Amount integrity: the verified order amount must equal the canonical tier price
+    // (server-derived at create-order). Legit orders always match; a mismatch means a
+    // tampered/foreign order, so refuse to book. Defence-in-depth on the payment path.
+    const canonical = getPrice(tier, 'INR')?.amount;
+    if (canonical != null && Math.round(Number(cfOrder.order_amount)) !== Math.round(Number(canonical))) {
+      console.error(`[Cashfree] amount mismatch: order ${order_id} paid=${cfOrder.order_amount}, expected=${canonical}`);
+      return res.status(400).json({ error: 'Payment amount mismatch. Contact support.' });
     }
 
     // Best-effort: get the actual Cashfree payment ID for audit trail
@@ -352,14 +380,15 @@ router.post('/cashfree/verify', authenticate, async (req, res) => {
     const apptData = { date, time_start, time_end,
       health_concerns: sanitize(health_concerns.trim()),
       goals:           sanitize((goals||'').trim()),
-      medical_history: sanitize((medical_history||'').trim()) };
+      medical_history: sanitize((medical_history||'').trim()),
+      video_room_url:  appointment.videoRoomUrl || null };
     wa.sendBookingConfirmation(req.user.phone, req.user.name, apptData).catch(e => console.error('[WhatsApp] booking confirmation failed:', e.message));
     wa.sendAdminNewBooking(apptData, req.user).catch(e => console.error('[WhatsApp] admin booking alert failed:', e.message));
 
     res.json({
       success: true,
       message: 'Payment confirmed and appointment booked!',
-      appointment: { id: appointment.id, date, time_start, time_end, status: 'confirmed' },
+      appointment: { id: appointment.id, date, time_start, time_end, status: 'confirmed', video_room_url: appointment.videoRoomUrl || null },
     });
   } catch (e) {
     if (e.code === 'SLOT_TAKEN' || e.code === 'P2002' || e.code === 'P2034') {
@@ -396,9 +425,12 @@ router.post('/cashfree/webhook', async (req, res) => {
     return res.status(400).end();
   }
   if (!secret) {
-    // Our config issue, not a bad request — return 200 to prevent Cashfree retry loops
-    console.error('[Cashfree webhook] CASHFREE_SECRET_KEY not configured');
-    return res.json({ received: true });
+    // A missing secret means we CANNOT verify this webhook. Returning 200 here would
+    // silently swallow a misconfigured deploy (and make Cashfree consider delivery
+    // successful). Return 500 so the failure is loud in monitoring and Cashfree
+    // retries once the secret is restored. No state-changing action is taken either way.
+    console.error('[Cashfree webhook] ALERT: CASHFREE_SECRET_KEY not configured — cannot verify webhook signature. Fix the deploy env.');
+    return res.status(500).json({ error: 'Webhook verification unavailable' });
   }
 
   // Cashfree signature: base64(HMAC-SHA256(timestamp + rawBody, secretKey))
@@ -431,9 +463,21 @@ router.post('/cashfree/webhook', async (req, res) => {
       if (existing) {
         console.log(`[Cashfree webhook] ${isFasting ? 'enrollment' : 'appointment'} ${existing.id} already recorded — no action needed`);
       } else {
-        // Booking data not available in webhook — client verify is the primary path.
-        // If verify was never called (e.g. browser crash after redirect), admin must confirm manually.
-        console.warn(`[Cashfree webhook] order ${orderId} PAID but no ${isFasting ? 'enrollment' : 'appointment'} found — needs manual review`);
+        // PAID but no booking/enrollment row. The booking payload (tier/date/intake)
+        // isn't carried in the webhook and isn't persisted at create-order, so we
+        // cannot auto-rebook here (that needs the create-order intent-persistence
+        // change — see flagged item). Make it LOUD and alert an operator so a charged
+        // patient who never reached verify is reconciled (re-book or refund) manually.
+        // userId is parseable from the order_id prefix (tac_<id>_<ts> / fp_<id>_<ts>).
+        const uid = String(orderId).split('_')[1] || 'unknown';
+        console.error(`[Cashfree webhook] ALERT: order ${orderId} PAID but NO ${isFasting ? 'enrollment' : 'appointment'} recorded (user ${uid}). Patient was charged without a booking — reconcile (re-book or refund) NOW.`);
+        const alertMsg =
+          `🚨 *PAID-but-unbooked* (action required)\n\n` +
+          `Order: ${orderId}\nUser ID: ${uid}\nType: ${isFasting ? 'Fasting Program' : 'Consultation'}\n\n` +
+          `A patient completed payment but no ${isFasting ? 'enrollment' : 'appointment'} was created (they likely closed the tab before confirmation). ` +
+          `Please reconcile in Cashfree + the admin panel: re-book manually or refund.`;
+        const op = process.env.DOCTOR_WHATSAPP;
+        if (op) wa.sendText(op, alertMsg).catch(e => console.error('[Cashfree webhook] operator alert failed:', e.message));
       }
     }
   }
@@ -480,7 +524,13 @@ function sanitizeFastingIntake(body) {
 
 async function getOrCreateFastingCohort() {
   let cohort = await prisma.cohort.findFirst({ where: { name: FASTING.label, isActive: true } });
-  if (!cohort) {
+  if (cohort) return cohort;
+  // Check-then-create race: two concurrent first-enrollments both miss the find and
+  // both create, producing duplicate cohort rows (there is no unique on Cohort.name
+  // yet — see flagged item for the migration). Guard it: if the create throws, OR if
+  // a concurrent create already won, re-find and converge on a single row. We can't
+  // use prisma.upsert here because there's no unique column to key it on.
+  try {
     cohort = await prisma.cohort.create({
       data: {
         name: FASTING.label,
@@ -493,6 +543,11 @@ async function getOrCreateFastingCohort() {
         spotsLeft: 100000,
       },
     });
+  } catch (e) {
+    // Lost the race (or a transient create error) — fall back to the existing row.
+    console.warn('[Fasting] cohort create raced/failed, re-finding existing:', e.message);
+    cohort = await prisma.cohort.findFirst({ where: { name: FASTING.label, isActive: true } });
+    if (!cohort) throw e;
   }
   return cohort;
 }
@@ -667,6 +722,12 @@ router.post('/fasting/verify', authenticate, async (req, res) => {
       return res.status(403).json({ error: 'Payment session mismatch. Contact support.' });
     }
 
+    // Amount integrity: verified order amount must equal the canonical program price.
+    if (Math.round(Number(cfOrder.order_amount)) !== Math.round(Number(FASTING.INR))) {
+      console.error(`[Cashfree/fasting] amount mismatch: order ${order_id} paid=${cfOrder.order_amount}, expected=${FASTING.INR}`);
+      return res.status(400).json({ error: 'Payment amount mismatch. Contact support.' });
+    }
+
     let paymentId = String(cfOrder.cf_order_id || order_id);
     try {
       const payments = await getOrderPayments(order_id);
@@ -724,7 +785,7 @@ router.post('/stripe/create-session', authenticate, async (req, res) => {
         medical_history: sanitize((medical_history||'').trim()) };
       wa.sendBookingConfirmation(req.user.phone, req.user.name, apptData).catch(() => {});
       wa.sendAdminNewBooking(apptData, req.user).catch(() => {});
-      return res.json({ test_mode: true, success: true, appointment: { id: appointment.id, date, time_start, time_end } });
+      return res.json({ test_mode: true, success: true, appointment: { id: appointment.id, date, time_start, time_end, video_room_url: appointment.videoRoomUrl || null } });
     } catch (e) {
       if (e.code === 'SLOT_TAKEN' || e.code === 'P2002' || e.code === 'P2034')
         return res.status(409).json({ error: 'Time slot already taken.' });
@@ -877,7 +938,8 @@ router.post('/stripe/webhook', async (req, res) => {
         const apptData = { date: m.date, time_start: m.time_start, time_end: m.time_end,
           health_concerns: sanitize(m.health_concerns),
           goals: sanitize(m.goals),
-          medical_history: sanitize(m.medical_history) };
+          medical_history: sanitize(m.medical_history),
+          video_room_url: appointment.videoRoomUrl || null };
         wa.sendBookingConfirmation(m.user_phone, m.user_name, apptData).catch(() => {});
         wa.sendAdminNewBooking(apptData, { name: m.user_name, email: m.user_email, phone: m.user_phone }).catch(() => {});
       }

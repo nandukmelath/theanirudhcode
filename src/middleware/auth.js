@@ -78,8 +78,18 @@ const ADMIN_COOKIE_OPTIONS = {
   maxAge: 8 * 60 * 60 * 1000   // 8-hour admin session
 };
 
+// Admin session token-epoch. Bump ADMIN_TOKEN_EPOCH (any string, e.g. an integer or
+// timestamp) in the deploy env to instantly invalidate ALL previously-issued admin
+// tokens — the kill-switch for a leaked admin cookie or after rotating the admin
+// password (which lives in env and has no in-app change event to hook). Tokens embed
+// the epoch at issue time; hybridAdminAuth rejects any whose epoch != the current one.
+// Unset/empty on both sides ⇒ no-op (back-compat for already-issued tokens).
+function adminTokenEpoch() {
+  return process.env.ADMIN_TOKEN_EPOCH || '';
+}
+
 function generateAdminToken(username) {
-  return jwt.sign({ sub: username, role: 'admin', kind: 'admin-session' }, JWT_SECRET, { expiresIn: '8h' });
+  return jwt.sign({ sub: username, role: 'admin', kind: 'admin-session', ep: adminTokenEpoch() }, JWT_SECRET, { expiresIn: '8h' });
 }
 
 async function hybridAdminAuth(req, res, next) {
@@ -88,7 +98,10 @@ async function hybridAdminAuth(req, res, next) {
   if (adminCookie) {
     try {
       const payload = jwt.verify(adminCookie, JWT_SECRET);
-      if (payload.kind === 'admin-session' && payload.role === 'admin') {
+      // Reject tokens whose embedded epoch no longer matches (revocation kill-switch).
+      // `(payload.ep || '')` keeps pre-epoch tokens valid only while ADMIN_TOKEN_EPOCH
+      // is unset; once it is set, all tokens lacking the current epoch are rejected.
+      if (payload.kind === 'admin-session' && payload.role === 'admin' && (payload.ep || '') === adminTokenEpoch()) {
         req.user = { id: 0, name: payload.sub || 'Admin', email: 'admin@theanirudhcode.com', role: 'admin' };
         return next();
       }

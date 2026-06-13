@@ -111,6 +111,10 @@ model Appointment {
   patientAge        Int?              @map("patient_age")
   consentAt         DateTime?         @map("consent_at")
   googleEventId     String?           @map("google_event_id")
+  // Video consult (Whereby) — room created at booking; patient join + doctor host URLs
+  videoRoomId       String?           @map("video_room_id")
+  videoRoomUrl      String?           @map("video_room_url")
+  videoHostUrl      String?           @map("video_host_url")
   // Payment
   paymentStatus     String            @default("pending") @map("payment_status")
   paymentId         String?           @map("payment_id")

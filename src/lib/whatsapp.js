@@ -77,6 +77,12 @@ This code expires in *10 minutes*. Do not share it with anyone.`;
 
 // 2. Booking confirmation to patient (full details)
 async function sendBookingConfirmation(phone, name, appointment) {
+  // Include the video-consult join link only when a room was created (Whereby
+  // configured). Omitted entirely otherwise so we never promise a link that
+  // doesn't exist.
+  const videoLine = appointment.video_room_url
+    ? `\n🎥 Join your video consult: ${appointment.video_room_url}`
+    : '';
   const msg =
 `◆ *theanirudhcode*
 
@@ -89,7 +95,7 @@ Hello ${name.split(' ')[0]},
 📋 Status: Confirmed
 🩺 Health Concerns: ${appointment.health_concerns || 'Not specified'}
 🎯 Goals: ${appointment.goals || 'Not specified'}
-📝 Medical History: ${appointment.medical_history || 'Not provided'}
+📝 Medical History: ${appointment.medical_history || 'Not provided'}${videoLine}
 
 Dr. Anirudh will be with you at the scheduled time. If you need to reschedule or cancel, please do so at least 24 hours in advance.
 
@@ -257,6 +263,7 @@ async function sendAdminAppointmentReminder1h(appointment, patient) {
 
 module.exports = {
   isConfigured,
+  sendText,
   sendOtpWhatsApp,
   sendBookingConfirmation,
   sendAdminNewBooking,

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
+const bcrypt = require('bcryptjs');
 const prisma = require('../lib/prisma');
 const crypto = require('crypto');
 const { hybridAdminAuth, generateAdminToken, ADMIN_COOKIE_OPTIONS } = require('../middleware/auth');
@@ -25,39 +26,55 @@ const BLOG_SAFE = {
 
 // POST /portal-management/api/login
 // Body: { username, password }
-// Checks ADMIN_USERNAME + ADMIN_PASSWORD env vars, issues admin_token cookie
-router.post('/api/login', (req, res) => {
+// Verifies the username (constant-time) + password against env credentials, then
+// issues the admin_token cookie. Password verification prefers a bcrypt
+// ADMIN_PASSWORD_HASH when set (production); ADMIN_PASSWORD plaintext is a dev
+// fallback only. Set ONLY ADMIN_PASSWORD_HASH in prod and delete the plaintext.
+router.post('/api/login', async (req, res) => {
   const { username, password } = req.body || {};
   const envUser = process.env.ADMIN_USERNAME;
   const envPass = process.env.ADMIN_PASSWORD;
+  const envHash = process.env.ADMIN_PASSWORD_HASH;
 
-  if (!envUser || !envPass) {
+  // A bcrypt hash OR a plaintext password is required, plus the username.
+  if (!envUser || (!envHash && !envPass)) {
     // Don't disclose which env vars are unset to an unauthenticated probe.
-    console.error('[Admin login] ADMIN_USERNAME / ADMIN_PASSWORD not configured');
+    console.error('[Admin login] ADMIN_USERNAME / ADMIN_PASSWORD_HASH (or ADMIN_PASSWORD) not configured');
     return res.status(503).json({ error: 'Admin login is temporarily unavailable.' });
   }
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password required' });
   }
 
-  // Always compare both fields in constant time regardless of length.
-  // Pad shorter buffers with a zero byte so timingSafeEqual never throws on length mismatch.
-  // The result is AND-ed so both must match.
-  const uBuf  = Buffer.from(username);
-  const eBuf  = Buffer.from(envUser);
-  const pBuf  = Buffer.from(password);
-  const epBuf = Buffer.from(envPass);
+  // Constant-time username compare. Pad shorter buffers with a zero byte so
+  // timingSafeEqual never throws on length mismatch; AND in an exact-length check.
+  const uBuf = Buffer.from(username);
+  const eBuf = Buffer.from(envUser);
   const maxULen = Math.max(uBuf.length, eBuf.length) + 1;
-  const maxPLen = Math.max(pBuf.length, epBuf.length) + 1;
-  const uA = Buffer.concat([uBuf,  Buffer.alloc(maxULen - uBuf.length)]);
-  const uB = Buffer.concat([eBuf,  Buffer.alloc(maxULen - eBuf.length)]);
-  const pA = Buffer.concat([pBuf,  Buffer.alloc(maxPLen - pBuf.length)]);
-  const pB = Buffer.concat([epBuf, Buffer.alloc(maxPLen - epBuf.length)]);
-  const uMatch = crypto.timingSafeEqual(uA, uB);
-  const pMatch = crypto.timingSafeEqual(pA, pB);
-  const lenOk  = uBuf.length === eBuf.length && pBuf.length === epBuf.length;
+  const uA = Buffer.concat([uBuf, Buffer.alloc(maxULen - uBuf.length)]);
+  const uB = Buffer.concat([eBuf, Buffer.alloc(maxULen - eBuf.length)]);
+  const uMatch = crypto.timingSafeEqual(uA, uB) && uBuf.length === eBuf.length;
 
-  if (uMatch && pMatch && lenOk) {
+  // Password compare: bcrypt when a hash is configured (preferred), otherwise a
+  // constant-time compare against the plaintext dev fallback.
+  let pMatch;
+  if (envHash) {
+    try {
+      pMatch = await bcrypt.compare(password, envHash);
+    } catch (e) {
+      console.error('[Admin login] ADMIN_PASSWORD_HASH compare failed (is it a valid bcrypt hash?):', e.message);
+      return res.status(503).json({ error: 'Admin login is temporarily unavailable.' });
+    }
+  } else {
+    const pBuf  = Buffer.from(password);
+    const epBuf = Buffer.from(envPass);
+    const maxPLen = Math.max(pBuf.length, epBuf.length) + 1;
+    const pA = Buffer.concat([pBuf,  Buffer.alloc(maxPLen - pBuf.length)]);
+    const pB = Buffer.concat([epBuf, Buffer.alloc(maxPLen - epBuf.length)]);
+    pMatch = crypto.timingSafeEqual(pA, pB) && pBuf.length === epBuf.length;
+  }
+
+  if (uMatch && pMatch) {
     const token = generateAdminToken(username);
     res.cookie('admin_token', token, ADMIN_COOKIE_OPTIONS);
     return res.json({ success: true });
@@ -367,7 +384,7 @@ router.patch('/api/users/:id', hybridAdminAuth, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (!id || id < 1) return res.status(400).json({ error: 'Invalid user ID' });
 
-  const { isActive, role } = req.body;
+  const { isActive, role, confirmRoleChange } = req.body;
   const data = {};
 
   if (isActive !== undefined) data.isActive = Boolean(isActive);
@@ -378,18 +395,48 @@ router.patch('/api/users/:id', hybridAdminAuth, async (req, res) => {
 
   if (Object.keys(data).length === 0) return res.status(400).json({ error: 'No valid fields to update' });
 
-  // Prevent admin from deactivating or demoting their own account
+  // Promotion to admin is high-impact (a durable DB-admin backdoor) — never allow it
+  // implicitly. Require an explicit confirmRoleChange:true flag so it cannot happen
+  // via a stray/forged PATCH that only flips isActive in the UI.
+  if (data.role === 'admin' && confirmRoleChange !== true) {
+    return res.status(400).json({ error: 'Promoting a user to admin requires confirmRoleChange:true.' });
+  }
+
+  // Prevent admin from deactivating or demoting their own account (id:0 = env-cred
+  // session, which has no DB row, so this only fires for DB-admin sessions).
   if (req.user && req.user.id && req.user.id === id) {
     if (data.isActive === false) return res.status(400).json({ error: 'You cannot deactivate your own account' });
     if (data.role === 'patient') return res.status(400).json({ error: 'You cannot demote your own admin account' });
   }
 
   try {
+    // Last-admin guard: demoting or deactivating the only remaining active admin
+    // would lock the panel out of any DB-admin. Block it. Re-check the target's
+    // current role so we only count it as "losing an admin" when it actually is one.
+    const demotes  = data.role === 'patient';
+    const disables = data.isActive === false;
+    if (demotes || disables) {
+      const target = await prisma.user.findUnique({ where: { id }, select: { role: true, isActive: true } });
+      if (!target) return res.status(404).json({ error: 'User not found' });
+      const wouldRemoveAnAdmin = target.role === 'admin' && target.isActive &&
+        (demotes || disables);
+      if (wouldRemoveAnAdmin) {
+        const activeAdmins = await prisma.user.count({ where: { role: 'admin', isActive: true } });
+        if (activeAdmins <= 1) {
+          return res.status(400).json({ error: 'Cannot remove the last remaining admin. Promote another admin first.' });
+        }
+      }
+    }
+
     const user = await prisma.user.update({
       where: { id },
       data,
       select: { id: true, name: true, email: true, role: true, isActive: true }
     });
+    // Audit trail: who changed what about whom. Never logs PII beyond ids + the field deltas.
+    const actor = req.user ? `${req.user.id === 0 ? 'env-admin' : 'user#' + req.user.id} (${req.user.email})` : 'unknown';
+    console.log(`[AUDIT] admin ${actor} updated user#${id}:`,
+      JSON.stringify({ ...(data.role !== undefined ? { role: data.role } : {}), ...(data.isActive !== undefined ? { isActive: data.isActive } : {}) }));
     res.json({ success: true, user });
   } catch (err) {
     if (err.code === 'P2025') return res.status(404).json({ error: 'User not found' });
