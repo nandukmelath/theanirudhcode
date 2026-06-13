@@ -120,6 +120,15 @@ router.post('/register', async (req, res) => {
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
 
+// JWT `iat` is whole seconds (floored), while a raw Date is millisecond-precise.
+// A token minted in the SAME second as (but slightly after) a password change
+// would have iat*1000 < passwordChangedAt and wrongly survive invalidation.
+// Ceil passwordChangedAt up to the next whole second so any same-second token
+// is strictly older and is rejected by the iat comparison in the auth middleware.
+function passwordChangeStamp() {
+  return new Date(Math.ceil(Date.now() / 1000) * 1000);
+}
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -319,13 +328,12 @@ router.post('/otp/request', async (req, res) => {
     // Fire-and-forget email send
     sendOtpEmail(cleanEmail, code, purpose).catch(e => console.error('[OTP] email failed:', e.message));
 
-    // For new users, stash the name in the OTP row so verify can create the user
-    if (purpose === 'register' && cleanName) {
-      // Store name in a separate way — using extra OTP record metadata via purpose suffix
-      // (simpler: just re-encode on verify; we'll require the user to resend name on /verify too)
-    }
-
-    res.json({ success: true, purpose, message: `Code sent to ${cleanEmail}. Check your email.` });
+    // Generic, identical response regardless of whether the email already has an
+    // account. Returning `purpose` ('login' vs 'register') here is an account
+    // enumeration oracle on an unauthenticated endpoint, so it is omitted. The
+    // login-vs-register decision is made server-side at /otp/verify, which only
+    // requires `name` when the verified email turns out to be new.
+    res.json({ success: true, message: 'If this email can receive a code, one has been sent. Check your inbox.' });
   } catch (err) {
     console.error('OTP request error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -376,11 +384,13 @@ router.post('/otp/phone-request', async (req, res) => {
 
     sendOtpEmail(cleanEmail, code, 'login').catch(e => console.error('[OTP/phone] email failed:', e.message));
 
-    // Return masked email so user knows where to check
+    // Return ONLY a masked hint so the user knows which inbox to check.
+    // Never echo the full plaintext email — doing so would defeat the
+    // anti-enumeration design and hand an attacker the exact account email.
     const [local, domain] = cleanEmail.split('@');
     const masked = local.slice(0, 2) + '***@' + domain;
 
-    res.json({ ...GENERIC, masked, _email: cleanEmail }); // _email used by frontend for otp/verify step
+    res.json({ ...GENERIC, masked });
   } catch (err) {
     console.error('OTP phone-request error:', err);
     res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -528,13 +538,13 @@ router.post('/forgot-password', async (req, res) => {
 
   try {
     const cleanEmail = email.trim().toLowerCase();
-    console.log('[ForgotPwd] Looking up:', cleanEmail);
+    // Do NOT log raw patient emails or the has/has-no-account signal — that is
+    // PII (DPDP-2023) and would persist the enumeration answer in logs even
+    // though the HTTP response is deliberately enumeration-safe.
     const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (!user || !user.isActive) {
-      console.log('[ForgotPwd] No active account for:', cleanEmail);
       return;
     }
-    console.log('[ForgotPwd] Found user:', user.id, '— generating token');
 
     const token    = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
@@ -545,9 +555,8 @@ router.post('/forgot-password', async (req, res) => {
 
     const base = process.env.APP_URL || 'https://www.theanirudhcode.com';
     const resetUrl = `${base}/reset-password?token=${token}`;
-    console.log('[ForgotPwd] Sending reset email to:', user.email, '— URL base:', base);
     const sent = await sendPasswordResetEmail(user.email, user.name, resetUrl);
-    console.log('[ForgotPwd] Email sent result:', sent);
+    console.log('[ForgotPwd] reset email dispatched:', sent, 'for user', user.id);
   } catch (err) {
     console.error('[ForgotPwd] Error:', err.message, err.stack);
   }
@@ -636,7 +645,10 @@ router.post('/reset-password', async (req, res) => {
 
     const hash = await bcrypt.hash(password, 10);
     await prisma.$transaction([
-      prisma.user.update({ where: { id: reset.userId }, data: { passwordHash: hash, passwordChangedAt: new Date() } }),
+      // Clear lockout state too — a user who reset because they were locked out
+      // must be able to sign in immediately with the new password (the lockout
+      // branch in /login is checked BEFORE the password compare).
+      prisma.user.update({ where: { id: reset.userId }, data: { passwordHash: hash, passwordChangedAt: passwordChangeStamp(), failedLoginAttempts: 0, lockedUntil: null } }),
       prisma.passwordReset.update({ where: { id: reset.id }, data: { used: true } }),
     ]);
 
@@ -670,7 +682,7 @@ router.post('/change-password', authenticate, async (req, res) => {
     const hash = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash: hash, passwordChangedAt: new Date() }
+      data: { passwordHash: hash, passwordChangedAt: passwordChangeStamp(), failedLoginAttempts: 0, lockedUntil: null }
     });
 
     // Revoke current cookie — passwordChangedAt now invalidates every JWT issued before this moment.
@@ -706,6 +718,10 @@ router.post('/delete-account', authenticate, async (req, res) => {
 
     // Soft-deactivate + anonymise to keep referential integrity on appointments.
     const anonEmail = `deleted-${user.id}-${Date.now()}@removed.local`;
+    // Store a VALID bcrypt hash of an unguessable random value (matches the
+    // Google / OTP auto-create paths) rather than a raw 32-byte hex string, so
+    // the column never holds a malformed (non-bcrypt) value.
+    const deadHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
     await prisma.$transaction([
       prisma.passwordReset.deleteMany({ where: { userId: user.id } }),
       prisma.user.update({
@@ -715,7 +731,7 @@ router.post('/delete-account', authenticate, async (req, res) => {
           name: 'Deleted user',
           email: anonEmail,
           phone: null,
-          passwordHash: crypto.randomBytes(32).toString('hex'),
+          passwordHash: deadHash,
           passwordChangedAt: new Date(),
           emailVerificationTokenHash: null,
           emailVerificationExpiresAt: null,

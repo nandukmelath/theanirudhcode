@@ -70,6 +70,11 @@ const ADMIN_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax',
+  // Explicit site-wide path. The admin_token is read under BOTH /portal-management
+  // AND /api/calendar/admin/* (hybridAdminAuth), so it must be host-wide. Setting it
+  // explicitly also lets logout clear it with a matching Path (RFC 6265 requires the
+  // deletion cookie's Path to match the stored cookie's Path).
+  path: '/',
   maxAge: 8 * 60 * 60 * 1000   // 8-hour admin session
 };
 

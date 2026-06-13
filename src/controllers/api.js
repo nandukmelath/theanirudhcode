@@ -59,7 +59,7 @@ router.post('/subscribe', async (req, res) => {
 router.post('/quiz/lead', async (req, res) => {
   const { name, email, archetype } = req.body;
 
-  if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name is required' });
+  if (!name || typeof name !== 'string' || name.trim().length < 2) return res.status(400).json({ error: 'Please enter your name' });
   const nameCheck = checkLen(name.trim(), 'Name', LIMITS.name);
   if (!nameCheck.ok) return res.status(400).json({ error: nameCheck.error });
   if (!email || !validateEmail(email)) return res.status(400).json({ error: 'Please enter a valid email address' });
@@ -74,9 +74,12 @@ router.post('/quiz/lead', async (req, res) => {
   try {
     // Upsert — a retake or an existing subscriber just refreshes the source/name,
     // never errors. The point is the lead + the emailed report, not uniqueness.
+    // Do NOT force isActive:true here — silently re-subscribing a previously
+    // opted-out contact without fresh consent is a DPDP-2023 risk. Re-activation
+    // must be an explicit opt-in, so the update branch leaves isActive untouched.
     await prisma.subscriber.upsert({
       where: { email: cleanEmail },
-      update: { name: cleanName, source, isActive: true },
+      update: { name: cleanName, source },
       create: { name: cleanName, email: cleanEmail, source },
     });
 

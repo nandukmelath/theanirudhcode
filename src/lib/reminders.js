@@ -40,12 +40,16 @@ async function sendUpcomingReminders() {
 
       if (!patient) continue;
 
-      // Build a snake_case version for WhatsApp helpers that expect old field names
+      // Build a snake_case version for WhatsApp helpers that expect old field names.
+      // goals + medical_history must be mapped too, otherwise the admin 24h reminder
+      // template renders "Goals: Not specified" even when the patient supplied them.
       const apptSnake = {
         date:            appt.date,
         time_start:      appt.timeStart,
         time_end:        appt.timeEnd,
         health_concerns: appt.healthConcerns,
+        goals:           appt.goals,
+        medical_history: appt.medicalHistory,
       };
 
       // 24h reminder

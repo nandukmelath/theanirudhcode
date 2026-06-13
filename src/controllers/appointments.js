@@ -7,20 +7,20 @@ const { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } = requir
 const wa = require('../lib/whatsapp');
 
 function isValidDate(d) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(new Date(d + 'T00:00:00').getTime());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+  // Reject impossible calendar dates that JS would silently roll over
+  // (e.g. 2026-02-30 → Mar 02). Parse the Y-M-D parts UTC-anchored and require a
+  // clean round-trip — a UTC compare avoids the timezone drift a local-parse +
+  // toISOString round-trip introduces for dates west of UTC.
+  const [y, mo, da] = d.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, mo - 1, da));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === da;
 }
 
 function isValidTime(t) {
-  return /^\d{2}:\d{2}$/.test(t);
-}
-
-// Today's date (YYYY-MM-DD) in the practitioner's timezone, not UTC. Using UTC made
-// appointments flip between "upcoming" and "past" during the 00:00–05:30 IST window.
-function practitionerToday() {
-  const off = process.env.PRACTITIONER_TZ_OFFSET || '+05:30';
-  const m = /^([+-])(\d{2}):(\d{2})$/.exec(off);
-  const mins = m ? (m[1] === '-' ? -1 : 1) * (parseInt(m[2], 10) * 60 + parseInt(m[3], 10)) : 330;
-  return new Date(Date.now() + mins * 60000).toISOString().split('T')[0];
+  // Real clock time only — rejects impossible values like 25:99 that a loose
+  // \d{2}:\d{2} regex would accept (and that lexical string compares mis-order).
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
 }
 
 // Normalize Prisma appointment to snake_case for the frontend
@@ -51,8 +51,13 @@ const CONSULTATION_TYPES = {
   comprehensive: { label: '90-min Comprehensive', price: 8000, duration: 90 },
 };
 
-// POST /api/appointments/book (authenticated)
-router.post('/book', authenticate, async (req, res) => {
+// POST /api/appointments/book (ADMIN ONLY — staff manual placement)
+// The live patient flow is payment-first (Cashfree create-order → verify → bookAfterPayment),
+// which records payment, patientAge and consentAt. This legacy endpoint creates a
+// status=confirmed / paymentStatus=pending appointment with NO payment, age or consent —
+// a full payment + TPG-2020 capture bypass if reachable by any patient. It is therefore
+// gated behind requireAdmin so only staff can manually place a booking.
+router.post('/book', authenticate, requireAdmin, async (req, res) => {
   const { date, time_start, time_end, health_concerns, medical_history, goals, consultation_type } = req.body;
 
   if (!date || !time_start || !time_end) {
@@ -185,9 +190,18 @@ router.get('/my', authenticate, async (req, res) => {
     });
 
     const normalized = appointments.map(normalize);
-    const today    = practitionerToday();
-    const upcoming = normalized.filter(a => a.date >= today && a.status === 'confirmed');
-    const past     = normalized.filter(a => a.date < today  || a.status !== 'confirmed');
+    // Split by the appointment's END datetime in the practitioner timezone, not by
+    // date alone — otherwise a confirmed appointment earlier *today* still shows as
+    // "Upcoming" (and offers Cancel) until midnight.
+    const tzOffset = process.env.PRACTITIONER_TZ_OFFSET || '+05:30';
+    const now      = Date.now();
+    const isUpcoming = (a) => {
+      if (a.status !== 'confirmed') return false;
+      const end = new Date(`${a.date}T${a.time_end || '23:59'}:00${tzOffset}`).getTime();
+      return Number.isFinite(end) ? end >= now : true;
+    };
+    const upcoming = normalized.filter(isUpcoming);
+    const past     = normalized.filter(a => !isUpcoming(a));
 
     res.json({ upcoming, past });
   } catch (err) {
@@ -216,7 +230,13 @@ router.post('/:id/cancel', authenticate, async (req, res) => {
 
     if (req.user.role !== 'admin') {
       const tzOffset  = process.env.PRACTITIONER_TZ_OFFSET || '+05:30';
+      const apptEnd   = new Date(`${appointment.date}T${appointment.timeEnd}:00${tzOffset}`);
       const apptTime  = new Date(`${appointment.date}T${appointment.timeStart}:00${tzOffset}`);
+      // Explicit past-appointment branch — otherwise a past appointment falls into
+      // the 24h check and returns the confusing "cancel 24h in advance" message.
+      if (apptEnd.getTime() < Date.now()) {
+        return res.status(400).json({ error: 'This appointment has already taken place and cannot be cancelled.' });
+      }
       const hoursUntil = (apptTime.getTime() - Date.now()) / (1000 * 60 * 60);
       if (hoursUntil < 24) {
         return res.status(400).json({ error: 'Appointments can only be cancelled at least 24 hours in advance' });

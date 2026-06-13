@@ -7,7 +7,11 @@ const axios = require('axios');
 const { google } = require('googleapis');
 const prisma = require('./prisma');
 
-const SMTP_FROM    = process.env.SMTP_FROM    || 'Dr. Anirudh | theanirudhcode <nandukannanmelath@gmail.com>';
+// Default to the verified-domain identity (same as Resend/Gmail). A @gmail.com
+// From on a generic relay fails SPF/DKIM/DMARC alignment and lands in spam/rejected.
+// Only override SMTP_FROM with a gmail.com address if SMTP_HOST is literally
+// smtp.gmail.com authenticated as that exact mailbox.
+const SMTP_FROM    = process.env.SMTP_FROM    || 'Dr. Anirudh | theanirudhcode <dranirudh@theanirudhcode.com>';
 // Resend requires a verified domain — always default to theanirudhcode.com address
 const RESEND_FROM  = process.env.RESEND_FROM  || 'Dr. Anirudh | theanirudhcode <dranirudh@theanirudhcode.com>';
 const GMAIL_FROM   = process.env.GMAIL_FROM   || 'Dr. Anirudh | theanirudhcode <dranirudh@theanirudhcode.com>';
@@ -49,10 +53,14 @@ async function sendViaGmail(to, subject, html) {
     });
 
     const gmail = google.gmail({ version: 'v1', auth: oauth2 });
+    // Strip CR/LF from any value interpolated into MIME headers. sanitize() (used
+    // upstream on names that flow into `subject`) removes HTML tags but NOT raw
+    // newlines, so a name containing a newline could otherwise inject extra headers.
+    const hdr = (s) => String(s).replace(/[\r\n]+/g, ' ');
     const raw = Buffer.from(
-      `From: ${GMAIL_FROM}\r\n` +
-      `To: ${to}\r\n` +
-      `Subject: ${subject}\r\n` +
+      `From: ${hdr(GMAIL_FROM)}\r\n` +
+      `To: ${hdr(to)}\r\n` +
+      `Subject: ${hdr(subject)}\r\n` +
       `MIME-Version: 1.0\r\n` +
       `Content-Type: text/html; charset=UTF-8\r\n` +
       `\r\n` +
@@ -473,7 +481,7 @@ const QUIZ_ARCHETYPES = {
       'Walk 10 minutes after your largest meal — muscle pulls glucose out of the blood without insulin.',
       'Stop eating 3 hours before bed — overnight is when insulin sensitivity recovers.',
     ],
-    cta: { label: 'Explore the Fasting Program', url: 'https://www.theanirudhcode.com/programs' },
+    cta: { label: 'Explore the Fasting Program', url: 'https://www.theanirudhcode.com/#fasting' },
   },
   gut: {
     title: 'The Restless Gut',
@@ -484,7 +492,7 @@ const QUIZ_ARCHETYPES = {
       'Add one fermented food daily — a spoon of curd, kanji, or a fermented vegetable.',
       'Chew each mouthful to liquid — digestion starts in the mouth, and most people skip it.',
     ],
-    cta: { label: 'See the Gut Repair protocol', url: 'https://www.theanirudhcode.com/programs' },
+    cta: { label: 'See the Gut Repair protocol', url: 'https://www.theanirudhcode.com/#consult' },
   },
   stress: {
     title: 'The Wired & Tired',
@@ -495,7 +503,7 @@ const QUIZ_ARCHETYPES = {
       'Try 5 minutes of slow nasal breathing (4 in, 6 out) before bed — a direct off-switch.',
       'Cut caffeine after noon for one week — protect the evening cortisol drop.',
     ],
-    cta: { label: 'Explore Breathwork & Sleep', url: 'https://www.theanirudhcode.com/programs' },
+    cta: { label: 'Explore Breathwork & Sleep', url: 'https://www.theanirudhcode.com/#consult' },
   },
   inflam: {
     title: 'The Smouldering Fire',
@@ -506,7 +514,7 @@ const QUIZ_ARCHETYPES = {
       'Prioritise 7–8 hours of sleep — inflammation resolves overnight, not during the day.',
       'Remove one suspected trigger for 2 weeks and watch — usually gluten, dairy, or sugar.',
     ],
-    cta: { label: 'Book a Root-Cause Consultation', url: 'https://www.theanirudhcode.com/programs' },
+    cta: { label: 'Book a Root-Cause Consultation', url: 'https://www.theanirudhcode.com/#consult' },
   },
   energy: {
     title: 'The Empty Tank',
@@ -517,7 +525,7 @@ const QUIZ_ARCHETYPES = {
       'Get outside and move gently every day — mitochondria multiply in response to demand.',
       'Protect a consistent sleep and wake time — energy is built on rhythm, not willpower.',
     ],
-    cta: { label: 'Book a Root-Cause Consultation', url: 'https://www.theanirudhcode.com/programs' },
+    cta: { label: 'Book a Root-Cause Consultation', url: 'https://www.theanirudhcode.com/#consult' },
   },
   hormonal: {
     title: 'The Hormonal Tide',
@@ -528,7 +536,7 @@ const QUIZ_ARCHETYPES = {
       'Protect deep sleep and a steady rhythm — most hormone repair happens overnight.',
       'Ask about a basic hormonal panel (thyroid, fasting insulin, key sex hormones) — measure, don’t guess.',
     ],
-    cta: { label: 'Book a Root-Cause Consultation', url: 'https://www.theanirudhcode.com/programs' },
+    cta: { label: 'Book a Root-Cause Consultation', url: 'https://www.theanirudhcode.com/#consult' },
   },
   free: {
     title: 'The Metabolically Free',
@@ -539,7 +547,7 @@ const QUIZ_ARCHETYPES = {
       'Protect sleep and morning light — the two cheapest longevity levers there are.',
       'Re-test yourself each season — catch any drift early, while it is still effortless to fix.',
     ],
-    cta: { label: 'Explore the Inner Circle', url: 'https://www.theanirudhcode.com/programs' },
+    cta: { label: 'Explore the Inner Circle', url: 'https://www.theanirudhcode.com/#consult' },
   },
 };
 

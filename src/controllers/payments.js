@@ -1,5 +1,5 @@
 /**
- * Payment controller — Razorpay (INR/India) + Stripe (USD/International)
+ * Payment controller — Cashfree (INR/India) + Stripe (USD/International)
  *
  * TEST MODE: set PAYMENT_TEST_MODE=true in env to bypass real gateways.
  * Everything works end-to-end. Flip off when real keys are added.
@@ -26,7 +26,7 @@ const CASHFREE_READY   = !!(process.env.CASHFREE_APP_ID && process.env.CASHFREE_
 const STRIPE_READY     = !!(process.env.STRIPE_SECRET_KEY && !process.env.STRIPE_SECRET_KEY.includes('REPLACE'));
 
 // ── Pricing ────────────────────────────────────────────────────────────────────
-// Prices must match what Razorpay/Stripe receives (Razorpay: paise, Stripe: cents)
+// Prices must match what the gateway receives (Cashfree: INR rupees, Stripe: cents).
 const PRICES = {
   consultation:  { label: 'Consultation',         INR: 3000,  USD: 36,  durationMin: 45  },
 };
@@ -38,8 +38,16 @@ function getPrice(tier, currency) {
 }
 
 // ── Validation helpers ─────────────────────────────────────────────────────────
-function isValidDate(d) { return /^\d{4}-\d{2}-\d{2}$/.test(d) && !isNaN(new Date(d + 'T00:00:00').getTime()); }
-function isValidTime(t) { return /^\d{2}:\d{2}$/.test(t); }
+function isValidDate(d) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
+  // Reject impossible calendar dates that JS silently rolls over (e.g. 2026-02-30).
+  // UTC component round-trip avoids local-timezone drift.
+  const [y, mo, da] = d.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, mo - 1, da));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === da;
+}
+// Real clock time only — rejects impossible values like 25:99.
+function isValidTime(t) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(t); }
 
 function validateBookingBody(body) {
   const { tier, date, time_start, time_end, health_concerns } = body;
@@ -78,6 +86,17 @@ async function bookAfterPayment({ userId, tier, date, time_start, time_end,
       where: { date, status: 'confirmed', timeStart: { lt: time_end }, timeEnd: { gt: time_start } }
     });
     if (conflict) {
+      const e = new Error('SLOT_TAKEN');
+      e.code  = 'SLOT_TAKEN';
+      throw e;
+    }
+    // Reject bookings that overlap a slot the practitioner has blocked off — the
+    // paid path must be as strict as /book and /reschedule, so a patient is never
+    // charged for a date/time the doctor made unavailable (vacation/surgery).
+    const blocked = await tx.blockedSlot.findFirst({
+      where: { date, timeStart: { lt: time_end }, timeEnd: { gt: time_start } }
+    });
+    if (blocked) {
       const e = new Error('SLOT_TAKEN');
       e.code  = 'SLOT_TAKEN';
       throw e;
@@ -152,8 +171,8 @@ router.post('/test/complete', authenticate, async (req, res) => {
           date,
           time_start,
           time_end,
-          consultation_type:  tier.key || tier,
-          consultation_price: tier.price,
+          consultation_type:  tier,                          // tier is the string key, not an object
+          consultation_price: getPrice(tier, 'INR')?.amount, // derive price from the canonical catalog
           health_concerns:    sanitize(health_concerns.trim()),
           medical_history:    sanitize((medical_history||'').trim()),
           goals:              sanitize((goals||'').trim()),
@@ -283,9 +302,11 @@ router.post('/cashfree/verify', authenticate, async (req, res) => {
       return res.status(400).json({ error: `Payment not completed (status: ${cfOrder.order_status}). Please try again.` });
     }
 
-    // Ownership guard: order must belong to the authenticated user
+    // Ownership guard: order must belong to the authenticated user. Reject when
+    // customer_id is ABSENT too — a missing id must not silently skip the check
+    // (create-order always sets it, so a legit order always has a matching id).
     const cfCustomerId = cfOrder.customer_details?.customer_id;
-    if (cfCustomerId && String(cfCustomerId) !== String(req.user.id)) {
+    if (!cfCustomerId || String(cfCustomerId) !== String(req.user.id)) {
       console.error(`[Cashfree] ownership mismatch: order ${order_id} owner=${cfCustomerId}, requester=${req.user.id}`);
       return res.status(403).json({ error: 'Payment session mismatch. Contact support.' });
     }
@@ -613,10 +634,22 @@ router.post('/fasting/verify', authenticate, async (req, res) => {
   const err = validateFastingBody(req.body);
   if (err) return res.status(400).json({ error: err });
 
-  // Idempotency — refresh/double-call returns the existing enrollment
+  // Safety gate (mirrors create-order): a contraindicated profile must NEVER be
+  // enrolled in an unsupervised water fast — re-check at verify so a direct API
+  // call can't bypass the create-order gate after paying.
+  const blockedV = (req.body.conditions || []).filter(c => FASTING_BLOCKED.includes(c));
+  if (blockedV.length) {
+    return res.status(422).json({ blocked: true, error: "For your safety, an unsupervised 3-day water fast isn't recommended with your profile. Please book a consultation instead." });
+  }
+
+  // Idempotency — refresh/double-call returns the existing enrollment. Only return
+  // the private WhatsApp group invite when the existing enrollment belongs to the
+  // caller; otherwise a guessable fp_<id>_<ts> order_id would leak the invite to
+  // any authenticated user (this early-return runs before the ownership guard below).
   const existing = await prisma.cohortEnrollment.findFirst({ where: { paymentOrderId: order_id } });
   if (existing) {
-    return res.json({ success: true, message: 'You are already enrolled!', whatsapp_group: process.env.WHATSAPP_GROUP_INVITE || '' });
+    const ownInvite = existing.userId === req.user.id ? (process.env.WHATSAPP_GROUP_INVITE || '') : '';
+    return res.json({ success: true, message: 'You are already enrolled!', whatsapp_group: ownInvite });
   }
 
   try {
@@ -627,9 +660,9 @@ router.post('/fasting/verify', authenticate, async (req, res) => {
       return res.status(400).json({ error: `Payment not completed (status: ${cfOrder.order_status}). Please try again.` });
     }
 
-    // Ownership guard: order must belong to the authenticated user
+    // Ownership guard: order must belong to the authenticated user (reject absent id too).
     const fcCustomerId = cfOrder.customer_details?.customer_id;
-    if (fcCustomerId && String(fcCustomerId) !== String(req.user.id)) {
+    if (!fcCustomerId || String(fcCustomerId) !== String(req.user.id)) {
       console.error(`[Cashfree/fasting] ownership mismatch: order ${order_id} owner=${fcCustomerId}, requester=${req.user.id}`);
       return res.status(403).json({ error: 'Payment session mismatch. Contact support.' });
     }
@@ -821,15 +854,14 @@ router.post('/stripe/webhook', async (req, res) => {
       // Google Calendar (non-critical)
       try {
         const fakeUser = { id: userId, name: m.user_name, email: m.user_email, phone: m.user_phone };
-        const tierObj  = m.tier && typeof m.tier === 'object' ? m.tier : {};
         const eventId  = await createCalendarEvent(
           {
             id:                 appointment.id,
             date:               m.date,
             time_start:         m.time_start,
             time_end:           m.time_end,
-            consultation_type:  tierObj.key || m.tier,
-            consultation_price: tierObj.price,
+            consultation_type:  m.tier,                            // metadata tier is a string key
+            consultation_price: getPrice(m.tier, 'USD')?.amount,   // derive from catalog (USD path)
             health_concerns:    sanitize(m.health_concerns),
             medical_history:    sanitize(m.medical_history),
             goals:              sanitize(m.goals),

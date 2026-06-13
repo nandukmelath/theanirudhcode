@@ -69,15 +69,33 @@ async function getSettings() {
   return settings;
 }
 
+// Day after `YYYY-MM-DD` as `YYYY-MM-DD`. Used as an EXCLUSIVE freebusy timeMax so
+// the final second of the day (23:59:59→00:00) isn't dropped from the busy window.
+function nextDateStr(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + 1));
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${dt.getUTCFullYear()}-${mm}-${dd}`;
+}
+
 function generateSlots(settings) {
   const start    = settings.working_hours_start || '09:00';
   const end      = settings.working_hours_end   || '18:00';
-  const duration = parseInt(settings.slot_duration || '60');
+  // Harden against malformed settings rows (seed/migration/direct DB edits can set
+  // NaN/0/garbage). A bad duration would otherwise produce an empty or non-terminating
+  // loop; bad hours an NaN comparison. Fall back to sane defaults + bail on bad config.
+  let duration = parseInt(settings.slot_duration, 10);
+  if (!Number.isFinite(duration) || duration <= 0) duration = 60;
 
   const [startH, startM] = start.split(':').map(Number);
   const [endH,   endM]   = end.split(':').map(Number);
   const startMinutes = startH * 60 + startM;
   const endMinutes   = endH   * 60 + endM;
+  if (!Number.isFinite(startMinutes) || !Number.isFinite(endMinutes) || startMinutes >= endMinutes) {
+    console.warn('[generateSlots] invalid working hours config — returning no slots:', start, end);
+    return [];
+  }
 
   const slots = [];
   for (let m = startMinutes; m + duration <= endMinutes; m += duration) {
@@ -184,6 +202,28 @@ router.post('/set-calendar', hybridAdminAuth, async (req, res) => {
   if (!/^[a-zA-Z0-9._%+\-@]+$/.test(calendarId) || calendarId.length > 200) {
     return res.status(400).json({ error: 'Invalid calendar ID format' });
   }
+
+  // Verify the calendar exists in the connected account and is writable BEFORE
+  // persisting. A typo'd / non-writable calendarId otherwise silently breaks every
+  // downstream event-creation and freebusy call (all of which swallow their errors),
+  // leaving bookings with no calendar event and freebusy returning empty.
+  if (gcalConfigured()) {
+    const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
+    if (!tokens?.refreshToken) return res.status(400).json({ error: 'Google Calendar is not connected' });
+    try {
+      const client   = getOAuth2Client(tokens);
+      const calendar = google.calendar({ version: 'v3', auth: client });
+      const meta     = await calendar.calendarList.get({ calendarId });
+      const role     = meta.data.accessRole;
+      if (role !== 'writer' && role !== 'owner') {
+        return res.status(400).json({ error: 'That calendar is not writable. Choose one you own or can edit.' });
+      }
+    } catch (err) {
+      console.error('set-calendar verify error:', err.message);
+      return res.status(400).json({ error: 'Could not access that calendar. Check the ID and that it is shared with the connected account.' });
+    }
+  }
+
   await prisma.googleToken.update({ where: { id: 1 }, data: { calendarId } });
   res.json({ success: true });
 });
@@ -219,7 +259,7 @@ router.get('/available-slots', authenticate, async (req, res) => {
       const freeBusy = await calendar.freebusy.query({
         requestBody: {
           timeMin:  `${date}T00:00:00${TZ_OFFSET}`,
-          timeMax:  `${date}T23:59:59${TZ_OFFSET}`,
+          timeMax:  `${nextDateStr(date)}T00:00:00${TZ_OFFSET}`,   // exclusive end-of-day
           timeZone: TZ_NAME,
           items:    [{ id: tokens.calendarId }]
         }
@@ -237,7 +277,7 @@ router.get('/available-slots', authenticate, async (req, res) => {
   // Admin-manually-blocked slots
   const blockedSlots = await prisma.blockedSlot.findMany({
     where:  { date },
-    select: { timeStart: true }
+    select: { timeStart: true, timeEnd: true }
   });
 
   const slots = allSlots.map(slot => {
@@ -254,7 +294,9 @@ router.get('/available-slots', authenticate, async (req, res) => {
     const dbBusy = dbAppointments.some(a => slot.start < a.timeEnd && slot.end > a.timeStart);
     if (dbBusy) return { ...slot, available: false };
 
-    if (blockedSlots.some(b => b.timeStart === slot.start)) return { ...slot, available: false };
+    // Range-overlap (not exact-start) — a multi-slot / off-grid block must suppress
+    // every grid slot it overlaps, matching the booking-path overlap rule.
+    if (blockedSlots.some(b => slot.start < b.timeEnd && slot.end > b.timeStart)) return { ...slot, available: false };
 
     return { ...slot, available: true };
   });
@@ -284,7 +326,7 @@ router.get('/available-days', authenticate, async (req, res) => {
 
   const monthBlockedSlots = await prisma.blockedSlot.findMany({
     where:  { date: { startsWith: month } },
-    select: { date: true, timeStart: true }
+    select: { date: true, timeStart: true, timeEnd: true }
   });
 
   const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
@@ -298,7 +340,7 @@ router.get('/available-days', authenticate, async (req, res) => {
       const freeBusy = await calendar.freebusy.query({
         requestBody: {
           timeMin:  `${month}-01T00:00:00${TZ_OFFSET}`,
-          timeMax:  `${month}-${lastDay}T23:59:59${TZ_OFFSET}`,
+          timeMax:  `${nextDateStr(`${month}-${lastDay}`)}T00:00:00${TZ_OFFSET}`,   // exclusive: 00:00 of the day after month-end
           timeZone: TZ_NAME,
           items:    [{ id: tokens.calendarId }]
         }
@@ -318,13 +360,14 @@ router.get('/available-days', authenticate, async (req, res) => {
     if (!workingDays.includes(dayOfWeek)) { days.push({ date: dateStr, hasSlots: false }); continue; }
 
     const dayAppts   = dbAppointments.filter(a => a.date === dateStr);
-    const dayBlocked = monthBlockedSlots.filter(b => b.date === dateStr).map(b => b.timeStart);
+    const dayBlocked = monthBlockedSlots.filter(b => b.date === dateStr);
     const hasAvailable = allSlots.some(slot => {
       const slotStart = new Date(`${dateStr}T${slot.start}:00${TZ_OFFSET}`);
       const slotEnd   = new Date(`${dateStr}T${slot.end}:00${TZ_OFFSET}`);
 
       if (slotStart < minTime) return false;
-      if (dayBlocked.includes(slot.start)) return false;
+      // Range-overlap against blocked slots (not exact-start equality).
+      if (dayBlocked.some(b => slot.start < b.timeEnd && slot.end > b.timeStart)) return false;
 
       const gcalBusy = busyPeriods.some(b => slotStart < new Date(b.end) && slotEnd > new Date(b.start));
       if (gcalBusy) return false;
@@ -353,7 +396,7 @@ router.get('/admin/slots', hybridAdminAuth, async (req, res) => {
   const [bookedAppts, blockedSlots] = await Promise.all([
     prisma.appointment.findMany({
       where:  { date, status: 'confirmed' },
-      select: { timeStart: true, user: { select: { name: true } } }
+      select: { timeStart: true, timeEnd: true, user: { select: { name: true } } }
     }),
     prisma.blockedSlot.findMany({
       where:  { date },
@@ -372,7 +415,7 @@ router.get('/admin/slots', hybridAdminAuth, async (req, res) => {
       const freeBusy = await calendar.freebusy.query({
         requestBody: {
           timeMin:  `${date}T00:00:00${TZ_OFFSET}`,
-          timeMax:  `${date}T23:59:59${TZ_OFFSET}`,
+          timeMax:  `${nextDateStr(date)}T00:00:00${TZ_OFFSET}`,   // exclusive end-of-day
           timeZone: TZ_NAME,
           items:    [{ id: tokens.calendarId }]
         }
@@ -386,10 +429,12 @@ router.get('/admin/slots', hybridAdminAuth, async (req, res) => {
     const slotStart = new Date(`${date}T${slot.start}:00${TZ_OFFSET}`);
     const slotEnd   = new Date(`${date}T${slot.end}:00${TZ_OFFSET}`);
 
-    const booked = bookedAppts.find(a => a.timeStart === slot.start);
+    // Range-overlap match (not exact-start) so an off-grid or multi-slot booking /
+    // block is never shown as 'available' to the admin.
+    const booked = bookedAppts.find(a => slot.start < a.timeEnd && slot.end > a.timeStart);
     if (booked) return { ...slot, status: 'booked', patient: booked.user?.name || 'Patient' };
 
-    const blocked = blockedSlots.find(b => b.timeStart === slot.start);
+    const blocked = blockedSlots.find(b => slot.start < b.timeEnd && slot.end > b.timeStart);
     if (blocked) return { ...slot, status: 'blocked', reason: blocked.reason || null };
 
     const gcalBusy = gcalBusyPeriods.some(b => slotStart < new Date(b.end) && slotEnd > new Date(b.start));
@@ -457,6 +502,10 @@ router.post('/admin/block', hybridAdminAuth, async (req, res) => {
 router.delete('/admin/unblock', hybridAdminAuth, async (req, res) => {
   const { date, timeStart } = req.body;
   if (!date || !timeStart) return res.status(400).json({ error: 'date and timeStart required' });
+  // Same format validation as /admin/block, for a clean 400 (not a silent 404)
+  // on malformed input.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD.' });
+  if (!/^\d{2}:\d{2}$/.test(timeStart))  return res.status(400).json({ error: 'Invalid time format. Use HH:MM.' });
 
   const blocked = await prisma.blockedSlot.findUnique({
     where: { date_timeStart: { date, timeStart } }

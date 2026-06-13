@@ -32,7 +32,9 @@ router.post('/api/login', (req, res) => {
   const envPass = process.env.ADMIN_PASSWORD;
 
   if (!envUser || !envPass) {
-    return res.status(503).json({ error: 'Admin credentials not configured. Set ADMIN_USERNAME and ADMIN_PASSWORD env vars.' });
+    // Don't disclose which env vars are unset to an unauthenticated probe.
+    console.error('[Admin login] ADMIN_USERNAME / ADMIN_PASSWORD not configured');
+    return res.status(503).json({ error: 'Admin login is temporarily unavailable.' });
   }
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password required' });
@@ -66,7 +68,11 @@ router.post('/api/login', (req, res) => {
 
 // POST /portal-management/api/logout
 router.post('/api/logout', (req, res) => {
-  res.clearCookie('admin_token', { path: '/portal-management' });
+  // Clear with the SAME attributes the cookie was set with (Path=/, sameSite, secure)
+  // so the browser actually deletes it. The cookie is set host-wide because
+  // /api/calendar/admin/* also reads it — scoping the clear to /portal-management
+  // would leave it live at Path=/.
+  res.clearCookie('admin_token', { ...ADMIN_COOKIE_OPTIONS, maxAge: undefined });
   res.json({ success: true });
 });
 
@@ -181,9 +187,17 @@ router.get('/api/settings', hybridAdminAuth, async (req, res) => {
 router.put('/api/settings', hybridAdminAuth, async (req, res) => {
   const { working_hours_start, working_hours_end, slot_duration, working_days, booking_lead_hours } = req.body;
 
-  const timeRegex = /^\d{2}:\d{2}$/;
+  // Real clock-time regex (rejects impossible values like 25:61 that \d{2}:\d{2} accepts).
+  const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
   if (working_hours_start && !timeRegex.test(working_hours_start)) return res.status(400).json({ error: 'Invalid start time format. Use HH:MM.' });
   if (working_hours_end && !timeRegex.test(working_hours_end)) return res.status(400).json({ error: 'Invalid end time format. Use HH:MM.' });
+  // Cross-field: end must be after start, and at least one slot must fit, so an
+  // inverted/empty working window can't silently brick the slot generator.
+  if (working_hours_start && working_hours_end) {
+    const [sh, sm] = working_hours_start.split(':').map(Number);
+    const [eh, em] = working_hours_end.split(':').map(Number);
+    if (eh * 60 + em <= sh * 60 + sm) return res.status(400).json({ error: 'End time must be after start time.' });
+  }
 
   const validDurations = [15, 30, 45, 60];
   if (slot_duration && !validDurations.includes(Number(slot_duration))) return res.status(400).json({ error: 'Slot duration must be 15, 30, 45, or 60 minutes.' });
@@ -261,7 +275,10 @@ router.post('/api/posts', hybridAdminAuth, async (req, res) => {
   if (canvasType && !VALID_CANVAS_TYPES.includes(canvasType)) {
     return res.status(400).json({ error: `canvasType must be one of: ${VALID_CANVAS_TYPES.join(', ')}` });
   }
-  const rawSlug = slug?.trim() || title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  let rawSlug = slug?.trim() || title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  // A title with no ASCII alphanumerics (e.g. emoji/Devanagari/CJK only) collapses
+  // to an empty slug → a broken /blog/ URL. Fall back to an id-based slug.
+  if (!rawSlug) rawSlug = `post-${Date.now()}`;
 
   try {
     const post = await prisma.post.create({
@@ -295,7 +312,11 @@ router.put('/api/posts/:id', hybridAdminAuth, async (req, res) => {
 
   const data = {};
   if (title !== undefined) data.title = sanitize(title.trim());
-  if (slug !== undefined) data.slug = slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (slug !== undefined) {
+    const s = slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    if (!s) return res.status(400).json({ error: 'Could not derive a URL slug from the provided value; please provide a valid slug.' });
+    data.slug = s;
+  }
   if (category !== undefined) data.category = sanitize(category.trim());
   if (tags !== undefined) data.tags = tags ? sanitize(tags.trim()) : null;
   if (excerpt !== undefined) data.excerpt = sanitize(excerpt.trim());

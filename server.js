@@ -255,7 +255,20 @@ app.use('/api/auth/reset-password',       limit({ windowMs: 60 * 60 * 1000, max:
 app.use('/api/auth/register',             limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many registration attempts. Please try again later.' } }));
 app.use('/api/auth/otp/request',          limit({ windowMs: 60 * 60 * 1000, max: 8,  message: { error: 'Too many code requests. Please try again later.' } }));
 app.use('/api/auth/otp/phone-request',   limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many phone OTP requests. Please try again later.' } }));
+// Sensitive-action auth endpoints that previously inherited only the loose general
+// /api limiter (100/15min). OTP-verify brute-force is otherwise bounded only by the
+// per-OTP 5-attempt cap; change/delete-account bcrypt.compare a user-supplied password.
+app.use('/api/auth/otp/verify',           limit({ windowMs: 15 * 60 * 1000, max: 10, message: { error: 'Too many attempts. Please try again later.' } }));
+app.use('/api/auth/google',               limit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: 'Too many attempts. Please try again later.' } }));
+app.use('/api/auth/change-password',      limit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: 'Too many attempts. Please try again later.' } }));
+app.use('/api/auth/delete-account',       limit({ windowMs: 60 * 60 * 1000, max: 10, message: { error: 'Too many attempts. Please try again later.' } }));
 app.use('/api/subscribe',                 limit({ windowMs: 60 * 60 * 1000, max: 8,  message: { error: 'Too many requests. Please try again later.' } }));
+// Quiz/assessment lead capture sends a real report email + upserts a subscriber on
+// every call — needs its own tight limit so it can't be used to email-bomb a victim
+// or burn mail-provider quota under the loose general bucket.
+app.use('/api/quiz/lead',                 limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
+// Public, unauthenticated cohort enroll writes PII + fires an admin WhatsApp alert.
+app.use('/api/cohorts/:id/enroll',        limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
 app.use('/api/consultation',              limit({ windowMs: 60 * 60 * 1000, max: 5,  message: { error: 'Too many requests. Please try again later.' } }));
 // Payment endpoints: prevent order-spam and verify-spam (5 per 10 min per IP)
 app.use('/api/payments/cashfree/create-order', limit({ windowMs: 10 * 60 * 1000, max: 5, message: { error: 'Too many payment attempts. Please try again later.' } }));

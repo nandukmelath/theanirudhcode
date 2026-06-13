@@ -102,8 +102,8 @@ model Appointment {
   timeStart         String            @map("time_start")
   timeEnd           String            @map("time_end")
   status            AppointmentStatus @default(confirmed)
-  consultationType  String            @default("deepdive") @map("consultation_type")
-  consultationPrice Int               @default(5000) @map("consultation_price")
+  consultationType  String            @default("consultation") @map("consultation_type")
+  consultationPrice Int               @default(3000) @map("consultation_price")
   healthConcerns    String?           @map("health_concerns")
   medicalHistory    String?           @map("medical_history")
   goals             String?

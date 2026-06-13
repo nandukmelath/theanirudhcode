@@ -35,7 +35,10 @@ function formatPhone(raw) {
 
 async function sendText(to, body) {
   if (!isConfigured()) {
-    console.log(`[WhatsApp NOT CONFIGURED] To: ${to}\n${body}\n`);
+    // Never log the recipient number or message body here — message bodies carry
+    // patient PII (health concerns, medical history, contact details) and OTP codes
+    // (DPDP-2023 / medical confidentiality). Log only a non-identifying marker.
+    console.log('[WhatsApp NOT CONFIGURED] message skipped (not sent)');
     return false;
   }
   const phone = formatPhone(to);
@@ -68,7 +71,7 @@ Your verification code is:
 
 *${otp}*
 
-This code expires in *15 minutes*. Do not share it with anyone.`;
+This code expires in *10 minutes*. Do not share it with anyone.`;
   return sendText(phone, msg);
 }
 

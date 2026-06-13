@@ -7,7 +7,13 @@ async function main() {
   console.log('Seeding database...');
 
   // ═══════════ ADMIN USER ═══════════
-  const adminHash = bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'healtherealyou2026', 10);
+  // Never embed a fallback password — a committed default becomes a live, bcrypt-stored
+  // credential for the DB-admin auth path. Require ADMIN_PASSWORD to be set when seeding.
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    throw new Error('ADMIN_PASSWORD env var is required to seed the admin user (no default is allowed).');
+  }
+  const adminHash = bcrypt.hashSync(adminPassword, 10);
   await prisma.user.upsert({
     where: { email: 'admin@theanirudhcode.com' },
     update: {},
