@@ -186,7 +186,7 @@ function welcomeEmailHtml(name) {
                       <td width="32" valign="top" style="font-family:'Georgia',serif;font-size:14px;color:#c8a951;padding-top:1px;">◆</td>
                       <td>
                         <div style="font-size:13px;font-family:Arial,sans-serif;font-weight:400;color:#f8f4ec;margin-bottom:4px;">Bespoke Healing Protocol</div>
-                        <div style="font-size:12px;font-family:Arial,sans-serif;color:rgba(248,244,236,0.5);line-height:1.6;">Custom blueprints spanning nutrition, breathwork, sleep, and Ayurvedic wisdom — built for your biology.</div>
+                        <div style="font-size:12px;font-family:Arial,sans-serif;color:rgba(248,244,236,0.5);line-height:1.6;">Custom blueprints spanning nutrition, breathwork, sleep, and metabolic science — built for your biology.</div>
                       </td>
                     </tr>
                   </table>

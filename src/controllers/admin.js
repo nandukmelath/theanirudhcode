@@ -282,7 +282,7 @@ router.get('/api/posts', hybridAdminAuth, async (req, res) => {
   }
 });
 
-const VALID_CANVAS_TYPES = ['gut', 'mind', 'heart', 'body', 'soul', 'lifestyle', 'nutrition', 'general', 'sleep', 'ayurveda'];
+const VALID_CANVAS_TYPES = ['gut', 'mind', 'heart', 'body', 'soul', 'lifestyle', 'nutrition', 'general', 'sleep', 'metabolic'];
 
 router.post('/api/posts', hybridAdminAuth, async (req, res) => {
   const { title, slug, category, tags, excerpt, content, canvasType, published } = req.body;
