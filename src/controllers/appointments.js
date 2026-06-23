@@ -5,6 +5,7 @@ const { authenticate, requireAdmin } = require('../middleware/auth');
 const { sanitize, checkLen, LIMITS } = require('../middleware/validate');
 const { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } = require('./calendar');
 const wa = require('../lib/whatsapp');
+const mailer = require('../lib/mailer');
 
 function isValidDate(d) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return false;
@@ -45,7 +46,7 @@ function normalize(a) {
 }
 
 const CONSULTATION_TYPES = {
-  consultation:  { label: 'Consultation',         price: 3000, duration: 45 },
+  consultation:  { label: 'Consultation',         price: 2999, duration: 45 },
   // legacy keys retained so historical appointments still render/reschedule correctly
   discovery:     { label: '30-min Discovery',     price: 1500, duration: 30 },
   deepdive:      { label: '60-min Deep Dive',     price: 5000, duration: 60 },
@@ -174,6 +175,8 @@ router.post('/book', authenticate, requireAdmin, async (req, res) => {
   const apptData = { date, time_start, time_end, health_concerns: cleanConcerns, goals: cleanGoals, medical_history: cleanHistory };
   wa.sendBookingConfirmation(req.user.phone, req.user.name, apptData).catch(e => console.error('[WhatsApp] booking confirmation failed:', e.message));
   wa.sendAdminNewBooking(apptData, req.user).catch(e => console.error('[WhatsApp] admin booking alert failed:', e.message));
+  mailer.sendBookingConfirmationEmail(req.user.email, req.user.name, apptData).catch(e => console.error('[Mailer] booking confirmation failed:', e.message));
+  mailer.sendAdminBookingEmail(apptData, req.user).catch(e => console.error('[Mailer] admin booking alert failed:', e.message));
 
   res.status(201).json({
     success: true,

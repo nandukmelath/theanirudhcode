@@ -19,6 +19,7 @@ const prisma   = require('../lib/prisma');
 const { authenticate } = require('../middleware/auth');
 const { sanitize }     = require('../middleware/validate');
 const wa               = require('../lib/whatsapp');
+const mailer           = require('../lib/mailer');
 const { createCalendarEvent } = require('./calendar');
 const { createVideoRoom }     = require('../lib/video');
 
@@ -29,7 +30,7 @@ const STRIPE_READY     = !!(process.env.STRIPE_SECRET_KEY && !process.env.STRIPE
 // ── Pricing ────────────────────────────────────────────────────────────────────
 // Prices must match what the gateway receives (Cashfree: INR rupees, Stripe: cents).
 const PRICES = {
-  consultation:  { label: 'Consultation',         INR: 3000,  USD: 36,  durationMin: 45  },
+  consultation:  { label: 'Consultation',         INR: 2999,  USD: 36,  durationMin: 45  },
 };
 
 function getPrice(tier, currency) {
@@ -209,6 +210,8 @@ router.post('/test/complete', authenticate, async (req, res) => {
       medical_history: sanitize((medical_history||'').trim()) };
     wa.sendBookingConfirmation(req.user.phone, req.user.name, apptData).catch(() => {});
     wa.sendAdminNewBooking(apptData, req.user).catch(() => {});
+    mailer.sendBookingConfirmationEmail(req.user.email, req.user.name, apptData).catch(() => {});
+    mailer.sendAdminBookingEmail(apptData, req.user).catch(() => {});
 
     res.json({
       success: true,
@@ -384,6 +387,8 @@ router.post('/cashfree/verify', authenticate, async (req, res) => {
       video_room_url:  appointment.videoRoomUrl || null };
     wa.sendBookingConfirmation(req.user.phone, req.user.name, apptData).catch(e => console.error('[WhatsApp] booking confirmation failed:', e.message));
     wa.sendAdminNewBooking(apptData, req.user).catch(e => console.error('[WhatsApp] admin booking alert failed:', e.message));
+    mailer.sendBookingConfirmationEmail(req.user.email, req.user.name, apptData).catch(e => console.error('[Mailer] booking confirmation failed:', e.message));
+    mailer.sendAdminBookingEmail(apptData, req.user).catch(e => console.error('[Mailer] admin booking alert failed:', e.message));
 
     res.json({
       success: true,
@@ -785,6 +790,8 @@ router.post('/stripe/create-session', authenticate, async (req, res) => {
         medical_history: sanitize((medical_history||'').trim()) };
       wa.sendBookingConfirmation(req.user.phone, req.user.name, apptData).catch(() => {});
       wa.sendAdminNewBooking(apptData, req.user).catch(() => {});
+      mailer.sendBookingConfirmationEmail(req.user.email, req.user.name, apptData).catch(() => {});
+      mailer.sendAdminBookingEmail(apptData, req.user).catch(() => {});
       return res.json({ test_mode: true, success: true, appointment: { id: appointment.id, date, time_start, time_end, video_room_url: appointment.videoRoomUrl || null } });
     } catch (e) {
       if (e.code === 'SLOT_TAKEN' || e.code === 'P2002' || e.code === 'P2034')
@@ -942,6 +949,8 @@ router.post('/stripe/webhook', async (req, res) => {
           video_room_url: appointment.videoRoomUrl || null };
         wa.sendBookingConfirmation(m.user_phone, m.user_name, apptData).catch(() => {});
         wa.sendAdminNewBooking(apptData, { name: m.user_name, email: m.user_email, phone: m.user_phone }).catch(() => {});
+        mailer.sendBookingConfirmationEmail(m.user_email, m.user_name, apptData).catch(() => {});
+        mailer.sendAdminBookingEmail(apptData, { name: m.user_name, email: m.user_email, phone: m.user_phone }).catch(() => {});
       }
 
       console.log(`[Stripe webhook] Appointment booked: #${appointment.id} for user ${userId}`);

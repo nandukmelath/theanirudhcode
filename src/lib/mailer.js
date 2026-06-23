@@ -616,4 +616,70 @@ async function sendQuizResultEmail(email, name, archetype) {
   return false;
 }
 
-module.exports = { sendWelcomeEmail, sendPasswordResetEmail, sendConsultationReply, sendVerificationEmail, sendOtpEmail, sendQuizResultEmail, QUIZ_ARCHETYPES };
+// ── Booking emails ───────────────────────────────────────────────────────────
+function prettyWhen(date, time) {
+  try {
+    const d = new Date(`${date}T${time}:00+05:30`);
+    return new Intl.DateTimeFormat('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }).format(d) + ' IST';
+  } catch { return `${date} at ${time}`; }
+}
+function escB(s) { return String(s == null ? '' : s).replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+function bookingConfirmHtml(name, appt) {
+  const first = (name || '').split(' ')[0] || 'there';
+  const when = prettyWhen(appt.date, appt.time_start);
+  const join = appt.video_room_url
+    ? `<p style="margin:0 0 8px"><a href="${escB(appt.video_room_url)}" style="display:inline-block;background:#c8a951;color:#070707;text-decoration:none;padding:14px 32px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:600">Join the Video Room &rarr;</a></p><p style="font-size:12px;color:rgba(248,244,236,.4);margin:0 0 8px">Use this same link at your appointment time.</p>`
+    : '';
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#070707;font-family:Georgia,serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#070707;padding:40px 20px"><tr><td align="center">
+  <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#0e0e0e;border:1px solid rgba(200,169,81,.15)">
+  <tr><td style="padding:40px 48px 28px;border-bottom:1px solid rgba(200,169,81,.11);text-align:center">
+    <div style="font-size:22px;font-weight:300;letter-spacing:.14em;color:#f8f4ec">theanirudhcode</div>
+    <div style="font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:rgba(200,169,81,.7);margin-top:6px">Appointment Confirmed</div></td></tr>
+  <tr><td style="padding:44px 48px 40px">
+    <p style="font-size:26px;font-weight:300;color:#f8f4ec;margin:0 0 16px">You're all set, <em style="color:#e2c97e">${escB(first)}</em></p>
+    <p style="font-size:15px;color:rgba(248,244,236,.75);line-height:1.9;margin:0 0 24px;font-family:Arial,sans-serif">Your consultation with Dr. Anirudh is confirmed for <strong style="color:#f8f4ec">${escB(when)}</strong>.</p>
+    ${join}
+    <p style="font-size:14px;color:rgba(248,244,236,.6);line-height:1.9;margin:20px 0 0;font-family:Arial,sans-serif">Bring any recent reports if you have them. You can view or reschedule from <a href="https://www.theanirudhcode.com/my-appointments" style="color:#c8a951">your account</a>.</p>
+  </td></tr>
+  <tr><td style="padding:24px 48px;border-top:1px solid rgba(200,169,81,.11);text-align:center"><p style="font-size:11px;font-family:Arial,sans-serif;color:rgba(248,244,236,.3);margin:0">theanirudhcode &middot; Hyderabad, India</p></td></tr>
+  </table></td></tr></table></body></html>`;
+}
+
+function adminBookingHtml(appt, user) {
+  const when = prettyWhen(appt.date, appt.time_start);
+  const row = (k, v) => `<tr><td style="padding:7px 0;font-family:Arial,sans-serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:rgba(200,169,81,.7);width:130px;vertical-align:top">${k}</td><td style="padding:7px 0;font-family:Arial,sans-serif;font-size:15px;color:rgba(248,244,236,.9);white-space:pre-wrap">${escB(v)}</td></tr>`;
+  return `<!DOCTYPE html><html><body style="margin:0;padding:0;background:#070707;font-family:Georgia,serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#070707;padding:40px 20px"><tr><td align="center">
+  <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#0e0e0e;border:1px solid rgba(200,169,81,.15)">
+  <tr><td style="padding:36px 48px 24px;border-bottom:1px solid rgba(200,169,81,.11);text-align:center">
+    <div style="font-size:20px;font-weight:300;letter-spacing:.14em;color:#f8f4ec">theanirudhcode</div>
+    <div style="font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:rgba(200,169,81,.7);margin-top:6px">New Booking</div></td></tr>
+  <tr><td style="padding:36px 48px"><table width="100%" cellpadding="0" cellspacing="0">
+    ${row('Patient', user.name)}${row('Email', user.email)}${row('Phone', user.phone || 'Not provided')}
+    ${row('When', when)}${row('Concerns', appt.health_concerns || '—')}${row('History', appt.medical_history || 'None')}${row('Goals', appt.goals || '—')}
+  </table></td></tr></table></td></tr></table></body></html>`;
+}
+
+async function sendBookingConfirmationEmail(email, name, appt) {
+  if (!email) return false;
+  const subject = `Your consultation is confirmed — ${prettyWhen(appt.date, appt.time_start)}`;
+  const html = bookingConfirmHtml(name, appt);
+  for (const provider of [sendViaGmail, sendViaResend, sendViaSmtp]) {
+    if (await trySend(provider, email, subject, html)) { console.log(`[Mailer] ✓ Booking confirmation via ${provider.name} to ${email}`); return true; }
+  }
+  console.error(`[Mailer] Booking confirmation failed for ${email}`); return false;
+}
+
+async function sendAdminBookingEmail(appt, user) {
+  const to = process.env.ADMIN_EMAIL || 'dranirudh@theanirudhcode.com';
+  const subject = `New booking — ${user.name} · ${prettyWhen(appt.date, appt.time_start)}`;
+  const html = adminBookingHtml(appt, user);
+  for (const provider of [sendViaGmail, sendViaResend, sendViaSmtp]) {
+    if (await trySend(provider, to, subject, html)) { console.log(`[Mailer] ✓ Admin booking alert via ${provider.name} to ${to}`); return true; }
+  }
+  console.error(`[Mailer] Admin booking alert failed for ${to}`); return false;
+}
+
+module.exports = { sendWelcomeEmail, sendPasswordResetEmail, sendConsultationReply, sendVerificationEmail, sendOtpEmail, sendQuizResultEmail, QUIZ_ARCHETYPES, sendBookingConfirmationEmail, sendAdminBookingEmail };
