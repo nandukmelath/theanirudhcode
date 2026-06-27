@@ -321,7 +321,7 @@ router.post('/cashfree/verify', authenticate, async (req, res) => {
     return res.json({
       success: true,
       message: 'Appointment already confirmed!',
-      appointment: { id: existing.id, date: existing.date, timeStart: existing.timeStart, timeEnd: existing.timeEnd, status: existing.status, video_room_url: existing.videoRoomUrl || null },
+      appointment: { id: existing.id, date: existing.date, time_start: existing.timeStart, time_end: existing.timeEnd, status: existing.status, video_room_url: existing.videoRoomUrl || null },
     });
   }
 
