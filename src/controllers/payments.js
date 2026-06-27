@@ -52,7 +52,7 @@ function isValidDate(d) {
 function isValidTime(t) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(t); }
 
 // Bookings open from July 2026, weekends off, and only the 4 fixed 45-min slots.
-const MIN_BOOKING_DATE = process.env.MIN_BOOKING_DATE || '2026-07-01';
+const MIN_BOOKING_DATE = process.env.MIN_BOOKING_DATE || '2026-07-02';
 const FIXED_SLOTS = [['10:00', '10:45'], ['11:30', '12:15'], ['13:00', '13:45'], ['14:45', '15:30']];
 function weekdayOf(d) { return new Date(`${d}T00:00:00Z`).getUTCDay(); } // tz-independent
 
@@ -62,7 +62,7 @@ function validateBookingBody(body) {
   if (!isValidDate(date))     return 'Invalid date (YYYY-MM-DD)';
   const tzOffset = process.env.PRACTITIONER_TZ_OFFSET || '+05:30';
   if (new Date(`${date}T23:59:59${tzOffset}`) < new Date()) return 'Cannot book appointments in the past.';
-  if (date < MIN_BOOKING_DATE) return 'Bookings open from 1 July 2026.';
+  if (date < MIN_BOOKING_DATE) return 'Bookings open from 2 July 2026.';
   const wd = weekdayOf(date);
   if (wd === 0 || wd === 6) return 'Weekends are unavailable — please pick a weekday.';
   if (!isValidTime(time_start) || !isValidTime(time_end)) return 'Invalid time (HH:MM)';

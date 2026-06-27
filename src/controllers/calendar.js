@@ -91,7 +91,7 @@ const FIXED_SLOTS = [
 ];
 
 // Bookings open from this date (everything before is disabled).
-const MIN_BOOKING_DATE = process.env.MIN_BOOKING_DATE || '2026-07-01';
+const MIN_BOOKING_DATE = process.env.MIN_BOOKING_DATE || '2026-07-02';
 
 // Calendar weekday (0=Sun … 6=Sat) for a YYYY-MM-DD string, timezone-independent.
 // UTC-anchored so it can't drift a day on a UTC runtime (Cloud Run) the way
