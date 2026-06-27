@@ -79,33 +79,35 @@ function nextDateStr(dateStr) {
   return `${dt.getUTCFullYear()}-${mm}-${dd}`;
 }
 
-function generateSlots(settings) {
-  const start    = settings.working_hours_start || '09:00';
-  const end      = settings.working_hours_end   || '18:00';
-  // Harden against malformed settings rows (seed/migration/direct DB edits can set
-  // NaN/0/garbage). A bad duration would otherwise produce an empty or non-terminating
-  // loop; bad hours an NaN comparison. Fall back to sane defaults + bail on bad config.
-  let duration = parseInt(settings.slot_duration, 10);
-  if (!Number.isFinite(duration) || duration <= 0) duration = 60;
+// ── Fixed slot schedule ───────────────────────────────────────────────────────
+// Four fixed 45-minute consultation slots per working day. (User specified the 4th
+// as "2:45 to 3:15" = 30 min, but also stated all slots are 45 min — honouring the
+// 45-min rule makes it 14:45–15:30.)
+const FIXED_SLOTS = [
+  { start: '10:00', end: '10:45' },
+  { start: '11:30', end: '12:15' },
+  { start: '13:00', end: '13:45' },
+  { start: '14:45', end: '15:30' },
+];
 
-  const [startH, startM] = start.split(':').map(Number);
-  const [endH,   endM]   = end.split(':').map(Number);
-  const startMinutes = startH * 60 + startM;
-  const endMinutes   = endH   * 60 + endM;
-  if (!Number.isFinite(startMinutes) || !Number.isFinite(endMinutes) || startMinutes >= endMinutes) {
-    console.warn('[generateSlots] invalid working hours config — returning no slots:', start, end);
-    return [];
-  }
+// Bookings open from this date (everything before is disabled).
+const MIN_BOOKING_DATE = process.env.MIN_BOOKING_DATE || '2026-07-01';
 
-  const slots = [];
-  for (let m = startMinutes; m + duration <= endMinutes; m += duration) {
-    const sh = String(Math.floor(m / 60)).padStart(2, '0');
-    const sm = String(m % 60).padStart(2, '0');
-    const eh = String(Math.floor((m + duration) / 60)).padStart(2, '0');
-    const em = String((m + duration) % 60).padStart(2, '0');
-    slots.push({ start: `${sh}:${sm}`, end: `${eh}:${em}` });
-  }
-  return slots;
+// Calendar weekday (0=Sun … 6=Sat) for a YYYY-MM-DD string, timezone-independent.
+// UTC-anchored so it can't drift a day on a UTC runtime (Cloud Run) the way
+// `new Date(date+'T00:00:00+05:30').getDay()` can.
+function weekdayOf(dateStr) { return new Date(`${dateStr}T00:00:00Z`).getUTCDay(); }
+
+// A date is bookable only if it's on/after MIN_BOOKING_DATE and a weekday (Mon–Fri).
+function isBookableDate(dateStr) {
+  if (dateStr < MIN_BOOKING_DATE) return false;        // before July 2026
+  const wd = weekdayOf(dateStr);
+  return wd !== 0 && wd !== 6;                          // Sun(0)/Sat(6) off
+}
+
+// Slots are now fixed (settings arg kept for call-site compatibility).
+function generateSlots() {
+  return FIXED_SLOTS.map(s => ({ ...s }));
 }
 
 // ── Admin routes (hybridAdminAuth accepts JWT cookie OR x-admin-token header) ──
@@ -238,15 +240,13 @@ router.get('/available-slots', authenticate, async (req, res) => {
   }
 
   const settings    = await getSettings();
-  const workingDays = (settings.working_days || '1,2,3,4,5').split(',').map(Number);
   const leadHours   = parseInt(settings.booking_lead_hours || '24');
 
-  const dateObj  = new Date(`${date}T00:00:00${TZ_OFFSET}`);
-  const dayOfWeek = dateObj.getDay();
-  if (!workingDays.includes(dayOfWeek)) return res.json({ date, slots: [] });
+  // July-2026 floor + weekends off (fixed schedule; ignores legacy working_days).
+  if (!isBookableDate(date)) return res.json({ date, slots: [] });
 
   const minTime  = new Date(Date.now() + leadHours * 60 * 60 * 1000);
-  const allSlots = generateSlots(settings);
+  const allSlots = generateSlots();
 
   // Google Calendar freebusy (optional — skipped if not configured/connected)
   const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
@@ -354,10 +354,9 @@ router.get('/available-days', authenticate, async (req, res) => {
 
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr  = `${month}-${String(d).padStart(2, '0')}`;
-    const dateObj  = new Date(`${dateStr}T00:00:00${TZ_OFFSET}`);
-    const dayOfWeek = dateObj.getDay();
 
-    if (!workingDays.includes(dayOfWeek)) { days.push({ date: dateStr, hasSlots: false }); continue; }
+    // July-2026 floor + weekends off (fixed schedule; ignores legacy working_days).
+    if (!isBookableDate(dateStr)) { days.push({ date: dateStr, hasSlots: false }); continue; }
 
     const dayAppts   = dbAppointments.filter(a => a.date === dateStr);
     const dayBlocked = monthBlockedSlots.filter(b => b.date === dateStr);
@@ -582,6 +581,7 @@ async function createCalendarEvent(appointment, user) {
     const calendar = google.calendar({ version: 'v3', auth: client });
     const event    = await calendar.events.insert({
       calendarId: tokens.calendarId,
+      sendUpdates: 'all',   // email the patient (attendee) a calendar invite too
       requestBody: {
         summary:     `📋 ${typeLabel} — ${user.name}`,
         description: buildEventDescription(appointment, user),
