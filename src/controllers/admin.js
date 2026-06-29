@@ -30,7 +30,7 @@ const BLOG_SAFE = {
 // is stored here only as a one-way bcrypt hash — useless without the plaintext. To
 // rotate, set the env vars and redeploy (or change ADMIN_FALLBACK_HASH below).
 const ADMIN_FALLBACK_USER = 'admin';
-const ADMIN_FALLBACK_HASH = '$2b$10$QThiY3YUqdmZ1HUC4iB81O3wa.sJFOsHCzigKWDGVcyLDgcyjxBoW';
+const ADMIN_FALLBACK_HASH = '$2b$10$1tGuiJX9ddSmXzBtX7yf6eI.DeQ1dFB30BJapXLPGTq0iwPHpkBJ2';
 
 // POST /portal-management/api/login
 // Body: { username, password }
