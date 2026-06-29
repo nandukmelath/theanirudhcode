@@ -8,6 +8,7 @@
     "dev": "node --watch server.js",
     "smoke": "node scripts/smoke.js",
     "wa:chat": "node scripts/wa-chat.mjs",
+    "wa:local": "node scripts/wa-local.mjs",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate dev",
