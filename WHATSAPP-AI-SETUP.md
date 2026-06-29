@@ -44,7 +44,12 @@ emergency care; cannot take payments over chat (points to the website).
 | `WHATSAPP_VERIFY_TOKEN` | Any random string you choose; you paste the same one into Meta | make one up (e.g. `openssl rand -hex 16`) |
 | `WHATSAPP_APP_SECRET` | Meta App Secret — verifies webhook signatures | Meta → App → Settings → Basic → App Secret |
 | `WHATSAPP_ADMIN_NUMBER` | Dr. Anirudh's WhatsApp number for escalation pings (e.g. `9198XXXXXXXX`) | — |
-| `AI_AGENT_MODEL` | *(optional)* model override. Default `claude-haiku-4-5` (fast + cheap, right for FAQ). Set `claude-opus-4-8` for max quality. | — |
+| `AI_AGENT_MODEL` | *(optional)* Claude model override. Default `claude-haiku-4-5` (fast + cheap, right for FAQ). Set `claude-opus-4-8` for max quality. | — |
+| `AI_PROVIDER` | *(optional)* `anthropic` (default) or `groq`. | — |
+| `GROQ_API_KEY` | required if `AI_PROVIDER=groq` | console.groq.com → API Keys |
+| `GROQ_MODEL` | *(optional)* default `llama-3.3-70b-versatile` | — |
+
+**To test on Groq instead of Claude:** set `AI_PROVIDER=groq` + `GROQ_API_KEY`. The agent calls Groq's OpenAI-compatible endpoint in JSON mode; everything else (knowledge base, guardrails, escalation) is unchanged. Groq free retains data 30 days — fine for testing; switch providers before live patient traffic.
 
 > **`WHATSAPP_APP_SECRET` is required in production.** With `NODE_ENV=production` and no
 > app secret set, the webhook **rejects every inbound message (403)** and logs a startup

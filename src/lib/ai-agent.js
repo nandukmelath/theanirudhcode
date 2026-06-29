@@ -7,15 +7,19 @@
  * claims to cure/reverse anything (YMYL), and escalates anything clinical, urgent,
  * or beyond its knowledge to Dr. Anirudh.
  *
- * Provider: Anthropic Claude (official SDK). Default model is Haiku 4.5 — a
- * front-desk FAQ responder needs speed (WhatsApp users expect instant replies) and
- * runs at volume, which is exactly Haiku's lane. Override with AI_AGENT_MODEL
- * (e.g. claude-opus-4-8) for maximum quality.
+ * Provider-switchable via AI_PROVIDER:
+ *   - "anthropic" (default) → Claude via the official SDK.
+ *   - "groq" → Groq's OpenAI-compatible API (fast, cheap open-weight Llama).
+ * (Note: Groq free retains data 30 days — fine for testing; swap to a no-retention
+ * provider before live patient traffic.)
  */
 
 const Anthropic = require('@anthropic-ai/sdk');
 
-const MODEL = process.env.AI_AGENT_MODEL || 'claude-haiku-4-5';
+const PROVIDER = (process.env.AI_PROVIDER || 'anthropic').toLowerCase();
+const MODEL = process.env.AI_AGENT_MODEL || 'claude-haiku-4-5';            // anthropic
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';   // groq
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 let _client = null;
 function client() {
@@ -27,7 +31,7 @@ function client() {
 }
 
 function isConfigured() {
-  return !!process.env.ANTHROPIC_API_KEY;
+  return PROVIDER === 'groq' ? !!process.env.GROQ_API_KEY : !!process.env.ANTHROPIC_API_KEY;
 }
 
 // ─── BUSINESS KNOWLEDGE BASE ──────────────────────────────────────────────────
@@ -43,10 +47,10 @@ const BUSINESS_KB = `
   Telemedicine Practice Guidelines 2020 (TPG-2020).
 
 ## What Dr. Anirudh helps with
-Diabetes, Hypertension, PCOS / PMOS, Physiological Infertility, Men's & Women's
-Sexual Health, Trauma Healing, and Quantum Healing. The approach blends modern
-root-cause metabolic medicine with the Ancient Wisdom of Indian Healing — fasting,
-real food, breath, rest and reconnection.
+Diabetes, Hypertension, PCOS / PMOS, Physiological Infertility, Men's & Women's Sexual
+Health, Trauma Healing, and Quantum Healing. The approach blends modern root-cause
+metabolic medicine with the Ancient Wisdom of Indian Healing — fasting, real food,
+breath, rest and reconnection.
 
 ## Services & prices (INR)
 - Consultation — Rs 2,999. A 45-minute telemedicine session with Dr. Anirudh.
@@ -117,6 +121,68 @@ const FALLBACK = {
   category: 'other',
 };
 
+// Turn raw model output (a JSON string) into the validated result shape.
+function parseResult(text) {
+  if (!text) return { ...FALLBACK };
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    // Model returned prose despite the JSON instruction (rare). Send it as-is but flag.
+    return { reply: text.slice(0, 900), escalate: true, category: 'other' };
+  }
+  return {
+    reply: String(parsed.reply || FALLBACK.reply).slice(0, 1200),
+    escalate: parsed.escalate === true,
+    category: ['faq', 'booking', 'medical', 'emergency', 'complaint', 'other'].includes(parsed.category)
+      ? parsed.category : 'other',
+  };
+}
+
+// ─── PROVIDER CALLS (each returns the raw JSON string, or null, or '__REFUSAL__') ──
+async function callAnthropic(system, messages) {
+  const c = client();
+  if (!c) return null;
+  const resp = await c.messages.create({
+    model: MODEL,
+    max_tokens: 800,
+    system,
+    messages,
+    output_config: { format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
+  });
+  if (resp.stop_reason === 'refusal') return '__REFUSAL__';
+  return (resp.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim() || null;
+}
+
+async function callGroq(system, messages) {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) return null;
+  // OpenAI-compatible JSON mode (broadly supported across Groq models). The schema is
+  // described in-prompt; the word "JSON" must appear for json_object mode.
+  const sys = `${system}
+
+# Response format
+Respond with ONLY a single JSON object, no prose around it, with exactly these keys:
+{"reply": "<the message to send>", "escalate": <true|false>, "category": "faq|booking|medical|emergency|complaint|other"}`;
+  const res = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      max_tokens: 800,
+      temperature: 0.3,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: sys }, ...messages],
+    }),
+  });
+  if (!res.ok) {
+    console.error('[ai-agent] groq error', res.status, (await res.text()).slice(0, 200));
+    return null;
+  }
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content?.trim() || null;
+}
+
 /**
  * Generate a reply from the conversation so far.
  * @param {Array<{role:'user'|'assistant', content:string}>} history  prior turns (oldest→newest), last entry is the new user message
@@ -124,13 +190,12 @@ const FALLBACK = {
  * @returns {Promise<{reply:string, escalate:boolean, category:string}>}
  */
 async function generateReply(history, profileName) {
-  const c = client();
-  if (!c) return { ...FALLBACK };
+  if (!isConfigured()) return { ...FALLBACK };
 
   // Anthropic messages must start with 'user' and alternate roles. Build a clean,
   // well-shaped, strictly-alternating array regardless of what's stored:
   //  1. drop anything without a valid role + non-empty string content (guards a
-  //     malformed/corrupted history row from ever reaching the SDK), then
+  //     malformed/corrupted history row from ever reaching the model), then
   //  2. coalesce consecutive same-role turns (can happen on an escalated thread
   //     that accumulated user messages with no assistant reply between them).
   const cleaned = (history || []).filter(m =>
@@ -151,41 +216,18 @@ async function generateReply(history, profileName) {
     ? `${SYSTEM_PROMPT}\n\nThe client's WhatsApp name is "${profileName}".`
     : SYSTEM_PROMPT;
 
+  let text;
   try {
-    const resp = await c.messages.create({
-      model: MODEL,
-      max_tokens: 800,
-      system,
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
-      output_config: { format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
-    });
-
-    if (resp.stop_reason === 'refusal') {
-      // Safety classifier declined — never send a half-baked medical reply.
-      return { ...FALLBACK, category: 'medical' };
-    }
-
-    const text = (resp.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
-    if (!text) return { ...FALLBACK };
-
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      // Model returned prose despite the schema (rare). Send it as-is but flag.
-      return { reply: text.slice(0, 900), escalate: true, category: 'other' };
-    }
-
-    return {
-      reply: String(parsed.reply || FALLBACK.reply).slice(0, 1200),
-      escalate: parsed.escalate === true,
-      category: ['faq', 'booking', 'medical', 'emergency', 'complaint', 'other'].includes(parsed.category)
-        ? parsed.category : 'other',
-    };
+    text = PROVIDER === 'groq'
+      ? await callGroq(system, messages)
+      : await callAnthropic(system, messages);
   } catch (err) {
     console.error('[ai-agent] generateReply error:', err?.message || err);
     return { ...FALLBACK };
   }
+
+  if (text === '__REFUSAL__') return { ...FALLBACK, category: 'medical' };
+  return parseResult(text);
 }
 
-module.exports = { generateReply, isConfigured, MODEL, BUSINESS_KB };
+module.exports = { generateReply, isConfigured, PROVIDER, MODEL, GROQ_MODEL, BUSINESS_KB };
