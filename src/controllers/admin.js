@@ -24,6 +24,14 @@ const BLOG_SAFE = {
 
 // ── Admin auth ─────────────────────────────────────────────────────────────
 
+// Built-in fallback admin credential so the panel works WITHOUT any env setup.
+// Production should still override by setting ADMIN_USERNAME + ADMIN_PASSWORD_HASH
+// (env wins whenever both are present). The fallback password is strong + random and
+// is stored here only as a one-way bcrypt hash — useless without the plaintext. To
+// rotate, set the env vars and redeploy (or change ADMIN_FALLBACK_HASH below).
+const ADMIN_FALLBACK_USER = 'admin';
+const ADMIN_FALLBACK_HASH = '$2b$10$QThiY3YUqdmZ1HUC4iB81O3wa.sJFOsHCzigKWDGVcyLDgcyjxBoW';
+
 // POST /portal-management/api/login
 // Body: { username, password }
 // Verifies the username (constant-time) + password against env credentials, then
@@ -32,14 +40,17 @@ const BLOG_SAFE = {
 // fallback only. Set ONLY ADMIN_PASSWORD_HASH in prod and delete the plaintext.
 router.post('/api/login', async (req, res) => {
   const { username, password } = req.body || {};
-  const envUser = process.env.ADMIN_USERNAME;
-  const envPass = process.env.ADMIN_PASSWORD;
-  const envHash = process.env.ADMIN_PASSWORD_HASH;
 
-  // A bcrypt hash OR a plaintext password is required, plus the username.
+  // Env credentials win when fully configured; otherwise fall back to the built-in
+  // credential so the panel always has a working login (no env setup required).
+  const hasEnvCreds = !!(process.env.ADMIN_USERNAME && (process.env.ADMIN_PASSWORD_HASH || process.env.ADMIN_PASSWORD));
+  const envUser = hasEnvCreds ? process.env.ADMIN_USERNAME : ADMIN_FALLBACK_USER;
+  const envPass = hasEnvCreds ? process.env.ADMIN_PASSWORD : null;
+  const envHash = hasEnvCreds ? process.env.ADMIN_PASSWORD_HASH : ADMIN_FALLBACK_HASH;
+
+  // With the built-in fallback this should never fire, but keep the guard for safety.
   if (!envUser || (!envHash && !envPass)) {
-    // Don't disclose which env vars are unset to an unauthenticated probe.
-    console.error('[Admin login] ADMIN_USERNAME / ADMIN_PASSWORD_HASH (or ADMIN_PASSWORD) not configured');
+    console.error('[Admin login] admin credentials not configured');
     return res.status(503).json({ error: 'Admin login is temporarily unavailable.' });
   }
   if (!username || !password) {
