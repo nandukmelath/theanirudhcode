@@ -51,7 +51,47 @@ WhatsApp **+91 6309786677** from any phone:
   doctor's number gets a `🔔 Needs you` ping.
 
 ## Notes
-- A free cloudflared URL **changes every restart** — re-paste it into Meta if you
-  restart the tunnel. For a permanent URL, deploy to Cloud Run (see `WHATSAPP-AI-SETUP.md`).
+- A **quick** tunnel URL (`cloudflared tunnel --url …`) changes every restart. For a
+  **stable** URL you paste into Meta once, set up a named tunnel ↓.
 - Tune answers without WhatsApp anytime: `npm run wa:chat`.
 - Keep the laptop + both terminals running while testing — close them and the bot is offline.
+
+---
+
+# Stable named tunnel (URL never changes)
+
+Gives a fixed `https://wa.theanirudhcode.com/webhook/whatsapp` — wire Meta once, restart
+freely. Works because theanirudhcode.com is already on Cloudflare. One-time setup:
+
+```bash
+# 1. Log in (browser opens → pick the theanirudhcode.com zone)  ── YOUR action (OAuth)
+cloudflared login
+
+# 2. Create the tunnel — prints a UUID and writes a credentials .json to ~/.cloudflared
+cloudflared tunnel create theanirudhcode-wa
+
+# 3. Point a subdomain at it (creates the CNAME in Cloudflare DNS automatically)
+cloudflared tunnel route dns theanirudhcode-wa wa.theanirudhcode.com
+
+# 4. Make the config
+cp cloudflared/config.example.yml cloudflared/config.yml
+#    → edit cloudflared/config.yml: paste the UUID + the credentials-file path from step 2
+
+# 5. Run it (terminal 2, instead of the quick tunnel)
+npm run wa:tunnel
+#    = cloudflared tunnel run --config cloudflared/config.yml theanirudhcode-wa
+```
+
+Now the webhook URL is permanent:
+- **Meta → WhatsApp → Configuration → Callback URL:** `https://wa.theanirudhcode.com/webhook/whatsapp`
+- Verify token: `3279d2d88cdb6443b44c8615b288651fca4b0a81` → subscribe `messages`. Never re-paste again.
+
+### Auto-start on boot (so it survives restarts)
+Install the tunnel as a Windows service (run an elevated terminal):
+```bash
+cloudflared service install --config "C:\Users\nandu\theanirudhcode\cloudflared\config.yml"
+```
+The tunnel then starts with Windows. To keep the **server** (`npm start`) always up too,
+run it under pm2: `npm i -g pm2 && pm2 start server.js --name theanirudhcode && pm2 save`.
+(Or just run both manually when you want the bot online — for a permanent always-on
+setup, deploying to Cloud Run is cleaner; see `WHATSAPP-AI-SETUP.md`.)

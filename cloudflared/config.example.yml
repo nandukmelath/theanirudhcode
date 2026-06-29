@@ -1,0 +1,16 @@
+# Named cloudflared tunnel for the WhatsApp agent — gives a STABLE public URL
+# (https://wa.theanirudhcode.com) that never changes across restarts.
+#
+# Copy this to cloudflared/config.yml and fill in your tunnel UUID + credentials path
+# (both printed by `cloudflared tunnel create theanirudhcode-wa`). See LOCAL-WHATSAPP.md
+# → "Stable named tunnel" for the full step-by-step.
+
+tunnel: REPLACE_WITH_TUNNEL_UUID
+credentials-file: C:\Users\nandu\.cloudflared\REPLACE_WITH_TUNNEL_UUID.json
+
+ingress:
+  # Public hostname → your locally-running server (npm start, port 3000).
+  - hostname: wa.theanirudhcode.com
+    service: http://localhost:3000
+  # Everything else 404s.
+  - service: http_status:404

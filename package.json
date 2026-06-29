@@ -9,6 +9,7 @@
     "smoke": "node scripts/smoke.js",
     "wa:chat": "node scripts/wa-chat.mjs",
     "wa:local": "node scripts/wa-local.mjs",
+    "wa:tunnel": "cloudflared tunnel run --config cloudflared/config.yml theanirudhcode-wa",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate dev",
