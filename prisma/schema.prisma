@@ -283,3 +283,25 @@ model BlockedSlot {
   @@index([date])
   @@map("blocked_slots")
 }
+
+// WhatsApp AI front-desk agent — per-client conversation memory.
+// `history` is a JSON array of {role:'user'|'assistant', content:string}, capped to
+// the last few turns. `escalated` = a human (Dr. Anirudh) took the thread over, so
+// the bot stays quiet on it.
+model WaConversation {
+  phone       String   @id
+  history     Json     @default("[]")
+  escalated   Boolean  @default(false)
+  lastInbound DateTime? @map("last_inbound")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("wa_conversations")
+}
+
+// Idempotency for inbound webhooks — Meta can deliver the same message id twice.
+model WaProcessedMessage {
+  id        String   @id
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("wa_processed_messages")
+}
