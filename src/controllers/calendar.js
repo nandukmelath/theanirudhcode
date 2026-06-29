@@ -574,6 +574,22 @@ async function createCalendarEvent(appointment, user) {
   const tokens = await prisma.googleToken.findUnique({ where: { id: 1 } });
   if (!tokens?.refreshToken || !tokens?.calendarId) return null;
 
+  // The Google Calendar reflects ONLY paid bookings. Re-read the appointment's payment
+  // status from the DB (the single source of truth) so no caller can place an unpaid
+  // booking on the calendar — e.g. the admin manual /book path creates a
+  // paymentStatus='pending' row, which must NOT appear on the calendar. Every gateway
+  // path (Cashfree verify, Stripe webhook, test/complete) writes paymentStatus='paid'
+  // before calling this, so confirmed paid bookings still get their event + invite.
+  if (appointment.id) {
+    const row = await prisma.appointment.findUnique({
+      where: { id: appointment.id }, select: { paymentStatus: true }
+    });
+    if (!row || row.paymentStatus !== 'paid') {
+      console.log(`[Calendar] skip event — appointment ${appointment.id} not paid (status: ${row?.paymentStatus || 'missing'})`);
+      return null;
+    }
+  }
+
   const typeLabel = CONSULTATION_LABELS[appointment.consultation_type] || 'Consultation';
 
   try {
@@ -648,7 +664,7 @@ router.post('/backfill-events', hybridAdminAuth, async (req, res) => {
   if (!tokens?.refreshToken || !tokens?.calendarId) return res.status(400).json({ error: 'Google Calendar not connected or no calendar selected' });
 
   const appointments = await prisma.appointment.findMany({
-    where:   { status: 'confirmed', googleEventId: null },
+    where:   { status: 'confirmed', paymentStatus: 'paid', googleEventId: null },
     include: { user: { select: { id: true, name: true, email: true, phone: true } } }
   });
 

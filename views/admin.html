@@ -256,11 +256,15 @@ button:not(.hamburger):not(.modal-close):not(.mclose):not(.auth-close):not(.btn-
 
       <!-- Slot Manager -->
       <div style="margin-top:36px;border-top:1px solid var(--line);padding-top:28px">
-        <div class="section-title" style="font-size:18px;margin-bottom:6px">Slot Manager</div>
-        <div class="section-desc" style="margin-bottom:20px">Open and close individual booking slots. Patients can only book open (green) slots. Closing a slot also blocks it in Google Calendar when connected.</div>
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px">
+        <div class="section-title" style="font-size:18px;margin-bottom:6px">Availability &amp; Slot Manager</div>
+        <div class="section-desc" style="margin-bottom:20px">Pick a day, then turn the whole day on/off or open/close each of the four consultation slots individually. Patients can only book open (green) slots. Changes also block/unblock Google Calendar when connected.</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
           <input type="date" id="slot-date" class="setting-input" style="max-width:200px">
           <button class="save-btn" id="load-slots-btn" style="margin-top:0">Load Slots</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="action-btn" data-action="open-day" style="border-color:rgba(111,191,115,.4);color:#6fbf73;font-size:11px">✓ Open all slots (day on)</button>
+          <button class="action-btn" data-action="close-day" style="border-color:rgba(200,115,58,.4);color:var(--amber);font-size:11px">✕ Close entire day (day off)</button>
         </div>
         <p style="font-size:11px;color:var(--faint);margin-bottom:16px;letter-spacing:.04em">
           🟢 Open &nbsp;|&nbsp; 🔴 Booked (patient) &nbsp;|&nbsp; 🟡 Closed (you blocked) &nbsp;|&nbsp; ⬛ External (GCal event)

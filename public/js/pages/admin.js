@@ -37,6 +37,8 @@ document.addEventListener('click', e => {
   if (e.target.matches('[data-action="toggle-post"]'))     togglePost(parseInt(e.target.dataset.id), e.target.dataset.published === 'true');
   if (e.target.matches('[data-action="block-slot"]'))      blockSlot(e.target);
   if (e.target.matches('[data-action="unblock-slot"]'))    unblockSlot(e.target);
+  if (e.target.matches('[data-action="close-day"]'))       setWholeDay(e.target, false);
+  if (e.target.matches('[data-action="open-day"]'))        setWholeDay(e.target, true);
 });
 document.addEventListener('change', e => {
   if (e.target.matches('[data-action="update-status"]')) updateStatus(parseInt(e.target.dataset.id), e.target.value);
@@ -535,6 +537,38 @@ async function loadSlots() {
     }
   } catch {
     grid.innerHTML = '<p style="color:var(--amber);font-size:13px">Failed to load slots. Check connection.</p>';
+  }
+}
+
+// Turn a whole day on (open every closed slot) or off (close every open slot).
+// Reuses the per-slot block/unblock endpoints; booked slots are left untouched.
+async function setWholeDay(btn, open) {
+  const date = document.getElementById('slot-date').value;
+  if (!date) { showAlert('Pick a date first', 'error'); return; }
+  if (!open && !confirm('Close the ENTIRE day? All open slots become unbookable (existing patient bookings are kept).')) return;
+
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = open ? 'Opening day…' : 'Closing day…';
+  try {
+    const res  = await fetch(`/api/calendar/admin/slots?date=${date}`, { headers: getHeaders() });
+    const data = await res.json();
+    const slots = (data && data.slots) || [];
+    let changed = 0;
+    for (const slot of slots) {
+      if (open && slot.status === 'blocked') {
+        const r = await fetch('/api/calendar/admin/unblock', { method: 'DELETE', headers: getHeaders(), body: JSON.stringify({ date, timeStart: slot.start }) });
+        if (r.ok) changed++;
+      } else if (!open && slot.status === 'available') {
+        const r = await fetch('/api/calendar/admin/block', { method: 'POST', headers: getHeaders(), body: JSON.stringify({ date, timeStart: slot.start, timeEnd: slot.end }) });
+        if (r.ok) changed++;
+      }
+    }
+    showAlert(open ? `Day opened — ${changed} slot(s) now bookable` : `Day closed — ${changed} slot(s) blocked`, 'success');
+    loadSlots();
+  } catch {
+    showAlert('Failed to update the day. Check connection.', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = original;
   }
 }
 
