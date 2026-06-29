@@ -11,6 +11,15 @@ if (!process.env.DATABASE_URL) {
   console.error('FATAL: DATABASE_URL env var is missing.');
   process.exit(1);
 }
+// Non-fatal: the WhatsApp AI agent is additive — without its key it safely escalates
+// every message to the doctor instead of auto-replying. Warn so a forgotten env var
+// is visible in the boot logs rather than silently disabling the auto-responder.
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.warn('[startup] ANTHROPIC_API_KEY not set — WhatsApp AI agent will escalate every message to the doctor instead of auto-replying.');
+}
+if (process.env.NODE_ENV === 'production' && !(process.env.WHATSAPP_APP_SECRET || process.env.WA_APP_SECRET)) {
+  console.warn('[startup] WHATSAPP_APP_SECRET not set in production — the WhatsApp webhook will REJECT all inbound messages until it is configured.');
+}
 
 const express = require('express');
 const cors    = require('cors');
@@ -107,6 +116,18 @@ async function runPaymentMigration() {
     // Full bio fields — occupation + health concerns (JSON array)
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS occupation TEXT`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS health_concerns TEXT`,
+    // WhatsApp AI front-desk agent: per-client conversation memory + inbound dedupe.
+    `CREATE TABLE IF NOT EXISTS wa_conversations (
+      phone TEXT PRIMARY KEY,
+      history JSONB NOT NULL DEFAULT '[]',
+      escalated BOOLEAN NOT NULL DEFAULT false,
+      last_inbound TIMESTAMPTZ,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )`,
+    `CREATE TABLE IF NOT EXISTS wa_processed_messages (
+      id TEXT PRIMARY KEY,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`,
   ];
   // Per-statement resilience: one failing statement (e.g. a unique index that hits
   // pre-existing duplicate rows) must not abort the remaining migrations.
@@ -243,7 +264,7 @@ app.use((req, res, next) => {
 const crypto = require('crypto');
 const ORIGIN_SHARED_SECRET = process.env.ORIGIN_SHARED_SECRET;
 if (ORIGIN_SHARED_SECRET) {
-  const WEBHOOK_PATHS = ['/api/payments/cashfree/webhook', '/api/payments/stripe/webhook'];
+  const WEBHOOK_PATHS = ['/api/payments/cashfree/webhook', '/api/payments/stripe/webhook', '/webhook/whatsapp'];
   const secretBuf = Buffer.from(ORIGIN_SHARED_SECRET);
   app.use((req, res, next) => {
     if (WEBHOOK_PATHS.includes(req.path)) return next();
@@ -263,6 +284,10 @@ if (ORIGIN_SHARED_SECRET) {
 // Raw body for webhook routes — MUST be before express.json()
 app.use('/api/payments/stripe/webhook',   express.raw({ type: 'application/json' }));
 app.use('/api/payments/cashfree/webhook', express.raw({ type: 'application/json' }));
+// WhatsApp Cloud API webhook — raw body so the X-Hub-Signature-256 HMAC can be
+// verified against Meta's exact bytes. Mounted outside /api so it skips the
+// JSON-only CSRF guard, CORS, and the 100/15min API rate limiter (Meta bursts).
+app.use('/webhook/whatsapp', express.raw({ type: 'application/json', limit: '256kb' }));
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
@@ -337,6 +362,26 @@ app.use('/api/appointments', require('./src/controllers/appointments'));
 app.use('/api/payments', require('./src/controllers/payments'));
 app.use('/api/calendar', require('./src/controllers/calendar'));
 app.use('/portal-management', require('./src/controllers/admin'));
+
+// Per-sender rate limit on the WhatsApp webhook. It's mounted outside /api so it
+// skips the general limiter, but each inbound message triggers a paid Claude call —
+// cap a single phone number to bound cost/abuse. Keyed on the sender's wa_id parsed
+// from the raw body (express.raw already populated req.body above). GET (Meta's
+// verification handshake) is exempt. Meta's own retries are deduped at the DB layer.
+app.use('/webhook/whatsapp', limit({
+  windowMs: 60 * 1000,
+  max: 30,
+  skip: (req) => req.method === 'GET',
+  keyGenerator: (req) => {
+    try {
+      const raw = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : req.body;
+      const p = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return p?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.from || clientKey(req);
+    } catch { return clientKey(req); }
+  },
+  message: { error: 'Too many messages. Please try again shortly.' },
+}));
+app.use('/webhook/whatsapp', require('./src/controllers/whatsapp'));
 
 // View pages
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'views', 'login.html')));

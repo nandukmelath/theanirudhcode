@@ -6,3 +6,7 @@ database/
 *.db
 *.db-shm
 *.db-wal
+# cloudflared named-tunnel: keep the example, never commit the real config or creds
+cloudflared/config.yml
+cloudflared/*.json
+.cloudflared/
