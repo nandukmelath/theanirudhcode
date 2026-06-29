@@ -19,6 +19,57 @@ backend.
 - `GET` → Meta verification handshake.
 - `POST` → incoming messages → AI reply.
 
+## What makes it dope
+- **Read receipts + typing indicator** — the moment a message arrives, it's marked read
+  (blue ticks) and shows "typing…" while the model thinks. Feels instant + alive.
+- **Tappable welcome** — a brand-new chat that opens with a greeting ("hi"/"namaste"/…)
+  gets a warm welcome and 3 quick-reply buttons: 💰 Prices · 📅 Book a consult ·
+  📖 Free 7-day guide. Tapping a button flows back as text and the agent answers it.
+- **Multilingual** — replies in the client's language (English / Hindi / Hinglish / Telugu).
+- **Provider-switchable** — `AI_PROVIDER=anthropic` (Claude, default) or `groq` for testing.
+
+## Test the bot right now — no WhatsApp / Meta needed
+```bash
+# Claude:
+ANTHROPIC_API_KEY=sk-ant-... npm run wa:chat
+# Groq:
+AI_PROVIDER=groq GROQ_API_KEY=gsk_... npm run wa:chat
+```
+Chat with the agent's brain in your terminal to tune answers + the knowledge base before
+it ever touches WhatsApp. (No key → it shows the safe fallback path.)
+
+## 🔑 Go live on your business WhatsApp (theanirudhcode) — ~10 min
+You enter your own secrets — never paste tokens/keys into chat; they go straight into
+Cloud Run. Three steps:
+
+**1. Deploy with your env vars** (fill the placeholders with YOUR values):
+```bash
+gcloud auth login                       # account: dranirudh@theanirudhcode.com (browser)
+gcloud run deploy theanirudhcode --source . --region asia-south1 --project animated-vector-496120-b2 \
+  --set-env-vars NODE_ENV=production,\
+ANTHROPIC_API_KEY=YOUR_CLAUDE_KEY,\
+WHATSAPP_PHONE_ID=YOUR_PHONE_ID,\
+WHATSAPP_TOKEN=YOUR_PERMANENT_TOKEN,\
+WHATSAPP_VERIFY_TOKEN=3279d2d88cdb6443b44c8615b288651fca4b0a81,\
+WHATSAPP_APP_SECRET=YOUR_APP_SECRET,\
+WHATSAPP_ADMIN_NUMBER=91XXXXXXXXXX
+```
+(To test on Groq instead: add `AI_PROVIDER=groq,GROQ_API_KEY=YOUR_GROQ_KEY`.)
+
+**2. Wire the webhook in Meta** (developers.facebook.com → your app → WhatsApp → Configuration):
+- Callback URL: `https://theanirudhcode.com/webhook/whatsapp`
+- Verify token: `3279d2d88cdb6443b44c8615b288651fca4b0a81`
+- Click **Verify and save**, then subscribe to the **`messages`** field.
+
+**3. Verify it's live** — from any phone, WhatsApp your business number "hi" → you should
+get the welcome + 3 buttons within a second. Send "how much is a consultation?" → it
+replies Rs 2,999 + the booking link. Send "should I stop my metformin?" → it declines to
+advise and Dr. Anirudh gets a `🔔 Needs you` ping.
+
+> I can't run step 1 or 2 for you — they need your Meta account, your secrets, and a
+> browser OAuth login (`gcloud auth login`), which I'm not able to do. The commands above
+> are copy-paste; you fill in your own values.
+
 ## How it behaves
 
 1. Client messages the WhatsApp Business number.

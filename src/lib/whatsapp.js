@@ -6,7 +6,7 @@
 
 const axios = require('axios');
 
-const WA_BASE = 'https://graph.facebook.com/v19.0';
+const WA_BASE = 'https://graph.facebook.com/v21.0';
 
 function phoneId() {
   return process.env.WHATSAPP_PHONE_ID || process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.WA_PHONE_NUMBER_ID;
@@ -55,6 +55,48 @@ async function sendText(to, body) {
   } catch (err) {
     console.error('[WhatsApp] Error:', err.response?.data?.error?.message || err.message);
     return false;
+  }
+}
+
+// Mark an inbound message as read + show the "typing…" indicator while the agent
+// thinks. Makes the bot feel instant + alive. Non-critical — failures are swallowed.
+async function markReadTyping(messageId) {
+  if (!isConfigured() || !messageId) return false;
+  try {
+    await axios.post(
+      `${WA_BASE}/${phoneId()}/messages`,
+      { messaging_product: 'whatsapp', status: 'read', message_id: messageId, typing_indicator: { type: 'text' } },
+      { headers: { Authorization: `Bearer ${accessToken()}`, 'Content-Type': 'application/json' } }
+    );
+    return true;
+  } catch { return false; }
+}
+
+// Send an interactive message with up to 3 quick-reply buttons. Tapping a button
+// sends its title back as a normal message (the webhook reads it as text), so the
+// agent answers it. titles are clipped to WhatsApp's 20-char limit.
+async function sendButtons(to, body, buttons) {
+  if (!isConfigured()) { console.log('[WhatsApp NOT CONFIGURED] buttons skipped'); return false; }
+  const phone = formatPhone(to);
+  if (!phone) { console.warn('[WhatsApp] Invalid phone:', to); return false; }
+  try {
+    await axios.post(
+      `${WA_BASE}/${phoneId()}/messages`,
+      {
+        messaging_product: 'whatsapp', recipient_type: 'individual', to: phone, type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text: body },
+          action: { buttons: (buttons || []).slice(0, 3).map((b, i) => ({ type: 'reply', reply: { id: b.id || `btn_${i}`, title: String(b.title).slice(0, 20) } })) },
+        },
+      },
+      { headers: { Authorization: `Bearer ${accessToken()}`, 'Content-Type': 'application/json' } }
+    );
+    return true;
+  } catch (err) {
+    console.error('[WhatsApp] buttons error:', err.response?.data?.error?.message || err.message);
+    // Fall back to a plain text send so the user still gets the message.
+    return sendText(to, body);
   }
 }
 
@@ -264,6 +306,8 @@ async function sendAdminAppointmentReminder1h(appointment, patient) {
 module.exports = {
   isConfigured,
   sendText,
+  markReadTyping,
+  sendButtons,
   sendOtpWhatsApp,
   sendBookingConfirmation,
   sendAdminNewBooking,

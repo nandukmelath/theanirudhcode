@@ -135,6 +135,10 @@ async function handleMessage(msg, profileName) {
     return;
   }
 
+  // Blue ticks + "typing…" the moment we pick the message up — makes the bot feel
+  // instant and alive while the model thinks. Fire-and-forget (non-critical).
+  wa.markReadTyping(msgId).catch(() => {});
+
   // Only auto-handle text. For media/other, send a gentle nudge and escalate-free.
   let text;
   if (msg.type === 'text') {
@@ -152,14 +156,31 @@ async function handleMessage(msg, profileName) {
   }
 
   const convo = await loadConversation(from);
+  const history = Array.isArray(convo.history) ? convo.history : [];
+  const isFirstContact = history.length === 0;
 
   // Once a thread is escalated, the bot stays silent so it never talks over Dr.
   // Anirudh / the team. We still record the message for context.
-  const history = Array.isArray(convo.history) ? convo.history : [];
   history.push({ role: 'user', content: text });
 
   if (convo.escalated) {
     await saveConversation(from, trim(history), true);
+    return;
+  }
+
+  // Dope first impression: a brand-new chat that opens with a bare greeting gets a
+  // warm welcome + 3 tappable quick-reply buttons (tapping sends the title back as
+  // text, which the agent then answers). Real questions skip straight to the AI.
+  if (isFirstContact && isGreeting(text)) {
+    const first = profileName ? ' ' + profileName.split(' ')[0] : '';
+    const welcome = `Hi${first}! 👋 I'm Dr. Anirudh's assistant at *theanirudhcode*. I can help with consultations, our fasting program, timings, and the free 7-day guide. What would you like to know?`;
+    await wa.sendButtons(from, welcome, [
+      { id: 'prices', title: '💰 Prices' },
+      { id: 'book', title: '📅 Book a consult' },
+      { id: 'guide', title: '📖 Free 7-day guide' },
+    ]);
+    history.push({ role: 'assistant', content: welcome });
+    await saveConversation(from, trim(history), false);
     return;
   }
 
@@ -177,6 +198,13 @@ async function handleMessage(msg, profileName) {
 
 function trim(history) {
   return history.slice(-MAX_HISTORY);
+}
+
+// A bare greeting (not a real question) → show the welcome menu instead of the AI.
+function isGreeting(text) {
+  const t = text.toLowerCase().trim().replace(/[!.?]+$/, '');
+  if (t.length <= 4) return true; // "hi", "hey", "yo", "hii"
+  return /^(hi+|hey+|hello+|hai+|yo|start|menu|namaste|namaskar|namaskaram|vanakkam|salaam|hola|good\s*(morning|afternoon|evening)|hi there|hello there)$/.test(t);
 }
 
 async function loadConversation(phone) {
