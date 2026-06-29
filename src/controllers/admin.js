@@ -40,52 +40,34 @@ const ADMIN_FALLBACK_HASH = '$2b$10$1tGuiJX9ddSmXzBtX7yf6eI.DeQ1dFB30BJapXLPGTq0
 // fallback only. Set ONLY ADMIN_PASSWORD_HASH in prod and delete the plaintext.
 router.post('/api/login', async (req, res) => {
   const { username, password } = req.body || {};
-
-  // Env credentials win when fully configured; otherwise fall back to the built-in
-  // credential so the panel always has a working login (no env setup required).
-  const hasEnvCreds = !!(process.env.ADMIN_USERNAME && (process.env.ADMIN_PASSWORD_HASH || process.env.ADMIN_PASSWORD));
-  const envUser = hasEnvCreds ? process.env.ADMIN_USERNAME : ADMIN_FALLBACK_USER;
-  const envPass = hasEnvCreds ? process.env.ADMIN_PASSWORD : null;
-  const envHash = hasEnvCreds ? process.env.ADMIN_PASSWORD_HASH : ADMIN_FALLBACK_HASH;
-
-  // With the built-in fallback this should never fire, but keep the guard for safety.
-  if (!envUser || (!envHash && !envPass)) {
-    console.error('[Admin login] admin credentials not configured');
-    return res.status(503).json({ error: 'Admin login is temporarily unavailable.' });
-  }
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password required' });
   }
 
-  // Constant-time username compare. Pad shorter buffers with a zero byte so
-  // timingSafeEqual never throws on length mismatch; AND in an exact-length check.
-  const uBuf = Buffer.from(username);
-  const eBuf = Buffer.from(envUser);
-  const maxULen = Math.max(uBuf.length, eBuf.length) + 1;
-  const uA = Buffer.concat([uBuf, Buffer.alloc(maxULen - uBuf.length)]);
-  const uB = Buffer.concat([eBuf, Buffer.alloc(maxULen - eBuf.length)]);
-  const uMatch = crypto.timingSafeEqual(uA, uB) && uBuf.length === eBuf.length;
+  // Constant-time string compare (length-equality + padded timingSafeEqual).
+  const ctEq = (a, b) => {
+    const x = Buffer.from(String(a)), y = Buffer.from(String(b));
+    const max = Math.max(x.length, y.length) + 1;
+    return x.length === y.length && crypto.timingSafeEqual(
+      Buffer.concat([x, Buffer.alloc(max - x.length)]),
+      Buffer.concat([y, Buffer.alloc(max - y.length)]));
+  };
 
-  // Password compare: bcrypt when a hash is configured (preferred), otherwise a
-  // constant-time compare against the plaintext dev fallback.
-  let pMatch;
-  if (envHash) {
-    try {
-      pMatch = await bcrypt.compare(password, envHash);
-    } catch (e) {
-      console.error('[Admin login] ADMIN_PASSWORD_HASH compare failed (is it a valid bcrypt hash?):', e.message);
-      return res.status(503).json({ error: 'Admin login is temporarily unavailable.' });
-    }
-  } else {
-    const pBuf  = Buffer.from(password);
-    const epBuf = Buffer.from(envPass);
-    const maxPLen = Math.max(pBuf.length, epBuf.length) + 1;
-    const pA = Buffer.concat([pBuf,  Buffer.alloc(maxPLen - pBuf.length)]);
-    const pB = Buffer.concat([epBuf, Buffer.alloc(maxPLen - epBuf.length)]);
-    pMatch = crypto.timingSafeEqual(pA, pB) && pBuf.length === epBuf.length;
+  // A login succeeds if it matches EITHER the env-configured credential (when set in
+  // Cloud Run / Secret Manager) OR the built-in credential. Keeping the built-in
+  // always-valid guarantees a known working login even when env creds exist but their
+  // value is unknown. To make the built-in the ONLY credential, unset the env vars.
+  async function matches(user, hash, plain) {
+    if (!user || !ctEq(username, user)) return false;
+    if (hash) { try { return await bcrypt.compare(password, hash); } catch { return false; } }
+    if (plain) return ctEq(password, plain);
+    return false;
   }
 
-  if (uMatch && pMatch) {
+  const envOk   = await matches(process.env.ADMIN_USERNAME, process.env.ADMIN_PASSWORD_HASH, process.env.ADMIN_PASSWORD);
+  const bakedOk = await matches(ADMIN_FALLBACK_USER, ADMIN_FALLBACK_HASH, null);
+
+  if (envOk || bakedOk) {
     const token = generateAdminToken(username);
     res.cookie('admin_token', token, ADMIN_COOKIE_OPTIONS);
     return res.json({ success: true });
